@@ -54,4 +54,19 @@ return [
         'pdf_storage_disk' => env('DECLARATIONS_PDF_DISK', 'local'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Scheduler heartbeat (Chantier B / B3)
+    |--------------------------------------------------------------------------
+    |
+    | The control-reminder cron updates a heartbeat hourly. If the last run is
+    | older than this many minutes, the UI raises a "scheduler dead" warning so
+    | a stopped cron is caught within hours (ADR-0008). Hourly ticks + a 3h
+    | threshold tolerate one or two missed ticks without false positives.
+    */
+
+    'scheduler' => [
+        'heartbeat_stale_minutes' => (int) env('SCHEDULER_HEARTBEAT_STALE_MINUTES', 180),
+    ],
+
 ];

@@ -39,6 +39,21 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
         return Vehicle::query()->exists();
     }
 
+    public function findActiveForReminderScan(CarbonImmutable $today): Collection
+    {
+        return Vehicle::query()
+            ->activeAt($today)
+            ->get([
+                'id',
+                'license_plate',
+                'exit_date',
+                'first_origin_registration_date',
+                'first_french_registration_date',
+                'acquisition_date',
+                'first_economic_use_date',
+            ]);
+    }
+
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

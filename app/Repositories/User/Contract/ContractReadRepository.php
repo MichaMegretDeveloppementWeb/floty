@@ -8,7 +8,9 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Data\Shared\Listing\SortDirection;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Services\Contract\ContractQueryService;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -153,6 +155,23 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->orderBy('start_date')
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * @return array<int, Driver>
+     */
+    public function driversForVehicleOnDate(int $vehicleId, CarbonImmutable $date): array
+    {
+        return Contract::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('start_date', '<=', $date->toDateString())
+            ->where('end_date', '>=', $date->toDateString())
+            ->with('drivers:id,first_name,last_name,email')
+            ->get()
+            ->flatMap(static fn (Contract $contract): Collection => $contract->drivers)
+            ->unique('id')
+            ->values()
+            ->all();
     }
 
     public function findWindowContractsForVehicle(

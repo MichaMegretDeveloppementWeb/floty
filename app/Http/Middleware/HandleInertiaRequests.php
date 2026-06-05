@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Contracts\Repositories\User\Heartbeat\SchedulerHeartbeatReadRepositoryInterface;
 use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FlashData;
 use App\Data\Shared\ToastEntryData;
 use App\Data\User\Invoice\BulkInvoiceGenerationReportData;
 use App\Support\Toasts\ToastDispatcher;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 /**
@@ -58,7 +61,30 @@ final class HandleInertiaRequests extends Middleware
             'flash' => fn (): FlashData => $this->buildFlashData($request),
 
             'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
+
+            'schedulerHeartbeatStale' => fn (): bool => $this->resolveHeartbeatStale($request),
         ];
+    }
+
+    /**
+     * Whether the scheduler heartbeat is stale (cron likely dead), for the
+     * global warning banner (Chantier B / B3). Only meaningful for an
+     * authenticated user; cached 60s to keep the read off the hot path.
+     */
+    private function resolveHeartbeatStale(Request $request): bool
+    {
+        if ($request->user() === null) {
+            return false;
+        }
+
+        return Cache::remember(
+            'scheduler-heartbeat-stale',
+            60,
+            static fn (): bool => app(SchedulerHeartbeatReadRepositoryInterface::class)->isStale(
+                CarbonImmutable::now(),
+                (int) config('floty.scheduler.heartbeat_stale_minutes', 180),
+            ),
+        );
     }
 
     /**

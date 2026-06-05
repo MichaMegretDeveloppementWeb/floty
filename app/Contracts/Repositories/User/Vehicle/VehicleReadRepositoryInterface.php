@@ -6,6 +6,7 @@ namespace App\Contracts\Repositories\User\Vehicle;
 
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Models\Vehicle;
+use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -126,6 +127,15 @@ interface VehicleReadRepositoryInterface
      * Counts active vehicles (those with no `exit_date`).
      */
     public function countActive(): int;
+
+    /**
+     * Active vehicles at `$today` (ADR-0018 scopeActiveAt), with only the
+     * columns the control reminder scan needs (the four anchor dates + plate +
+     * exit_date). Chantier B / B3.
+     *
+     * @return Collection<int, Vehicle>
+     */
+    public function findActiveForReminderScan(CarbonImmutable $today): Collection;
 
     /**
      * Min/max bounds of first French registration years across all

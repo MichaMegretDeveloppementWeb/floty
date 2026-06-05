@@ -102,6 +102,12 @@ final readonly class EffectiveControlResolver
         $effectiveDaysBefore = $override?->reminder_days_before
             ?? $definition->reminder_days_before
             ?? $settings->days_before;
+        $effectiveOnDueDay = $override?->reminder_on_due_day
+            ?? $definition->reminder_on_due_day
+            ?? $settings->remind_on_due_day;
+        $effectiveRepeat = $override?->reminder_repeat_every_days
+            ?? $definition->reminder_repeat_every_days
+            ?? $settings->repeat_every_days;
 
         $nextDue = $this->schedule->nextDueDate(
             $this->anchorDate($vehicle, $anchor),
@@ -146,6 +152,9 @@ final readonly class EffectiveControlResolver
             reminderDaysBefore: $override?->reminder_days_before,
             reminderOnDueDay: $override?->reminder_on_due_day,
             reminderRepeatEveryDays: $override?->reminder_repeat_every_days,
+            effectiveReminderDaysBefore: $effectiveDaysBefore,
+            effectiveReminderOnDueDay: $effectiveOnDueDay,
+            effectiveReminderRepeatEveryDays: $effectiveRepeat,
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $effectiveDaysBefore, $exitDate),
             nextDueDate: $nextDue->toDateString(),
             lastExecutionDate: $lastExecution?->toDateString(),
@@ -173,6 +182,8 @@ final readonly class EffectiveControlResolver
         $anchor = $override->anchor;
         $lastExecution = $lastExecutions['ovr:'.$override->id] ?? null;
         $effectiveDaysBefore = $override->reminder_days_before ?? $settings->days_before;
+        $effectiveOnDueDay = $override->reminder_on_due_day ?? $settings->remind_on_due_day;
+        $effectiveRepeat = $override->reminder_repeat_every_days ?? $settings->repeat_every_days;
 
         $nextDue = $this->schedule->nextDueDate(
             $this->anchorDate($vehicle, $anchor),
@@ -205,6 +216,9 @@ final readonly class EffectiveControlResolver
             reminderDaysBefore: $override->reminder_days_before,
             reminderOnDueDay: $override->reminder_on_due_day,
             reminderRepeatEveryDays: $override->reminder_repeat_every_days,
+            effectiveReminderDaysBefore: $effectiveDaysBefore,
+            effectiveReminderOnDueDay: $effectiveOnDueDay,
+            effectiveReminderRepeatEveryDays: $effectiveRepeat,
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $effectiveDaysBefore, $exitDate),
             nextDueDate: $nextDue->toDateString(),
             lastExecutionDate: $lastExecution?->toDateString(),
@@ -224,7 +238,7 @@ final readonly class EffectiveControlResolver
     }
 
     /**
-     * @param  array<string, string>  $level0Includes  email => name
+     * @param  array<int, ControlRecipientData>  $level0Recipients
      * @return array<string, string>
      */
     private function baseRecipientMap(ControlReminderSettings $settings, array $level0Recipients): array

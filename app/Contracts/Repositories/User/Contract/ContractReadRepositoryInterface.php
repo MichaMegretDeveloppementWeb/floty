@@ -6,8 +6,10 @@ namespace App\Contracts\Repositories\User\Contract;
 
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,6 +26,15 @@ interface ContractReadRepositoryInterface
     public function findById(int $id): ?Contract;
 
     public function findByIdWithRelations(int $id): ?Contract;
+
+    /**
+     * Drivers (with their email) of the contract(s) active on `$date` for a
+     * vehicle, deduped by id. Used to inject the conductor into control
+     * reminders (Chantier B / B3).
+     *
+     * @return array<int, Driver>
+     */
+    public function driversForVehicleOnDate(int $vehicleId, CarbonImmutable $date): array;
 
     /**
      * Batch variant of {@see findByIdWithRelations} · loads in one query

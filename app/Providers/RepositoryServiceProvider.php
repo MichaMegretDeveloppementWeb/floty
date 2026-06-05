@@ -18,6 +18,8 @@ use App\Contracts\Repositories\User\Control\ControlExecutionDocumentReadReposito
 use App\Contracts\Repositories\User\Control\ControlExecutionDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlExecutionReadRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlExecutionWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlReminderLogReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlReminderLogWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlReminderSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlReminderSettingsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Control\VehicleControlOverrideReadRepositoryInterface;
@@ -31,6 +33,8 @@ use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWri
 use App\Contracts\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
+use App\Contracts\Repositories\User\Heartbeat\SchedulerHeartbeatReadRepositoryInterface;
+use App\Contracts\Repositories\User\Heartbeat\SchedulerHeartbeatWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
@@ -59,6 +63,8 @@ use App\Repositories\User\Control\ControlExecutionDocumentReadRepository;
 use App\Repositories\User\Control\ControlExecutionDocumentWriteRepository;
 use App\Repositories\User\Control\ControlExecutionReadRepository;
 use App\Repositories\User\Control\ControlExecutionWriteRepository;
+use App\Repositories\User\Control\ControlReminderLogReadRepository;
+use App\Repositories\User\Control\ControlReminderLogWriteRepository;
 use App\Repositories\User\Control\ControlReminderSettingsReadRepository;
 use App\Repositories\User\Control\ControlReminderSettingsWriteRepository;
 use App\Repositories\User\Control\VehicleControlOverrideReadRepository;
@@ -72,6 +78,8 @@ use App\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteReposito
 use App\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsReadRepository;
 use App\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
+use App\Repositories\User\Heartbeat\SchedulerHeartbeatReadRepository;
+use App\Repositories\User\Heartbeat\SchedulerHeartbeatWriteRepository;
 use App\Repositories\User\Invoice\InvoiceReadRepository;
 use App\Repositories\User\Invoice\InvoiceWriteRepository;
 use App\Repositories\User\RentalDiscount\RentalDiscountReadRepository;
@@ -157,6 +165,12 @@ final class RepositoryServiceProvider extends ServiceProvider
         ControlExecutionWriteRepositoryInterface::class => ControlExecutionWriteRepository::class,
         ControlExecutionDocumentReadRepositoryInterface::class => ControlExecutionDocumentReadRepository::class,
         ControlExecutionDocumentWriteRepositoryInterface::class => ControlExecutionDocumentWriteRepository::class,
+
+        // Controls reminders (Chantier B / B3)
+        ControlReminderLogReadRepositoryInterface::class => ControlReminderLogReadRepository::class,
+        ControlReminderLogWriteRepositoryInterface::class => ControlReminderLogWriteRepository::class,
+        SchedulerHeartbeatReadRepositoryInterface::class => SchedulerHeartbeatReadRepository::class,
+        SchedulerHeartbeatWriteRepositoryInterface::class => SchedulerHeartbeatWriteRepository::class,
 
         // VehicleEvent
         VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,

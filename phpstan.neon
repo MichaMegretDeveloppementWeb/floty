@@ -11,3 +11,25 @@ parameters:
     excludePaths:
         - app/Data/Generated/*
         - bootstrap/cache/*
+
+    ignoreErrors:
+        # Faux positif larastan sur le motif `$override?->magicProperty ?? $fallback`
+        # appliqué a des proprietes Eloquent castees. L'extension de proprietes
+        # magiques de larastan perd le null introduit par l'operateur nullsafe et
+        # croit donc le `?->` superflu. Or `$override` est genuinement nullable
+        # (cf. EffectiveControlResolver::resolve, `?? null` pour un controle global
+        # sans surcharge) : remplacer `?->` par `->` provoquerait un crash runtime
+        # "property on null". Le motif est correct et doit rester.
+        -
+            identifier: nullsafe.neverNull
+            paths:
+                - app/Services/Control/EffectiveControlResolver.php
+                - app/Actions/Control/Vehicle/RecordControlExecutionAction.php
+        # `collect($recipients)` recoit la valeur de prop Inertia (Collection au
+        # runtime) typee `mixed` par AssertableInertia ; collect() ne peut alors
+        # resoudre ses generiques. Caster en `(array)` casserait le test (cast
+        # objet -> tableau de proprietes internes), donc on garde la forme qui
+        # marche et on ignore l'avertissement de generiques dans ce test.
+        -
+            identifier: argument.templateType
+            path: tests/Feature/User/Control/VehicleControlsTabTest.php
