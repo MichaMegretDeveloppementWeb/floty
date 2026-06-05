@@ -541,12 +541,6 @@ final class BillingCalculatorTest extends TestCase
         $this->assertSame(22_000, $result->totalCents);
     }
 
-    /**
-     * Setup partagé pour les scénarios CDC : Company + Vehicle + Pricing
-     * 2024 aux tarifs CDC (20 € / 100 € / 350 €).
-     *
-     * @return array{0: Company, 1: Vehicle}
-     */
     // --- calculateYearForVehicle : batch 12 mois (lot 4) --------------
 
     #[Test]
@@ -624,6 +618,12 @@ final class BillingCalculatorTest extends TestCase
         );
     }
 
+    /**
+     * Setup partagé pour les scénarios CDC : Company + Vehicle + Pricing
+     * 2024 aux tarifs CDC (20 € / 100 € / 350 €).
+     *
+     * @return array{0: Company, 1: Vehicle}
+     */
     private function seedCdcVehicle(): array
     {
         $company = Company::factory()->create();
