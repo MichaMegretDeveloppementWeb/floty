@@ -289,6 +289,22 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
+     * Batched variant of {@see findForCompanyInPeriod} for several
+     * companies at once · the contracts of all `$companyIds` overlapping
+     * the `[start, end]` window, `vehicle` eager-loaded. Lets callers
+     * collapse a per-company N+1 (e.g. the company index rental column)
+     * into a single query and group by `company_id` in memory.
+     *
+     * @param  list<int>  $companyIds
+     * @return Collection<int, Contract>
+     */
+    public function findForCompaniesInPeriod(
+        array $companyIds,
+        string $startDate,
+        string $endDate,
+    ): Collection;
+
+    /**
      * Minimal list of active contracts (non soft-deleted) on a given
      * vehicle, projected on `(company_id, start_date, end_date)`. Used
      * by {@see App\Services\Invoice\InvoiceDivergenceFlagger::flagForVehicle}

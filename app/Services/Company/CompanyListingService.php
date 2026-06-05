@@ -119,6 +119,11 @@ final class CompanyListingService
         // véhicules, au lieu d'une requête VFC par véhicule dans le pipeline.
         $this->aggregator->prewarmVfcSegmentsForVehicles($vehiclesById, $year);
 
+        // Rental column · batched across every company on the page (2 SQL
+        // total) instead of one forCompanyAndYear per company (the former
+        // N+1: 3 queries x N companies on the index).
+        $rentalsByCompany = $this->rentalPrice->forCompaniesAndYear($companyIds, $year);
+
         $result = [];
         foreach ($companyIds as $companyId) {
             try {
@@ -133,7 +138,7 @@ final class CompanyListingService
                 $annualTaxDue = 0.0;
             }
 
-            $rentalCents = $this->rentalPrice->forCompanyAndYear($companyId, $year);
+            $rentalCents = $rentalsByCompany[$companyId] ?? null;
             $rentalPriceTotal = $rentalCents === null ? null : $rentalCents / 100;
 
             $result[$companyId] = [

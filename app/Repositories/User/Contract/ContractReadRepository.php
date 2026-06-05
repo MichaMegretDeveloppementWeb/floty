@@ -437,6 +437,28 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findForCompaniesInPeriod(
+        array $companyIds,
+        string $startDate,
+        string $endDate,
+    ): Collection {
+        if ($companyIds === []) {
+            return new Collection;
+        }
+
+        // Same projection as findForCompanyInPeriod (exit_date included
+        // for day clipping), batched over several companies in one query.
+        return Contract::query()
+            ->with('vehicle:id,license_plate,brand,model,exit_date')
+            ->whereIn('company_id', $companyIds)
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->orderBy('company_id')
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function yearBounds(): array
     {
         $row = DB::table('contracts')

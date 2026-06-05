@@ -184,27 +184,78 @@ final readonly class RentalPriceCalculator
     /**
      * Yearly rent for a company (sum of its 12 monthly invoices). Null
      * if any vehicle lacks a pricing for the year · the user must fix
-     * the data before the total can be read.
-     *
-     * 2 SQL total (1 contracts-in-year + 1 batch pricings) followed by
-     * in-memory aggregation per `(vehicle × month)`. Avoids N+1 on
-     * pages that call this per historical year.
+     * the data before the total can be read. Delegates to
+     * {@see forCompaniesAndYear()} so single calls stay efficient (2 SQL).
      */
     public function forCompanyAndYear(int $companyId, int $year): ?int
     {
+        $results = $this->forCompaniesAndYear([$companyId], $year);
+
+        return $results[$companyId] ?? null;
+    }
+
+    /**
+     * Batched variant of {@see forCompanyAndYear()} · yearly rent for
+     * several companies in 2 SQL (1 contracts-in-year for all companies
+     * + 1 batch pricings) then in-memory aggregation per company.
+     * Collapses the per-company N+1 of the company index rental column.
+     *
+     * @param  list<int>  $companyIds
+     * @return array<int, ?int> companyId → cents (null when a vehicle lacks pricing)
+     */
+    public function forCompaniesAndYear(array $companyIds, int $year): array
+    {
+        if ($companyIds === []) {
+            return [];
+        }
+
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = $yearStart->endOfYear();
 
-        $contracts = $this->contractRepo->findForCompanyInPeriod(
-            $companyId,
+        $contracts = $this->contractRepo->findForCompaniesInPeriod(
+            $companyIds,
             $yearStart->toDateString(),
             $yearEnd->toDateString(),
         );
 
-        if ($contracts->isEmpty()) {
-            return 0;
+        $contractsByCompany = [];
+        $vehicleIds = [];
+        foreach ($contracts as $contract) {
+            $contractsByCompany[$contract->company_id][] = $contract;
+            $vehicleIds[$contract->vehicle_id] = true;
         }
 
+        $pricings = $this->pricingRepo->findForVehiclesAndYear(array_keys($vehicleIds), $year);
+
+        $results = [];
+        foreach ($companyIds as $companyId) {
+            $results[$companyId] = $this->companyYearTotal(
+                $contractsByCompany[$companyId] ?? [],
+                $pricings,
+                $yearStart,
+                $yearEnd,
+            );
+        }
+
+        return $results;
+    }
+
+    /**
+     * Sum of the 12 monthly billings for one company over the year, from
+     * already-loaded contracts + pricings. Shared core between
+     * {@see forCompanyAndYear()} and {@see forCompaniesAndYear()} to
+     * guarantee strict equivalence. Returns `null` as soon as a used
+     * vehicle lacks a pricing for the year, `0` when there is no contract.
+     *
+     * @param  list<Contract>  $contracts
+     * @param  array<int, VehicleYearlyPricing>  $pricings  vehicleId → pricing
+     */
+    private function companyYearTotal(
+        array $contracts,
+        array $pricings,
+        CarbonImmutable $yearStart,
+        CarbonImmutable $yearEnd,
+    ): ?int {
         // Expand by `(month × vehicle)`, dedupe days.
         $datesByMonthAndVehicle = [];
         $vehicleIds = [];
@@ -243,10 +294,7 @@ final readonly class RentalPriceCalculator
             }
         }
 
-        $vehicleIdsList = array_keys($vehicleIds);
-        $pricings = $this->pricingRepo->findForVehiclesAndYear($vehicleIdsList, $year);
-
-        foreach ($vehicleIdsList as $vehicleId) {
+        foreach (array_keys($vehicleIds) as $vehicleId) {
             if (! isset($pricings[$vehicleId])) {
                 return null;
             }
