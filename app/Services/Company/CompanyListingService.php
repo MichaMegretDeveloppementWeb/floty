@@ -115,6 +115,9 @@ final class CompanyListingService
         $vehicleIdList = array_keys($vehicleIds);
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
         $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
+        // Charge en un seul SQL les segments VFC de l'année pour tous les
+        // véhicules, au lieu d'une requête VFC par véhicule dans le pipeline.
+        $this->aggregator->prewarmVfcSegmentsForVehicles($vehiclesById, $year);
 
         $result = [];
         foreach ($companyIds as $companyId) {

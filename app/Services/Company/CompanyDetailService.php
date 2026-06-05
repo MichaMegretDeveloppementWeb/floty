@@ -379,6 +379,9 @@ final class CompanyDetailService
             try {
                 $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
                 $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
+                // Charge en un seul SQL les segments VFC de l'année pour tous les
+                // véhicules, au lieu d'une requête VFC par véhicule dans le pipeline.
+                $this->aggregator->prewarmVfcSegmentsForVehicles($vehiclesById, $year);
                 $annualTaxDue = $this->aggregator->companyAnnualTax(
                     $companyId,
                     $vehiclesById,

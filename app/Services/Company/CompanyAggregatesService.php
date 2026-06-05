@@ -117,6 +117,9 @@ final class CompanyAggregatesService
 
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
         $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
+        // Charge en un seul SQL les segments VFC de l'année pour tous les
+        // véhicules, au lieu d'une requête VFC par véhicule dans le pipeline.
+        $this->aggregator->prewarmVfcSegmentsForVehicles($vehiclesById, $year);
 
         // Wrap fiscal pipeline · tolerates years without registered
         // fiscal rules.

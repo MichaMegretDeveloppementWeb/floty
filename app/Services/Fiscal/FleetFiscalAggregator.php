@@ -260,14 +260,19 @@ final class FleetFiscalAggregator
             if ($vehicle === null) {
                 continue;
             }
-            $result = $this->pipeline->execute(
-                $this->buildContext(
-                    $vehicle,
-                    $pairContracts,
-                    $vehicleEventsByVehicleId[$vehicleId] ?? [],
-                    $year,
-                ),
+            // Use the prewarmed VFC segments when available (strict equivalence
+            // with execute(), same branch as computeVehicleAnnualTax) so a
+            // prewarmed caller avoids one VFC query per vehicle.
+            $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
+            $context = $this->buildContext(
+                $vehicle,
+                $pairContracts,
+                $vehicleEventsByVehicleId[$vehicleId] ?? [],
+                $year,
             );
+            $result = $cachedSegments !== null
+                ? $this->pipeline->executeWithPreloadedVfcSegments($context, $cachedSegments)
+                : $this->pipeline->execute($context);
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
