@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
+use App\Data\User\Billing\BillingCalculationData;
 use App\Data\User\Billing\ContractBillingBreakdownData;
 use App\Data\User\Billing\ContractBillingMonthData;
 use App\Data\User\Billing\MonthlyBillingBreakdownData;
@@ -81,13 +82,6 @@ final class BillingBreakdownService
 
     private function computeByCompanyForYear(int $companyId, int $year): MonthlyBillingBreakdownData
     {
-        $entries = [];
-        $totalDays = 0;
-        $totalCents = 0;
-        $totalGrossCents = 0;
-        $totalDiscountCents = 0;
-        $hasAnyMissing = false;
-
         // Single lookup for already-emitted invoices on the
         // `(company × year)` pair, indexed by month · powers the
         // « Voir #YYYY-MM-NNNN » CTA without paying 12 lookups.
@@ -103,6 +97,94 @@ final class BillingBreakdownService
         // are returned unchanged.
         $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
         $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $discountIndex);
+
+        return $this->composeMonthlyBreakdown($year, $monthlyResults, $existingInvoices);
+    }
+
+    /**
+     * Batched variant of {@see byCompanyForYear} over several years · 4
+     * SQL total (invoices + contracts + pricings + discounts, each over
+     * the whole range) then in-memory composition per year. Collapses the
+     * per-year N+1 of the company fiche pending-invoices card.
+     *
+     * Strictly equivalent to `byCompanyForYear($companyId, $year)` for
+     * each year (shared composition core {@see composeMonthlyBreakdown};
+     * same per-month calculation via {@see BillingCalculator::calculateYearWithPreloaded}).
+     *
+     * @param  list<int>  $years
+     * @return array<int, MonthlyBillingBreakdownData> year → recap
+     */
+    public function byCompanyForYears(int $companyId, array $years): array
+    {
+        if ($years === []) {
+            return [];
+        }
+
+        $invoicesByYear = $this->invoiceRepository->findExistingByMonthForCompanyYears($companyId, $years);
+        $discountByYear = $this->discountResolver->preloadForCompanyYears($companyId, $years);
+
+        $rangeStart = sprintf('%04d-01-01', min($years));
+        $rangeEnd = sprintf('%04d-12-31', max($years));
+        $allContracts = $this->contractRepository->findForCompaniesInPeriod([$companyId], $rangeStart, $rangeEnd);
+
+        $vehicleIds = [];
+        foreach ($allContracts as $contract) {
+            $vehicleIds[$contract->vehicle_id] = true;
+        }
+        $pricingsByYear = $vehicleIds === []
+            ? []
+            : $this->pricingRepository->findForVehiclesAndYears(array_keys($vehicleIds), $years);
+
+        $results = [];
+        foreach ($years as $year) {
+            $yearStart = sprintf('%04d-01-01', $year);
+            $yearEnd = sprintf('%04d-12-31', $year);
+
+            $yearContracts = [];
+            foreach ($allContracts as $contract) {
+                if ($contract->start_date->toDateString() > $yearEnd) {
+                    continue;
+                }
+                if ($contract->end_date->toDateString() < $yearStart) {
+                    continue;
+                }
+                $yearContracts[] = $contract;
+            }
+
+            $monthlyResults = $this->calculator->calculateYearWithPreloaded(
+                $companyId,
+                $year,
+                $yearContracts,
+                $pricingsByYear[$year] ?? [],
+            );
+            $monthlyResults = $this->discountApplier->applyToMonthlyResults(
+                $monthlyResults,
+                $discountByYear[$year] ?? ResolvedDiscountIndex::empty(),
+            );
+
+            $results[$year] = $this->composeMonthlyBreakdown($year, $monthlyResults, $invoicesByYear[$year] ?? []);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Composes a 12-month recap DTO from already-computed monthly results
+     * + the emitted-invoice snapshots. Shared by {@see byCompanyForYear}
+     * (single year) and {@see byCompanyForYears} (batched) so both yield
+     * strictly identical recaps.
+     *
+     * @param  array<int, BillingCalculationData|MissingPricingException>  $monthlyResults  month [1..12] => result
+     * @param  array<int, array{id: int, invoiceNumber: string, totalHtCents: int, invoicedDaysUsed: int, grossTotalCents: int, totalDiscountCents: int}>  $existingInvoices  month => snapshot
+     */
+    private function composeMonthlyBreakdown(int $year, array $monthlyResults, array $existingInvoices): MonthlyBillingBreakdownData
+    {
+        $entries = [];
+        $totalDays = 0;
+        $totalCents = 0;
+        $totalGrossCents = 0;
+        $totalDiscountCents = 0;
+        $hasAnyMissing = false;
 
         for ($month = 1; $month <= 12; $month++) {
             $existing = $existingInvoices[$month] ?? null;

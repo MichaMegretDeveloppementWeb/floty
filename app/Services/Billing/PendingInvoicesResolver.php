@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Billing\PendingInvoiceYearData;
 use Carbon\CarbonImmutable;
 
@@ -60,9 +61,14 @@ final readonly class PendingInvoicesResolver
             return [];
         }
 
+        // Batch every year's monthly recap in a handful of SQL instead of
+        // one byCompanyForYear (3-4 SQL) per year.
+        $breakdownsByYear = $this->breakdown->byCompanyForYears($companyId, $contractYears);
+
         $pending = [];
         foreach ($contractYears as $year) {
-            $months = $this->pendingMonthsForCompanyYear($companyId, $year);
+            $breakdown = $breakdownsByYear[$year] ?? null;
+            $months = $breakdown === null ? [] : $this->pendingMonthsFromBreakdown($breakdown, $year);
 
             if ($months !== []) {
                 $pending[] = new PendingInvoiceYearData(
@@ -91,8 +97,21 @@ final readonly class PendingInvoicesResolver
      */
     public function pendingMonthsForCompanyYear(int $companyId, int $year): array
     {
-        $breakdown = $this->breakdown->byCompanyForYear($companyId, $year);
+        return $this->pendingMonthsFromBreakdown(
+            $this->breakdown->byCompanyForYear($companyId, $year),
+            $year,
+        );
+    }
 
+    /**
+     * Civil months to invoice, derived from an already-computed monthly
+     * recap. Shared by the single-year and batched paths so the UI count
+     * is identical regardless of how the recap was obtained.
+     *
+     * @return list<int> months sorted Jan → Dec
+     */
+    private function pendingMonthsFromBreakdown(MonthlyBillingBreakdownData $breakdown, int $year): array
+    {
         $now = CarbonImmutable::now();
         $currentYear = $now->year;
         $currentMonth = $now->month;

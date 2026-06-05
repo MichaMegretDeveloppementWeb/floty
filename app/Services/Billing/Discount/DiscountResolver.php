@@ -30,6 +30,41 @@ final readonly class DiscountResolver
     }
 
     /**
+     * Cross-year variant of {@see preloadForCompanyYear} for one company
+     * · one SQL over the whole year range, then a per-year
+     * {@see ResolvedDiscountIndex} built in memory (a discount is bucketed
+     * into every year it overlaps). Collapses the per-year N+1 of the
+     * company fiche pending-invoices batch.
+     *
+     * @param  list<int>  $years
+     * @return array<int, ResolvedDiscountIndex> year → index
+     */
+    public function preloadForCompanyYears(int $companyId, array $years): array
+    {
+        if ($years === []) {
+            return [];
+        }
+
+        $discounts = $this->reader->findActiveForCompanyYears($companyId, min($years), max($years));
+
+        $result = [];
+        foreach ($years as $year) {
+            $yearStart = sprintf('%04d-01-01', $year);
+            $yearEnd = sprintf('%04d-12-31', $year);
+
+            $yearDiscounts = $discounts
+                ->filter(static fn ($discount): bool => $discount->start_date->toDateString() <= $yearEnd
+                    && $discount->end_date->toDateString() >= $yearStart)
+                ->values()
+                ->all();
+
+            $result[$year] = ResolvedDiscountIndex::fromDiscounts($yearDiscounts);
+        }
+
+        return $result;
+    }
+
+    /**
      * Single SQL for the active discounts of N companies on a year.
      * Returns a per-company index (each company has its own
      * `ResolvedDiscountIndex`) so isolation is preserved. Used by

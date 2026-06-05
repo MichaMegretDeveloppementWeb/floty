@@ -53,6 +53,19 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
             ->get();
     }
 
+    public function findActiveForCompanyYears(int $companyId, int $minYear, int $maxYear): Collection
+    {
+        $rangeStart = sprintf('%04d-01-01', $minYear);
+        $rangeEnd = sprintf('%04d-12-31', $maxYear);
+
+        return RentalDiscount::query()
+            ->with('vehicles')
+            ->forCompany($companyId)
+            ->overlappingPeriod($rangeStart, $rangeEnd)
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function findActiveForCompaniesYear(array $companyIds, int $year): Collection
     {
         if ($companyIds === []) {

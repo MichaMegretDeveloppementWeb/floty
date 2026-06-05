@@ -100,6 +100,36 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         return $map;
     }
 
+    public function findExistingByMonthForCompanyYears(int $companyId, array $years): array
+    {
+        if ($years === []) {
+            return [];
+        }
+
+        // Same projection as findExistingByMonthForCompanyYear, batched
+        // over several years in one query.
+        $rows = Invoice::query()
+            ->select('id', 'year', 'month', 'invoice_number', 'total_ht_cents', 'total_gross_cents', 'total_discount_cents')
+            ->where('company_id', $companyId)
+            ->whereIn('year', $years)
+            ->withSum('lines as invoiced_days_used', 'days_used')
+            ->get();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row->year][(int) $row->month] = [
+                'id' => (int) $row->id,
+                'invoiceNumber' => (string) $row->invoice_number,
+                'totalHtCents' => (int) $row->total_ht_cents,
+                'invoicedDaysUsed' => (int) ($row->invoiced_days_used ?? 0),
+                'grossTotalCents' => (int) $row->total_gross_cents,
+                'totalDiscountCents' => (int) $row->total_discount_cents,
+            ];
+        }
+
+        return $map;
+    }
+
     public function maxSequenceForYearMonth(int $year, int $month): int
     {
         // `invoice_number` format `YYYY-MM-NNNN`; the sequence is the

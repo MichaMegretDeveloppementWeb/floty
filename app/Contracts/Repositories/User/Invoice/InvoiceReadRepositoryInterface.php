@@ -68,6 +68,17 @@ interface InvoiceReadRepositoryInterface
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array;
 
     /**
+     * Batched variant of {@see findExistingByMonthForCompanyYear} over
+     * several years · a single query for the company instead of one per
+     * year. Lets the company-fiche pending-invoices batch collapse the
+     * per-year N+1.
+     *
+     * @param  list<int>  $years
+     * @return array<int, array<int, array{id: int, invoiceNumber: string, totalHtCents: int, invoicedDaysUsed: int, grossTotalCents: int, totalDiscountCents: int}>> map[year][month] => snapshot
+     */
+    public function findExistingByMonthForCompanyYears(int $companyId, array $years): array;
+
+    /**
      * Highest sequence number already assigned for a (year, month).
      * Used to generate the next `invoice_number` (no race condition
      * thanks to the application-level UNIQUE constraint + the Action

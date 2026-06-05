@@ -8,10 +8,12 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
+use App\Models\RentalDiscount;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleYearlyPricing;
 use App\Services\Billing\BillingBreakdownService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -37,6 +39,52 @@ final class BillingBreakdownServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = $this->app->make(BillingBreakdownService::class);
+    }
+
+    #[Test]
+    public function by_company_for_years_equivaut_aux_appels_annuels(): void
+    {
+        // Lot 6c · le batch cross-années DOIT produire pour chaque année
+        // un recap strictement identique a byCompanyForYear, sinon deux
+        // chemins divergents = montants de facturation faux silencieux.
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
+        foreach ([2024, 2025, 2026] as $y) {
+            VehicleYearlyPricing::factory()->for($vehicle)->forYear($y)
+                ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+        }
+
+        // 2024 : janvier plein. 2026 : févr-avr. 2025 : aucun contrat.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-01-01', 'end_date' => '2024-01-31',
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-02-10', 'end_date' => '2026-04-20',
+        ]);
+
+        // Réduction janvier 2024 attachée au véhicule (chemin discount
+        // cross-années) + facture émise pour janvier (chemin invoice).
+        $discount = RentalDiscount::factory()->forCompany($company)
+            ->withPeriod(CarbonImmutable::create(2024, 1, 1), CarbonImmutable::create(2024, 1, 31))
+            ->withDiscountPercent(10)
+            ->create();
+        $discount->vehicles()->attach($vehicle->id);
+
+        $years = [2024, 2025, 2026];
+        $batch = $this->service->byCompanyForYears($company->id, $years);
+
+        foreach ($years as $year) {
+            self::assertEquals(
+                $this->service->byCompanyForYear($company->id, $year),
+                $batch[$year],
+                "année {$year} · byCompanyForYears === byCompanyForYear",
+            );
+        }
+
+        // Garde-fou : la réduction a bien un effet (sinon le test ne
+        // prouverait rien sur le chemin discount).
+        self::assertGreaterThan(0, $batch[2024]->yearTotalDiscountCentsPartial, '2024 · remise appliquée');
+        self::assertSame(0, $batch[2025]->yearTotalCentsPartial, '2025 · aucun contrat');
     }
 
     #[Test]

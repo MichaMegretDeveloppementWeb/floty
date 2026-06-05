@@ -55,6 +55,17 @@ interface RentalDiscountReadRepositoryInterface
     public function findActiveForCompanyYear(int $companyId, int $year): Collection;
 
     /**
+     * Active/planned discounts of one company overlapping the year range
+     * `[minYear, maxYear]` (start_date <= 31/12/maxYear and end_date >=
+     * 01/01/minYear). Eager-loads `vehicles`. The caller buckets them per
+     * year in memory · lets the company fiche resolve discounts for every
+     * active year in one query.
+     *
+     * @return Collection<int, RentalDiscount>
+     */
+    public function findActiveForCompanyYears(int $companyId, int $minYear, int $maxYear): Collection;
+
+    /**
      * Multi-company variant · one SQL query for N companies on the
      * given year. Eager-loads `vehicles`.
      *
