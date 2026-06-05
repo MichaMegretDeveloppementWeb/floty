@@ -35,6 +35,7 @@ const {
     isSpecific,
     isEditing,
     inheritedRecipients,
+    inheritedReminder,
     isInheritedIncluded,
     toggleInherited,
     addOwnRecipient,
@@ -186,10 +187,10 @@ function onSubmit(): void {
                     class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500"
                 >
                     Réglages hérités : premier rappel
-                    {{ reminderSettings.daysBefore }} jour{{ reminderSettings.daysBefore > 1 ? 's' : '' }} avant
-                    l'échéance<template v-if="reminderSettings.remindOnDueDay">, rappel le jour J</template>,
-                    puis répétition tous les {{ reminderSettings.repeatEveryDays }}
-                    jour{{ reminderSettings.repeatEveryDays > 1 ? 's' : '' }}.
+                    {{ inheritedReminder.daysBefore }} jour{{ inheritedReminder.daysBefore > 1 ? 's' : '' }} avant
+                    l'échéance<template v-if="inheritedReminder.remindOnDueDay">, rappel le jour J</template>,
+                    puis répétition tous les {{ inheritedReminder.repeatEveryDays }}
+                    jour{{ inheritedReminder.repeatEveryDays > 1 ? 's' : '' }}.
                 </p>
 
                 <div v-else class="flex flex-col gap-4">

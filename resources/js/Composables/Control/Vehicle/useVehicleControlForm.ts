@@ -66,6 +66,7 @@ export function useVehicleControlForm(
     isSpecific: ComputedRef<boolean>;
     isEditing: ComputedRef<boolean>;
     inheritedRecipients: ComputedRef<ReadonlyArray<InheritedRecipient>>;
+    inheritedReminder: ComputedRef<{ daysBefore: number; remindOnDueDay: boolean; repeatEveryDays: number }>;
     isInheritedIncluded: (email: string) => boolean;
     toggleInherited: (email: string) => void;
     addOwnRecipient: () => void;
@@ -115,6 +116,29 @@ export function useVehicleControlForm(
         }
 
         return list;
+    });
+
+    // What the vehicle would inherit if it does not customise its reminders:
+    // the global control's own cycle if set, else the general settings (and the
+    // settings directly for a new specific control).
+    const inheritedReminder = computed<{ daysBefore: number; remindOnDueDay: boolean; repeatEveryDays: number }>(() => {
+        const editing = toValue(getEditing);
+
+        if (editing !== null) {
+            return {
+                daysBefore: editing.inheritedReminderDaysBefore,
+                remindOnDueDay: editing.inheritedReminderOnDueDay,
+                repeatEveryDays: editing.inheritedReminderRepeatEveryDays,
+            };
+        }
+
+        const settings = toValue(getReminderSettings);
+
+        return {
+            daysBefore: settings.daysBefore,
+            remindOnDueDay: settings.remindOnDueDay,
+            repeatEveryDays: settings.repeatEveryDays,
+        };
     });
 
     function isInheritedIncluded(email: string): boolean {
@@ -191,6 +215,7 @@ export function useVehicleControlForm(
         isSpecific,
         isEditing,
         inheritedRecipients,
+        inheritedReminder,
         isInheritedIncluded,
         toggleInherited,
         addOwnRecipient,

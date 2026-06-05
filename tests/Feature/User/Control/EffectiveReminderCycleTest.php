@@ -61,4 +61,18 @@ final class EffectiveReminderCycleTest extends TestCase
 
         self::assertSame(30, $this->resolveFirst($vehicle)->effectiveReminderDaysBefore);
     }
+
+    #[Test]
+    public function le_cycle_herite_reflete_le_controle_global_pas_les_parametres_generaux(): void
+    {
+        // Le contrôle global surcharge la fréquence (20 j) ; un véhicule sans
+        // personnalisation hérite de 20 j, pas des 15 j des paramètres généraux.
+        $vehicle = Vehicle::factory()->create();
+        ControlDefinition::factory()->create(['reminder_days_before' => 20]);
+
+        $control = $this->resolveFirst($vehicle);
+
+        self::assertSame(20, $control->inheritedReminderDaysBefore);
+        self::assertSame(20, $control->effectiveReminderDaysBefore);
+    }
 }

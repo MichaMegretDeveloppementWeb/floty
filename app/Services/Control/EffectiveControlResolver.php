@@ -109,6 +109,12 @@ final readonly class EffectiveControlResolver
             ?? $definition->reminder_repeat_every_days
             ?? $settings->repeat_every_days;
 
+        // Baseline the vehicle inherits if it does not customise its reminders:
+        // the global control's own cycle if set, otherwise the general settings.
+        $inheritedDaysBefore = $definition->reminder_days_before ?? $settings->days_before;
+        $inheritedOnDueDay = $definition->reminder_on_due_day ?? $settings->remind_on_due_day;
+        $inheritedRepeat = $definition->reminder_repeat_every_days ?? $settings->repeat_every_days;
+
         $nextDue = $this->schedule->nextDueDate(
             $this->anchorDate($vehicle, $anchor),
             $initialValue,
@@ -145,6 +151,9 @@ final readonly class EffectiveControlResolver
             effectiveReminderDaysBefore: $effectiveDaysBefore,
             effectiveReminderOnDueDay: $effectiveOnDueDay,
             effectiveReminderRepeatEveryDays: $effectiveRepeat,
+            inheritedReminderDaysBefore: $inheritedDaysBefore,
+            inheritedReminderOnDueDay: $inheritedOnDueDay,
+            inheritedReminderRepeatEveryDays: $inheritedRepeat,
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $effectiveDaysBefore, $exitDate),
             nextDueDate: $nextDue->toDateString(),
             lastExecutionDate: $lastExecution?->toDateString(),
@@ -174,6 +183,11 @@ final readonly class EffectiveControlResolver
         $effectiveDaysBefore = $override->reminder_days_before ?? $settings->days_before;
         $effectiveOnDueDay = $override->reminder_on_due_day ?? $settings->remind_on_due_day;
         $effectiveRepeat = $override->reminder_repeat_every_days ?? $settings->repeat_every_days;
+
+        // A vehicle-specific control inherits the general settings directly.
+        $inheritedDaysBefore = $settings->days_before;
+        $inheritedOnDueDay = $settings->remind_on_due_day;
+        $inheritedRepeat = $settings->repeat_every_days;
 
         $nextDue = $this->schedule->nextDueDate(
             $this->anchorDate($vehicle, $anchor),
@@ -207,6 +221,9 @@ final readonly class EffectiveControlResolver
             effectiveReminderDaysBefore: $effectiveDaysBefore,
             effectiveReminderOnDueDay: $effectiveOnDueDay,
             effectiveReminderRepeatEveryDays: $effectiveRepeat,
+            inheritedReminderDaysBefore: $inheritedDaysBefore,
+            inheritedReminderOnDueDay: $inheritedOnDueDay,
+            inheritedReminderRepeatEveryDays: $inheritedRepeat,
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $effectiveDaysBefore, $exitDate),
             nextDueDate: $nextDue->toDateString(),
             lastExecutionDate: $lastExecution?->toDateString(),
