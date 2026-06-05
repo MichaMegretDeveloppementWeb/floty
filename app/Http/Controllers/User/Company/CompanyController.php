@@ -33,7 +33,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class CompanyController extends Controller
 {
@@ -116,11 +115,11 @@ final class CompanyController extends Controller
     {
         Gate::authorize('view', $company);
 
-        $detail = $this->companyDetail->detail($company->id);
+        // Resolved once and shared with detail() + the two pending
+        // resolvers, which previously each ran findActiveYearsForCompany.
+        $activeYears = $this->contracts->findActiveYearsForCompany($company->id);
 
-        if ($detail === null) {
-            throw new NotFoundHttpException('Entreprise introuvable.');
-        }
+        $detail = $this->companyDetail->detail($company, $activeYears);
 
         $activeTab = (string) $request->query('tab', 'overview');
 
@@ -144,8 +143,8 @@ final class CompanyController extends Controller
             'company' => $detail,
             'contractsQuery' => $contractsQuery,
             'billingYear' => $selectedYear,
-            'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($companyId),
-            'pendingInvoices' => $this->pendingInvoices->pendingForCompany($companyId),
+            'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($companyId, $activeYears),
+            'pendingInvoices' => $this->pendingInvoices->pendingForCompany($companyId, $activeYears),
             // Continuous year range shared between billing and contracts pills
             // (one cheap SQL query, kept eager).
             'contractsAvailableYears' => $this->contracts->availableYearsRangeForCompany(
@@ -240,11 +239,7 @@ final class CompanyController extends Controller
     {
         Gate::authorize('update', $company);
 
-        $detail = $this->companyDetail->detailForEdit($company->id);
-
-        if ($detail === null) {
-            throw new NotFoundHttpException('Entreprise introuvable.');
-        }
+        $detail = $this->companyDetail->detailForEdit($company);
 
         return Inertia::render('User/Companies/Edit/Index', [
             'company' => $detail,

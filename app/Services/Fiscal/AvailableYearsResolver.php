@@ -35,6 +35,18 @@ final class AvailableYearsResolver
      */
     public const CACHE_KEY = 'floty:contracts:year_bounds';
 
+    /**
+     * Per-request memo of the resolved bounds. The resolver is a
+     * singleton (one instance per request), so this avoids re-reading
+     * the cache store on every `minYear()` / `maxYear()` /
+     * `availableYears()` call within a single request. Cleared by
+     * {@see forgetCache()} so a mid-request Contract mutation still
+     * re-reads fresh bounds.
+     *
+     * @var array{min: int|null, max: int|null}|null
+     */
+    private ?array $boundsMemo = null;
+
     public function __construct(
         private readonly ContractReadRepositoryInterface $contracts,
         private readonly CacheRepository $cache,
@@ -90,6 +102,7 @@ final class AvailableYearsResolver
      */
     public function forgetCache(): void
     {
+        $this->boundsMemo = null;
         $this->cache->forget(self::CACHE_KEY);
     }
 
@@ -99,7 +112,7 @@ final class AvailableYearsResolver
     private function bounds(): array
     {
         /** @var array{min: int|null, max: int|null} */
-        return $this->cache->rememberForever(
+        return $this->boundsMemo ??= $this->cache->rememberForever(
             self::CACHE_KEY,
             fn (): array => $this->contracts->yearBounds(),
         );

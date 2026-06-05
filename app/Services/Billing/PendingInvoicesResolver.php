@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
-use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Data\User\Billing\PendingInvoiceYearData;
 use Carbon\CarbonImmutable;
 
@@ -49,15 +48,14 @@ final readonly class PendingInvoicesResolver
 {
     public function __construct(
         private BillingBreakdownService $breakdown,
-        private ContractReadRepositoryInterface $contracts,
     ) {}
 
     /**
+     * @param  list<int>  $contractYears  Years covered by company contracts (resolved once by the caller)
      * @return list<PendingInvoiceYearData>
      */
-    public function pendingForCompany(int $companyId): array
+    public function pendingForCompany(int $companyId, array $contractYears): array
     {
-        $contractYears = $this->yearsCoveredByContractsForCompany($companyId);
         if ($contractYears === []) {
             return [];
         }
@@ -130,18 +128,5 @@ final readonly class PendingInvoicesResolver
         sort($months);
 
         return $months;
-    }
-
-    /**
-     * Same year range as the `PendingDeclarationsResolver`. Delegates
-     * to `ContractReadRepository` (ADR-0013 R3 · no direct SQL in
-     * services). The Eloquent `SoftDeletes` scope is applied
-     * automatically.
-     *
-     * @return list<int>
-     */
-    private function yearsCoveredByContractsForCompany(int $companyId): array
-    {
-        return $this->contracts->findActiveYearsForCompany($companyId);
     }
 }

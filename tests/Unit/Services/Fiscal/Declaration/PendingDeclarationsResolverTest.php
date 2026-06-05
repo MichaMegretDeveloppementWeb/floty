@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use App\Models\Company;
 use App\Models\Contract;
@@ -43,12 +44,24 @@ final class PendingDeclarationsResolverTest extends TestCase
         $this->vehicle = Vehicle::factory()->create();
     }
 
+    /**
+     * Mirrors the controller · the active contract years are resolved
+     * once and passed to the resolver.
+     *
+     * @return list<int>
+     */
+    private function activeYears(): array
+    {
+        return $this->app->make(ContractReadRepositoryInterface::class)
+            ->findActiveYearsForCompany($this->company->id);
+    }
+
     #[Test]
     public function liste_vide_si_aucun_contrat(): void
     {
         Carbon::setTestNow('2026-06-01');
 
-        self::assertSame([], $this->resolver->pendingForCompany($this->company->id));
+        self::assertSame([], $this->resolver->pendingForCompany($this->company->id, $this->activeYears()));
 
         Carbon::setTestNow();
     }
@@ -60,7 +73,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         $this->makeContract('2024-03-01', '2024-04-15');
         $this->makeContract('2025-06-01', '2025-06-30');
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertCount(2, $pending);
         self::assertSame(2024, $pending[0]->fiscalYear);
@@ -78,7 +91,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         Carbon::setTestNow('2026-06-01');
         $this->makeContract('2026-03-01', '2026-04-15');
 
-        self::assertSame([], $this->resolver->pendingForCompany($this->company->id));
+        self::assertSame([], $this->resolver->pendingForCompany($this->company->id, $this->activeYears()));
 
         Carbon::setTestNow();
     }
@@ -94,7 +107,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             ->generated()
             ->create();
 
-        self::assertSame([], $this->resolver->pendingForCompany($this->company->id));
+        self::assertSame([], $this->resolver->pendingForCompany($this->company->id, $this->activeYears()));
 
         Carbon::setTestNow();
     }
@@ -110,7 +123,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             ->obsolete()
             ->create();
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertCount(1, $pending);
         self::assertSame(2025, $pending[0]->fiscalYear);
@@ -140,7 +153,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             ->deferred()
             ->create();
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertCount(1, $pending);
         self::assertSame(DeclarationLifecycleState::Deferred, $pending[0]->state);
@@ -163,7 +176,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             ->draft()
             ->create();
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertCount(1, $pending);
         // Draft sans cluster pending = DraftReadyToGenerate (rien à
@@ -195,7 +208,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             ->create();
         $previous->update(['superseded_by_id' => $draft->id]);
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertCount(1, $pending);
         self::assertSame(
@@ -221,7 +234,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         $this->makeContract('2023-06-01', '2023-06-30');
         $this->makeContract('2024-09-01', '2024-09-15');
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertSame([2023, 2024, 2025], array_map(fn ($p) => $p->fiscalYear, $pending));
 
@@ -234,7 +247,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         Carbon::setTestNow('2026-03-15');
         $this->makeContract('2025-06-01', '2025-06-30');
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertSame('2026-04-30', $pending[0]->deadline);
         self::assertFalse($pending[0]->isOverdue);
@@ -248,7 +261,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         Carbon::setTestNow('2026-05-15');
         $this->makeContract('2025-06-01', '2025-06-30');
 
-        $pending = $this->resolver->pendingForCompany($this->company->id);
+        $pending = $this->resolver->pendingForCompany($this->company->id, $this->activeYears());
 
         self::assertSame('2026-04-30', $pending[0]->deadline);
         self::assertTrue($pending[0]->isOverdue);

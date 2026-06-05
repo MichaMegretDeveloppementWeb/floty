@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal\Declaration;
 
-use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\PendingDeclarationData;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
@@ -34,15 +33,14 @@ final readonly class PendingDeclarationsResolver
     public function __construct(
         private DeclarationLifecycleResolver $lifecycleResolver,
         private FiscalDeclarationReadRepositoryInterface $declarations,
-        private ContractReadRepositoryInterface $contracts,
     ) {}
 
     /**
+     * @param  list<int>  $contractYears  Years covered by company contracts (resolved once by the caller)
      * @return list<PendingDeclarationData>
      */
-    public function pendingForCompany(int $companyId): array
+    public function pendingForCompany(int $companyId, array $contractYears): array
     {
-        $contractYears = $this->yearsCoveredByContractsForCompany($companyId);
         if ($contractYears === []) {
             return [];
         }
@@ -98,6 +96,8 @@ final readonly class PendingDeclarationsResolver
         return $pending;
     }
 
+    // ----------------------------------------------------------------
+
     /**
      * Resolves `(obsoleteSinceDate, obsoleteReasonsCount)` for S6 and
      * S7. S6 reads the current declaration itself; S7 reads its
@@ -150,13 +150,5 @@ final readonly class PendingDeclarationsResolver
         }
 
         return [null, 0];
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function yearsCoveredByContractsForCompany(int $companyId): array
-    {
-        return $this->contracts->findActiveYearsForCompany($companyId);
     }
 }

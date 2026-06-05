@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Company;
 
-use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
@@ -19,6 +18,7 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Models\Company;
 use App\Models\Pivot\DriverCompany;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
@@ -46,7 +46,6 @@ use Illuminate\Support\Carbon;
 final class CompanyDetailService
 {
     public function __construct(
-        private readonly CompanyReadRepositoryInterface $companies,
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
         private readonly ContractReadRepositoryInterface $contractsRepo,
@@ -63,14 +62,12 @@ final class CompanyDetailService
      *
      * Saves ~280 ms cold versus {@see detail()} (which runs drivers +
      * lifetime + history + activityByYear with the full fiscal pipeline).
+     *
+     * The company is the route-bound model (already loaded), threaded in
+     * to avoid a redundant `findById`.
      */
-    public function detailForEdit(int $companyId): ?CompanyEditData
+    public function detailForEdit(Company $company): CompanyEditData
     {
-        $company = $this->companies->findById($companyId);
-        if ($company === null) {
-            return null;
-        }
-
         return new CompanyEditData(
             id: $company->id,
             legalName: $company->legal_name,
@@ -95,13 +92,18 @@ final class CompanyDetailService
      *
      * `currentRealYear` lets the history mark the in-progress fiscal
      * exercise on the frontend without relying on `new Date()`.
+     *
+     * The company is the route-bound model (already loaded) and
+     * `$activeYears` is resolved once by the controller and shared with
+     * the pending-declarations / pending-invoices resolvers, so the
+     * `findActiveYearsForCompany` query runs once per request, not three
+     * times.
+     *
+     * @param  list<int>  $activeYears  Years covered by at least one company contract
      */
-    public function detail(int $companyId): ?CompanyDetailData
+    public function detail(Company $company, array $activeYears): CompanyDetailData
     {
-        $company = $this->companies->findById($companyId);
-        if ($company === null) {
-            return null;
-        }
+        $companyId = $company->id;
 
         $today = Carbon::today();
         $currentRealYear = (int) $today->year;
@@ -146,7 +148,7 @@ final class CompanyDetailService
         }
 
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
-        $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
+        $availableYears = $activeYears;
 
         // Single bulk load over the year range instead of 2×N year-by-year
         // calls to `loadContractsByPair()` from `computeYearStats` and
