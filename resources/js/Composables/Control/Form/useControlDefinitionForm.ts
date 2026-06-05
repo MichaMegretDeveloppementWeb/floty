@@ -3,11 +3,12 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { computed, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 import { store as storeRoute, update as updateRoute } from '@/routes/user/controls';
+import { buildInheritedRecipients } from '@/Utils/control/inheritedRecipients';
+import type { InheritedRecipient } from '@/Utils/control/inheritedRecipients';
 
 type ControlDefinition = App.Data.User.Control.ControlDefinitionData;
 type ControlReminderSettings = App.Data.User.Control.ControlReminderSettingsData;
 type Recipient = { name: string; email: string };
-type InheritedRecipient = Recipient & { isAlwaysNotify: boolean };
 
 type ControlFormShape = {
     name: string;
@@ -77,29 +78,9 @@ export function useControlDefinitionForm(
 
     const reminderSettings = computed<ControlReminderSettings>(() => toValue(getReminderSettings));
 
-    const inheritedRecipients = computed<ReadonlyArray<InheritedRecipient>>(() => {
-        const settings = reminderSettings.value;
-        const alwaysEmail = (settings.alwaysNotifyEmail ?? '').trim().toLowerCase();
-        const list: InheritedRecipient[] = [];
-
-        if (alwaysEmail !== '') {
-            list.push({
-                name: settings.alwaysNotifyName ?? alwaysEmail,
-                email: alwaysEmail,
-                isAlwaysNotify: true,
-            });
-        }
-
-        for (const recipient of settings.defaultRecipients) {
-            if (alwaysEmail !== '' && recipient.email.trim().toLowerCase() === alwaysEmail) {
-                continue;
-            }
-
-            list.push({ name: recipient.name, email: recipient.email, isAlwaysNotify: false });
-        }
-
-        return list;
-    });
+    const inheritedRecipients = computed<ReadonlyArray<InheritedRecipient>>(() =>
+        buildInheritedRecipients(reminderSettings.value),
+    );
 
     function isInheritedIncluded(email: string): boolean {
         return !form.excluded_default_emails.includes(email);

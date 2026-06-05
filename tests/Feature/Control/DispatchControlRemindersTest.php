@@ -16,6 +16,7 @@ use App\Models\VehicleControlOverride;
 use App\Notifications\Control\ControlReminderNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -172,6 +173,28 @@ final class DispatchControlRemindersTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'recipients_count' => 2,
         ]);
+    }
+
+    #[Test]
+    public function le_catalogue_n_est_lu_qu_une_fois_quel_que_soit_le_nombre_de_vehicules(): void
+    {
+        Vehicle::factory()->count(3)->create(['first_origin_registration_date' => '2022-06-20']);
+        $this->technicalControl();
+
+        DB::enableQueryLog();
+        $this->dispatch();
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $catalogReads = collect($queries)
+            ->filter(static fn (array $query): bool => str_contains((string) $query['query'], 'control_definitions'))
+            ->count();
+
+        self::assertSame(
+            1,
+            $catalogReads,
+            'Le catalogue des contrôles doit être lu une seule fois pour tout le run, pas une fois par véhicule.',
+        );
     }
 
     #[Test]

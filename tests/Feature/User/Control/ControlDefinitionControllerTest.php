@@ -6,7 +6,11 @@ namespace Tests\Feature\User\Control;
 
 use App\Models\ControlDefinition;
 use App\Models\ControlRecipientDelta;
+use App\Models\ControlReminderSettings;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Services\Control\EffectiveControlResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -200,6 +204,41 @@ final class ControlDefinitionControllerTest extends TestCase
         ]);
         $this->assertDatabaseHas('control_recipient_deltas', ['email' => 'nouveau@exemple.fr']);
         $this->assertDatabaseMissing('control_recipient_deltas', ['email' => 'ancien@exemple.fr']);
+    }
+
+    #[Test]
+    public function le_destinataire_toujours_prevenu_peut_etre_exclu_d_un_controle(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $settings = ControlReminderSettings::singleton();
+        $settings->always_notify_email = 'flotte@exemple.fr';
+        $settings->always_notify_name = 'Gestion flotte';
+        $settings->save();
+
+        $this->actingAs($user)
+            ->post('/app/controls', $this->validPayload([
+                'excluded_default_emails' => ['flotte@exemple.fr'],
+            ]))
+            ->assertRedirect();
+
+        $definition = ControlDefinition::query()->firstOrFail();
+
+        $this->assertDatabaseHas('control_recipient_deltas', [
+            'level' => 'definition',
+            'control_definition_id' => $definition->id,
+            'operation' => 'exclude',
+            'email' => 'flotte@exemple.fr',
+        ]);
+
+        // Le destinataire « toujours prévenu » exclu ne figure plus dans les
+        // destinataires effectifs résolus pour un véhicule.
+        $controls = app(EffectiveControlResolver::class)->resolve($vehicle->fresh(), CarbonImmutable::parse('2026-06-05'));
+        $control = collect($controls)->firstWhere('definitionId', $definition->id);
+        $emails = collect($control->effectiveRecipients)->pluck('email')->all();
+
+        self::assertNotContains('flotte@exemple.fr', $emails);
     }
 
     #[Test]

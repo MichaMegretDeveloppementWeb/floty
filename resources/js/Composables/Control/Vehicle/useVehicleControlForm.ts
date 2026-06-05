@@ -3,11 +3,12 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { computed, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 import { store as storeRoute, update as updateRoute } from '@/routes/user/vehicles/controls/overrides';
+import { buildInheritedRecipients, isAlwaysNotifyEmail } from '@/Utils/control/inheritedRecipients';
+import type { InheritedRecipient } from '@/Utils/control/inheritedRecipients';
 
 type EffectiveControl = App.Data.User.Control.Vehicle.EffectiveControlData;
 type ControlReminderSettings = App.Data.User.Control.ControlReminderSettingsData;
 type Recipient = { name: string; email: string };
-type InheritedRecipient = Recipient & { isAlwaysNotify: boolean };
 
 type VehicleControlFormShape = {
     control_definition_id: number | null;
@@ -83,39 +84,20 @@ export function useVehicleControlForm(
 
     const inheritedRecipients = computed<ReadonlyArray<InheritedRecipient>>(() => {
         const settings = toValue(getReminderSettings);
-        const alwaysEmail = (settings.alwaysNotifyEmail ?? '').trim().toLowerCase();
-        const isAlways = (email: string): boolean => alwaysEmail !== '' && email.trim().toLowerCase() === alwaysEmail;
-
         const editing = toValue(getEditing);
 
         if (editing !== null) {
+            // Existing control: keep the inherited set the resolver computed
+            // (settings + definition deltas), just flag the always-notify one.
             return editing.inheritedRecipients.map((recipient) => ({
                 name: recipient.name,
                 email: recipient.email,
-                isAlwaysNotify: isAlways(recipient.email),
+                isAlwaysNotify: isAlwaysNotifyEmail(settings, recipient.email),
             }));
         }
 
-        // New specific control: inherit the general settings (always-notify + defaults).
-        const list: InheritedRecipient[] = [];
-
-        if (alwaysEmail !== '') {
-            list.push({
-                name: settings.alwaysNotifyName ?? alwaysEmail,
-                email: alwaysEmail,
-                isAlwaysNotify: true,
-            });
-        }
-
-        for (const recipient of settings.defaultRecipients) {
-            if (alwaysEmail !== '' && recipient.email.trim().toLowerCase() === alwaysEmail) {
-                continue;
-            }
-
-            list.push({ name: recipient.name, email: recipient.email, isAlwaysNotify: false });
-        }
-
-        return list;
+        // New specific control: inherit the general settings directly.
+        return buildInheritedRecipients(settings);
     });
 
     // What the vehicle would inherit if it does not customise its reminders:

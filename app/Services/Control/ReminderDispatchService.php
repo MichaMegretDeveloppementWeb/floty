@@ -51,10 +51,15 @@ final readonly class ReminderDispatchService
         $skippedAlreadySent = 0;
         $errors = 0;
 
+        // Constant data (settings, default recipients, active catalog) is read
+        // once and reused for every vehicle, not re-queried per vehicle.
+        $context = $this->resolver->buildContext();
+
         foreach ($this->vehicles->findActiveForReminderScan($today) as $vehicle) {
             $vehiclesScanned++;
+            $driversForVehicle = null; // lazily fetched at most once per vehicle
 
-            foreach ($this->resolver->resolve($vehicle, $today) as $control) {
+            foreach ($this->resolver->resolveWithContext($vehicle, $today, $context) as $control) {
                 $controlsEvaluated++;
 
                 if ($control->status !== VehicleControlStatus::Active) {
@@ -90,7 +95,11 @@ final readonly class ReminderDispatchService
                     continue;
                 }
 
-                $recipients = $this->assembleRecipients($control, $vehicle, $today);
+                if ($control->notifyDriver) {
+                    $driversForVehicle ??= $this->contracts->driversForVehicleOnDate($vehicle->id, $today);
+                }
+
+                $recipients = $this->assembleRecipients($control, $driversForVehicle ?? []);
 
                 if ($recipients === []) {
                     // No recipient yet: do not journal, so it retries when one appears.
@@ -141,11 +150,13 @@ final readonly class ReminderDispatchService
     /**
      * Effective recipients (settings/definition/vehicle cascade) plus the
      * vehicle's active driver(s) when the control notifies the driver, deduped
-     * by normalized email (the configured recipients win on collision).
+     * by normalized email (the configured recipients win on collision). The
+     * driver list is fetched once per vehicle by the caller and passed in.
      *
+     * @param  array<int, Driver>  $drivers
      * @return array<int, ControlRecipientData>
      */
-    private function assembleRecipients(EffectiveControlData $control, Vehicle $vehicle, CarbonImmutable $today): array
+    private function assembleRecipients(EffectiveControlData $control, array $drivers): array
     {
         $byEmail = [];
 
@@ -154,8 +165,7 @@ final readonly class ReminderDispatchService
         }
 
         if ($control->notifyDriver) {
-            foreach ($this->contracts->driversForVehicleOnDate($vehicle->id, $today) as $driver) {
-                /** @var Driver $driver */
+            foreach ($drivers as $driver) {
                 $email = $driver->email;
 
                 if ($email === null || $email === '') {

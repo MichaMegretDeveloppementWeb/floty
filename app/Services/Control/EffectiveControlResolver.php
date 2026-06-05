@@ -45,8 +45,35 @@ final readonly class EffectiveControlResolver
      */
     public function resolve(Vehicle $vehicle, CarbonImmutable $today): array
     {
+        return $this->resolveWithContext($vehicle, $today, $this->buildContext());
+    }
+
+    /**
+     * Builds the constant resolution context (settings, default recipients,
+     * active catalog) ONCE, to reuse across vehicles in a fleet-wide scan and
+     * avoid re-querying these per vehicle.
+     */
+    public function buildContext(): ControlResolutionContext
+    {
         $settings = $this->reminderSettings->get();
-        $baseRecipients = $this->baseRecipientMap($settings, $this->reminderSettings->defaultRecipients());
+        $defaultRecipients = $this->reminderSettings->defaultRecipients();
+
+        return new ControlResolutionContext(
+            settings: $settings,
+            defaultRecipients: $defaultRecipients,
+            baseRecipients: $this->baseRecipientMap($settings, $defaultRecipients),
+            definitions: $this->definitions->listActiveForResolution(),
+        );
+    }
+
+    /**
+     * Resolves one vehicle against a pre-built context. Only per-vehicle data
+     * (executions, overrides) is queried here.
+     *
+     * @return array<int, EffectiveControlData>
+     */
+    public function resolveWithContext(Vehicle $vehicle, CarbonImmutable $today, ControlResolutionContext $context): array
+    {
         $lastExecutions = $this->executions->latestForVehicle($vehicle->id);
         $exitDate = $vehicle->exit_date?->toImmutable();
 
@@ -63,16 +90,16 @@ final readonly class EffectiveControlResolver
 
         $result = [];
 
-        foreach ($this->definitions->listActiveForResolution() as $definition) {
+        foreach ($context->definitions as $definition) {
             $override = $overridesByDefinition[$definition->id] ?? null;
 
             // Disabled controls stay in the set (greyed, reactivatable in the
             // UI); B3 simply skips them when sending reminders.
-            $result[] = $this->buildFromGlobal($definition, $override, $vehicle, $today, $exitDate, $lastExecutions, $settings, $baseRecipients);
+            $result[] = $this->buildFromGlobal($definition, $override, $vehicle, $today, $exitDate, $lastExecutions, $context->settings, $context->baseRecipients);
         }
 
         foreach ($specifics as $override) {
-            $result[] = $this->buildFromSpecific($override, $vehicle, $today, $exitDate, $lastExecutions, $settings, $baseRecipients);
+            $result[] = $this->buildFromSpecific($override, $vehicle, $today, $exitDate, $lastExecutions, $context->settings, $context->baseRecipients);
         }
 
         return $result;
