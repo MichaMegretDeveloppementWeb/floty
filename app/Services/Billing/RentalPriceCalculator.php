@@ -241,6 +241,66 @@ final readonly class RentalPriceCalculator
     }
 
     /**
+     * Cross-year variant of {@see forCompanyAndYear()} for one company ·
+     * yearly rent for several years in 2 SQL (1 contracts over the full
+     * range + 1 batched pricings over every involved vehicle × year),
+     * then in-memory aggregation per year. Collapses the per-year N+1 of
+     * the company fiche history (one forCompanyAndYear per active year).
+     *
+     * @param  list<int>  $years
+     * @return array<int, ?int> year → cents (null when a vehicle lacks pricing that year)
+     */
+    public function forCompanyAndYears(int $companyId, array $years): array
+    {
+        if ($years === []) {
+            return [];
+        }
+
+        $rangeStart = CarbonImmutable::create(min($years), 1, 1);
+        $rangeEnd = CarbonImmutable::create(max($years), 12, 31);
+
+        $contracts = $this->contractRepo->findForCompaniesInPeriod(
+            [$companyId],
+            $rangeStart->toDateString(),
+            $rangeEnd->toDateString(),
+        );
+
+        $vehicleIds = [];
+        foreach ($contracts as $contract) {
+            $vehicleIds[$contract->vehicle_id] = true;
+        }
+        $pricingsByYear = $vehicleIds === []
+            ? []
+            : $this->pricingRepo->findForVehiclesAndYears(array_keys($vehicleIds), $years);
+
+        $results = [];
+        foreach ($years as $year) {
+            $yearStart = CarbonImmutable::create($year, 1, 1);
+            $yearEnd = $yearStart->endOfYear();
+
+            $yearContracts = [];
+            foreach ($contracts as $contract) {
+                if ($contract->start_date->toDateString() > $yearEnd->toDateString()) {
+                    continue;
+                }
+                if ($contract->end_date->toDateString() < $yearStart->toDateString()) {
+                    continue;
+                }
+                $yearContracts[] = $contract;
+            }
+
+            $results[$year] = $this->companyYearTotal(
+                $yearContracts,
+                $pricingsByYear[$year] ?? [],
+                $yearStart,
+                $yearEnd,
+            );
+        }
+
+        return $results;
+    }
+
+    /**
      * Sum of the 12 monthly billings for one company over the year, from
      * already-loaded contracts + pricings. Shared core between
      * {@see forCompanyAndYear()} and {@see forCompaniesAndYear()} to

@@ -116,6 +116,89 @@ final class RentalPriceCalculatorTest extends TestCase
         );
     }
 
+    #[Test]
+    public function for_company_and_years_equivaut_aux_appels_annuels(): void
+    {
+        $company = Company::factory()->create();
+
+        // V1 · tarifé 2024-2026, contrats séquentiels sur 2024 puis 2025.
+        $v1 = Vehicle::factory()->create();
+        foreach ([2024, 2025, 2026] as $y) {
+            $this->price($v1, $y, 4000, 20000, 60000);
+        }
+        Contract::factory()->forVehicle($v1)->forCompany($company)->create([
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-08-31',
+        ]);
+        Contract::factory()->forVehicle($v1)->forCompany($company)->create([
+            'start_date' => '2025-03-01',
+            'end_date' => '2025-04-15',
+        ]);
+
+        // V2 · tarifé 2026, contrat 2026.
+        $v2 = Vehicle::factory()->create();
+        $this->price($v2, 2026, 5000, 25000, 80000);
+        Contract::factory()->forVehicle($v2)->forCompany($company)->create([
+            'start_date' => '2026-02-01',
+            'end_date' => '2026-05-31',
+        ]);
+
+        // V3 · contrat 2025 SANS tarif → 2025 doit retomber sur null.
+        $v3 = Vehicle::factory()->create();
+        Contract::factory()->forVehicle($v3)->forCompany($company)->create([
+            'start_date' => '2025-09-01',
+            'end_date' => '2025-09-30',
+        ]);
+
+        $years = [2024, 2025, 2026];
+        $batch = $this->calc->forCompanyAndYears($company->id, $years);
+
+        foreach ($years as $year) {
+            self::assertSame(
+                $this->calc->forCompanyAndYear($company->id, $year),
+                $batch[$year],
+                "année {$year} · cross-années === annuel",
+            );
+        }
+
+        self::assertNull($batch[2025], '2025 · V3 sans tarif → null');
+        self::assertNotNull($batch[2024], '2024 · tarifé');
+    }
+
+    #[Test]
+    public function for_company_and_years_collapse_les_queries(): void
+    {
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        foreach ([2024, 2025, 2026] as $y) {
+            $this->price($vehicle, $y, 4000, 20000, 60000);
+        }
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-02-01',
+            'end_date' => '2024-04-30',
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-02-01',
+            'end_date' => '2026-04-30',
+        ]);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->calc->forCompanyAndYears($company->id, [2024, 2025, 2026]);
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // 3 requêtes constantes : contrats + véhicules (eager) + tarifs,
+        // quel que soit le nombre d'années (vs 3 x N en N+1 annuel).
+        self::assertSame(
+            3,
+            count($queries),
+            'loyer cross-années = 3 requêtes constantes, pas de N+1 par année',
+        );
+    }
+
     private function price(Vehicle $vehicle, int $year, int $daily, int $weekly, int $monthly): void
     {
         VehicleYearlyPricing::factory()->create([

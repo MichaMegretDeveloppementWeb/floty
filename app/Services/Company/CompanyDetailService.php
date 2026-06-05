@@ -189,6 +189,12 @@ final class CompanyDetailService
             ? []
             : $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
 
+        // Rents for every active year in 2 SQL (contracts over the range +
+        // batched pricings) instead of one forCompanyAndYear per year.
+        $rentalsByYear = $availableYears === []
+            ? []
+            : $this->rentalPrice->forCompanyAndYears($companyId, $availableYears);
+
         $allYearStats = [];
         foreach ($availableYears as $year) {
             $allYearStats[$year] = $this->computeYearStats(
@@ -197,6 +203,7 @@ final class CompanyDetailService
                 $contractsByYear[$year] ?? null,
                 $vehiclesById,
                 $vehicleEventsByVehicleId,
+                $rentalsByYear[$year] ?? null,
             );
         }
 
@@ -391,6 +398,7 @@ final class CompanyDetailService
      *
      * @param  Collection<int, Vehicle>  $vehiclesById
      * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
+     * @param  int|null  $rentCents  Year rent in cents, precomputed in bulk by {@see detail()} (null = a vehicle lacks a pricing)
      */
     private function computeYearStats(
         int $companyId,
@@ -398,6 +406,7 @@ final class CompanyDetailService
         ?ContractsByPair $preloadedPair,
         Collection $vehiclesById,
         array $vehicleEventsByVehicleId,
+        ?int $rentCents,
     ): CompanyYearStatsData {
         $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
@@ -440,7 +449,6 @@ final class CompanyDetailService
             }
         }
 
-        $rentCents = $this->rentalPrice->forCompanyAndYear($companyId, $year);
         $rent = $rentCents === null ? null : $rentCents / 100;
 
         return new CompanyYearStatsData(
