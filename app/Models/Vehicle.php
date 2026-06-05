@@ -69,6 +69,21 @@ final class Vehicle extends Model
     use SoftDeletes;
 
     /**
+     * In-memory flag (NOT persisted, absent from attributes/toArray) set
+     * by VehicleReadRepository::findByIdWithFiscalHistory to certify that
+     * the eager-loaded `fiscalCharacteristics` relation holds the
+     * COMPLETE version history, not the partial `effective_to IS NULL`
+     * variant used by the list/heatmap loaders.
+     *
+     * When true, the VFC segment computation
+     * (VehicleFiscalCharacteristicsReadRepository::findEffectiveSegmentsForYear)
+     * derives the year segments from the loaded collection in memory
+     * instead of re-querying the database: the same row is then read
+     * once per page instead of once per fiscal sub-computation.
+     */
+    public bool $vfcHistoryComplete = false;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

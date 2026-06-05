@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Repositories\User\Vehicle;
 
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
@@ -224,6 +225,78 @@ final class VehicleFiscalCharacteristicsReadRepositoryTest extends TestCase
         self::assertSame('2024-06-15', $segments[0]->end->toDateString());
         self::assertSame('2024-06-16', $segments[1]->start->toDateString());
         self::assertSame('2024-12-31', $segments[1]->end->toDateString());
+    }
+
+    // --- findEffectiveSegmentsForYear : chemin en mémoire (lot 2) ------
+
+    #[Test]
+    public function find_effective_segments_en_memoire_equivaut_au_chemin_sql(): void
+    {
+        // Lot 2 · quand l'historique VFC complet est préchargé et certifié
+        // (`vfcHistoryComplete` posé par findByIdWithFiscalHistory), la
+        // segmentation est calculée en mémoire. Elle DOIT être strictement
+        // identique au chemin SQL (même prédicat, même clamp, même ordre),
+        // sinon deux chemins divergents = bug fiscal silencieux.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2024-03-31',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-04-01',
+            'effective_to' => null,
+        ]);
+
+        $loaded = $this->app->make(VehicleReadRepositoryInterface::class)
+            ->findByIdWithFiscalHistory($vehicle->id);
+        self::assertTrue($loaded->vfcHistoryComplete);
+
+        $project = static fn (array $segments): array => array_map(
+            static fn ($s) => [
+                'vfcId' => $s->vfc->id,
+                'start' => $s->start->toDateString(),
+                'end' => $s->end->toDateString(),
+            ],
+            $segments,
+        );
+
+        foreach ([2022, 2023, 2024, 2025, 2026] as $year) {
+            $sql = $this->repo->findEffectiveSegmentsForYear($vehicle->fresh(), $year);
+            $memory = $this->repo->findEffectiveSegmentsForYear($loaded, $year);
+            self::assertSame($project($sql), $project($memory), "année {$year} · mémoire === SQL");
+        }
+    }
+
+    #[Test]
+    public function find_effective_segments_en_memoire_ne_declenche_aucune_query(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => '2024-06-15',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-16',
+            'effective_to' => null,
+        ]);
+
+        $loaded = $this->app->make(VehicleReadRepositoryInterface::class)
+            ->findByIdWithFiscalHistory($vehicle->id);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $segments = $this->repo->findEffectiveSegmentsForYear($loaded, 2024);
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        self::assertCount(2, $segments);
+        self::assertSame(0, count($queries), 'historique complet préchargé : aucune query VFC');
     }
 
     // --- findEffectiveSegmentsForYearBatch (3b : prewarm batch) --------

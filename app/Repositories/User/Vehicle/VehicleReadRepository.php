@@ -159,12 +159,18 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
 
     public function findByIdWithFiscalHistory(int $id): Vehicle
     {
-        return Vehicle::query()
+        $vehicle = Vehicle::query()
             ->with([
                 'fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from'),
                 'yearlyPricings' => fn ($q) => $q->orderBy('year'),
             ])
             ->findOrFail($id);
+
+        // Certify the COMPLETE VFC history is loaded so the fiscal segment
+        // computation reads it in memory instead of re-querying per call.
+        $vehicle->vfcHistoryComplete = true;
+
+        return $vehicle;
     }
 
     public function findAllForHeatmap(int $year, string $direction = 'asc'): Collection

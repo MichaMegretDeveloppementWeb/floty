@@ -41,14 +41,20 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
 
-        // No `relationLoaded('fiscalCharacteristics')` shortcut here:
-        // most VFC eager-loads in the project are restricted to
-        // `effective_to IS NULL` (cf. `findOrFailWithFiscal`,
-        // `findAllForFleetView`, `findByIdsIndexed`,
-        // `findAllForHeatmap`). Filtering in memory on that partial
-        // collection would mask all historical VFCs and silently
-        // produce a 0 € fiscal computation on multi-VFC vehicles.
-        // Always querying the DB guarantees segmentation completeness.
+        // When the COMPLETE VFC history is eager-loaded (certified by
+        // `vfcHistoryComplete`, set only by
+        // `VehicleReadRepository::findByIdWithFiscalHistory`), filter the
+        // year segments in memory: the same vehicle's VFC is then read
+        // once per page instead of once per fiscal sub-computation. The
+        // flag guards against the partial `effective_to IS NULL` loads
+        // (list/heatmap), whose collection would mask historical VFCs and
+        // silently produce a 0 EUR computation on multi-VFC vehicles.
+        if ($vehicle->vfcHistoryComplete && $vehicle->relationLoaded('fiscalCharacteristics')) {
+            return $this->segmentsFromLoadedHistory($vehicle, $yearStart, $yearEnd);
+        }
+
+        // Otherwise query the DB: guarantees segmentation completeness
+        // regardless of how (or whether) the relation was loaded.
         $matching = $vehicle->fiscalCharacteristics()
             ->where('effective_from', '<=', $yearEnd)
             ->where(static function ($q) use ($yearStart): void {
@@ -59,6 +65,30 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
             ->get();
 
         return $matching
+            ->map(fn (VehicleFiscalCharacteristics $vfc): VfcEffectiveSegment => $this->clampVfcToYear($vfc, $yearStart, $yearEnd))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * In-memory equivalent of the SQL filter in
+     * {@see findEffectiveSegmentsForYear}, applied to the eager-loaded
+     * complete `fiscalCharacteristics` collection. Same predicate
+     * (`effective_from <= yearEnd AND (effective_to IS NULL OR
+     * effective_to >= yearStart)`), same ascending ordering, same
+     * `clampVfcToYear`, so the result is strictly equal to the SQL path.
+     *
+     * @return list<VfcEffectiveSegment>
+     */
+    private function segmentsFromLoadedHistory(
+        Vehicle $vehicle,
+        CarbonImmutable $yearStart,
+        CarbonImmutable $yearEnd,
+    ): array {
+        return $vehicle->fiscalCharacteristics
+            ->filter(static fn (VehicleFiscalCharacteristics $vfc): bool => $vfc->effective_from <= $yearEnd
+                && ($vfc->effective_to === null || $vfc->effective_to >= $yearStart))
+            ->sortBy('effective_from')
             ->map(fn (VehicleFiscalCharacteristics $vfc): VfcEffectiveSegment => $this->clampVfcToYear($vfc, $yearStart, $yearEnd))
             ->values()
             ->all();
