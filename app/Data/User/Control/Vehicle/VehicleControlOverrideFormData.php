@@ -17,12 +17,13 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Per-vehicle control editor payload (Chantier B / B2). One DTO for both:
- *   - an override of a GLOBAL control (`controlDefinitionId` set): each section
- *     is sparse, gated by its `customize*` toggle (off = inherit the global,
- *     persisted as NULL) ;
+ * Per-vehicle control editor payload (Chantier B). One DTO for both:
+ *   - an override of a GLOBAL control (`controlDefinitionId` set): the editor is
+ *     a full pre-filled form (no per-section toggle); the action persists a field
+ *     only if it DIFFERS from the global (else NULL = keep inheriting), so the
+ *     name is never overridden here ;
  *   - a vehicle-SPECIFIC control (`controlDefinitionId` null): the échéance
- *     recipe is always required.
+ *     recipe (name included) is always required and stored as-is.
  *
  * The vehicle id comes from the route, not the payload. Recipients are the
  * level-2 deltas (own additions + inherited exclusions).
@@ -38,14 +39,12 @@ final class VehicleControlOverrideFormData extends Data
     public function __construct(
         public ?int $controlDefinitionId = null,
         public VehicleControlStatus $status = VehicleControlStatus::Active,
-        public bool $customizeSchedule = false,
         public ?string $name = null,
         public ?ControlAnchor $anchor = null,
         public ?int $initialDurationValue = null,
         public ?DurationUnit $initialDurationUnit = null,
         public ?int $cycleValue = null,
         public ?DurationUnit $cycleUnit = null,
-        public bool $customizeBehaviour = false,
         public bool $notifyDriver = false,
         public bool $impliesUnavailability = false,
         public bool $customizeReminders = false,
@@ -64,24 +63,23 @@ final class VehicleControlOverrideFormData extends Data
     {
         $payload = $context->payload;
         $isSpecific = ($payload['control_definition_id'] ?? null) === null;
-        $recipeRequired = $isSpecific || (bool) ($payload['customize_schedule'] ?? false);
 
+        // The recipe is always present in the form (pre-filled for an override).
+        // Only the NAME differs: required for a specific control, never editable
+        // for an override (it inherits the global).
         $rules = [
-            'name' => $recipeRequired ? ['required', 'string', 'max:120'] : ['nullable', 'string', 'max:120'],
-            'initial_duration_value' => $recipeRequired ? ['required', 'integer', 'min:1', 'max:600'] : ['nullable', 'integer', 'min:1', 'max:600'],
-            'cycle_value' => $recipeRequired ? ['required', 'integer', 'min:1', 'max:600'] : ['nullable', 'integer', 'min:1', 'max:600'],
+            'name' => $isSpecific ? ['required', 'string', 'max:120'] : ['nullable', 'string', 'max:120'],
+            'anchor' => ['required', new Enum(ControlAnchor::class)],
+            'initial_duration_value' => ['required', 'integer', 'min:1', 'max:600'],
+            'initial_duration_unit' => ['required', new Enum(DurationUnit::class)],
+            'cycle_value' => ['required', 'integer', 'min:1', 'max:600'],
+            'cycle_unit' => ['required', new Enum(DurationUnit::class)],
             'reminder_days_before' => ['nullable', 'integer', 'min:0', 'max:365'],
             'reminder_on_due_day' => ['nullable', 'boolean'],
             'reminder_repeat_every_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'excluded_default_emails' => ['nullable', 'array'],
             'excluded_default_emails.*' => ['email', 'max:180'],
         ];
-
-        if ($recipeRequired) {
-            $rules['anchor'] = ['required', new Enum(ControlAnchor::class)];
-            $rules['initial_duration_unit'] = ['required', new Enum(DurationUnit::class)];
-            $rules['cycle_unit'] = ['required', new Enum(DurationUnit::class)];
-        }
 
         if ((bool) ($payload['customize_reminders'] ?? false)) {
             $rules['reminder_days_before'] = ['required', 'integer', 'min:0', 'max:365'];

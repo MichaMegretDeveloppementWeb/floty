@@ -11,14 +11,12 @@ type Recipient = { name: string; email: string };
 type VehicleControlFormShape = {
     control_definition_id: number | null;
     status: App.Enums.Control.VehicleControlStatus;
-    customize_schedule: boolean;
     name: string;
     anchor: string;
     initial_duration_value: number | null;
     initial_duration_unit: string;
     cycle_value: number | null;
     cycle_unit: string;
-    customize_behaviour: boolean;
     notify_driver: boolean;
     implies_unavailability: boolean;
     customize_reminders: boolean;
@@ -33,14 +31,12 @@ function blankForm(): VehicleControlFormShape {
     return {
         control_definition_id: null,
         status: 'active',
-        customize_schedule: true,
         name: '',
         anchor: 'first_origin_registration',
         initial_duration_value: null,
         initial_duration_unit: 'years',
         cycle_value: null,
         cycle_unit: 'years',
-        customize_behaviour: true,
         notify_driver: false,
         implies_unavailability: false,
         customize_reminders: false,
@@ -53,11 +49,12 @@ function blankForm(): VehicleControlFormShape {
 }
 
 /**
- * Editor form for a per-vehicle control (Chantier B / B2): an override of a
- * global definition (sparse, section toggles) or a new vehicle-specific control
- * (full recipe). `seed()` fills from the effective control when the editor
- * opens (null = create specific). Submit routes to store (no override yet) or
- * update (existing override).
+ * Editor form for a per-vehicle control (Chantier B): a full form, pre-filled
+ * with the effective values, used both to override a global definition (the
+ * server stores only what differs from the global) and to create / edit a
+ * vehicle-specific control. `seed()` fills from the effective control when the
+ * editor opens (null = create specific). Submit routes to store (no override
+ * yet) or update (existing override).
  */
 export function useVehicleControlForm(
     vehicleId: number,
@@ -131,14 +128,12 @@ export function useVehicleControlForm(
 
         form.control_definition_id = editing.definitionId;
         form.status = editing.status;
-        form.customize_schedule = editing.isVehicleSpecific ? true : editing.customizeSchedule;
         form.name = editing.name;
         form.anchor = editing.anchor;
         form.initial_duration_value = editing.initialDurationValue;
         form.initial_duration_unit = editing.initialDurationUnit;
         form.cycle_value = editing.cycleValue;
         form.cycle_unit = editing.cycleUnit;
-        form.customize_behaviour = editing.isVehicleSpecific ? true : editing.customizeBehaviour;
         form.notify_driver = editing.notifyDriver;
         form.implies_unavailability = editing.impliesUnavailability;
         form.customize_reminders = editing.customizeReminders;

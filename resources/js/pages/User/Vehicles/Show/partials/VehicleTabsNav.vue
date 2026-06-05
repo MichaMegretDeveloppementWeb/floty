@@ -12,9 +12,9 @@ defineEmits<{
 const tabs: readonly { key: VehicleTabKey; label: string }[] = [
     { key: 'overview', label: 'Vue d\'ensemble' },
     { key: 'events', label: 'Événements' },
+    { key: 'controls', label: 'Contrôles réglementaires' },
     { key: 'fiscal', label: 'Fiscalité' },
     { key: 'billing', label: 'Facturation' },
-    { key: 'controls', label: 'Contrôles' },
 ] as const;
 </script>
 

@@ -1,5 +1,6 @@
+import { AlarmClock, CircleCheck, Clock, Minus, TriangleAlert } from 'lucide-vue-next';
 import { computed, toValue } from 'vue';
-import type { MaybeRefOrGetter } from 'vue';
+import type { Component, MaybeRefOrGetter } from 'vue';
 import type { BadgeTone } from '@/types/ui';
 
 type EnumOption = App.Data.User.Vehicle.EnumOptionData;
@@ -28,6 +29,14 @@ const SCHEDULE_STATUS_TONE: Readonly<Record<string, BadgeTone>> = {
     not_applicable: 'slate',
 };
 
+const SCHEDULE_STATUS_ICON: Readonly<Record<string, Component>> = {
+    upcoming: Clock,
+    due_soon: AlarmClock,
+    overdue: TriangleAlert,
+    done_recently: CircleCheck,
+    not_applicable: Minus,
+};
+
 const VEHICLE_STATUS_LABEL: Readonly<Record<string, string>> = {
     active: 'Actif',
     paused: 'En pause',
@@ -50,6 +59,7 @@ export function useControlLabels(
     echeanceSummary: (control: EcheanceFields) => string;
     scheduleStatusLabel: (value: string) => string;
     scheduleStatusTone: (value: string) => BadgeTone;
+    scheduleStatusIcon: (value: string) => Component;
     vehicleStatusLabel: (value: string) => string;
 } {
     const anchorMap = computed<Map<string, string>>(
@@ -68,6 +78,7 @@ export function useControlLabels(
 
     const scheduleStatusLabel = (value: string): string => SCHEDULE_STATUS_LABEL[value] ?? value;
     const scheduleStatusTone = (value: string): BadgeTone => SCHEDULE_STATUS_TONE[value] ?? 'slate';
+    const scheduleStatusIcon = (value: string): Component => SCHEDULE_STATUS_ICON[value] ?? Clock;
     const vehicleStatusLabel = (value: string): string => VEHICLE_STATUS_LABEL[value] ?? value;
 
     return {
@@ -76,6 +87,7 @@ export function useControlLabels(
         echeanceSummary,
         scheduleStatusLabel,
         scheduleStatusTone,
+        scheduleStatusIcon,
         vehicleStatusLabel,
     };
 }

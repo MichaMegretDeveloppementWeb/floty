@@ -10,12 +10,13 @@
  * the same year ↔ period UX as the Contracts Index.
  */
 import { Link } from '@inertiajs/vue3';
-import { CalendarDays, Plus } from 'lucide-vue-next';
+import { Ban, CalendarDays, Plus, TrendingDown } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
+import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import {
     formatVehicleEventDaySpan,
@@ -244,12 +245,20 @@ const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
                                                 <Badge tone="slate" :uppercase="false">
                                                     {{ vehicleEventDisplayCategory(entry.event) }}
                                                 </Badge>
-                                                <Badge v-if="entry.event.impliesUnavailability" tone="amber" :uppercase="false">
-                                                    Indisponibilité
-                                                </Badge>
-                                                <Badge v-if="entry.event.hasFiscalImpact" tone="rose" :uppercase="false">
-                                                    Réducteur fiscal
-                                                </Badge>
+                                                <FlagIcon
+                                                    v-if="entry.event.impliesUnavailability"
+                                                    :icon="Ban"
+                                                    tone="amber"
+                                                    label="Génère une indisponibilité"
+                                                    :size="15"
+                                                />
+                                                <FlagIcon
+                                                    v-if="entry.event.hasFiscalImpact"
+                                                    :icon="TrendingDown"
+                                                    tone="rose"
+                                                    label="Fiscalement réducteur"
+                                                    :size="15"
+                                                />
                                             </span>
                                         </div>
                                         <p

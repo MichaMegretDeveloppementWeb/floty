@@ -138,16 +138,6 @@ final readonly class EffectiveControlResolver
             impliesUnavailability: $override?->implies_unavailability ?? $definition->implies_unavailability,
             status: $override?->status ?? VehicleControlStatus::Active,
             isOverridden: $this->isFieldOverridden($override),
-            customizeSchedule: $override !== null && (
-                $override->name !== null
-                || $override->anchor !== null
-                || $override->initial_duration_value !== null
-                || $override->cycle_value !== null
-            ),
-            customizeBehaviour: $override !== null && (
-                $override->notify_driver !== null
-                || $override->implies_unavailability !== null
-            ),
             customizeReminders: $override?->reminder_days_before !== null,
             reminderDaysBefore: $override?->reminder_days_before,
             reminderOnDueDay: $override?->reminder_on_due_day,
@@ -210,8 +200,6 @@ final readonly class EffectiveControlResolver
             impliesUnavailability: (bool) $override->implies_unavailability,
             status: $override->status,
             isOverridden: false,
-            customizeSchedule: true,
-            customizeBehaviour: true,
             customizeReminders: $override->reminder_days_before !== null,
             reminderDaysBefore: $override->reminder_days_before,
             reminderOnDueDay: $override->reminder_on_due_day,
@@ -327,6 +315,12 @@ final readonly class EffectiveControlResolver
             ->all();
     }
 
+    /**
+     * Robust "modified" detection: any overridable field set, or any level-2
+     * recipient delta. With diff-based storage, a field is non-null only when it
+     * genuinely differs from the global, so this is true iff the vehicle truly
+     * customises the control.
+     */
     private function isFieldOverridden(?VehicleControlOverride $override): bool
     {
         if ($override === null) {
@@ -336,9 +330,14 @@ final readonly class EffectiveControlResolver
         return $override->name !== null
             || $override->anchor !== null
             || $override->initial_duration_value !== null
+            || $override->initial_duration_unit !== null
             || $override->cycle_value !== null
+            || $override->cycle_unit !== null
             || $override->notify_driver !== null
             || $override->implies_unavailability !== null
-            || $override->reminder_days_before !== null;
+            || $override->reminder_days_before !== null
+            || $override->reminder_on_due_day !== null
+            || $override->reminder_repeat_every_days !== null
+            || $override->recipientDeltas->isNotEmpty();
     }
 }

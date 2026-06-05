@@ -47,8 +47,6 @@ final class EffectiveControlData extends Data
         public bool $impliesUnavailability,
         public VehicleControlStatus $status,
         public bool $isOverridden,
-        public bool $customizeSchedule,
-        public bool $customizeBehaviour,
         public bool $customizeReminders,
         public ?int $reminderDaysBefore,
         public ?bool $reminderOnDueDay,

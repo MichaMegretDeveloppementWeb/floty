@@ -6,12 +6,15 @@
  * (paramètres généraux) est passé à l'éditeur. Logique en composables.
  */
 import { Head } from '@inertiajs/vue3';
-import { ClipboardCheck, Plus, Trash2 } from 'lucide-vue-next';
+import { Ban, BellRing, ClipboardCheck, Plus, Trash2 } from 'lucide-vue-next';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import Card from '@/Components/Ui/Card/Card.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
+import FlagIcon from '@/Components/Ui/FlagIcon.vue';
+import SchedulerStaleBanner from '@/Components/Ui/SchedulerStaleBanner.vue';
 import { useControlsCatalog } from '@/Composables/Control/Index/useControlsCatalog';
 import { useControlLabels } from '@/Composables/Control/useControlLabels';
 import ControlEditorModal from './partials/ControlEditorModal.vue';
@@ -46,6 +49,8 @@ const {
 
     <UserLayout>
         <div class="m-auto flex w-full max-w-[56em] flex-col gap-6">
+            <SchedulerStaleBanner />
+
             <header class="flex items-start justify-between gap-4">
                 <div class="flex flex-col gap-1">
                     <h1 class="text-2xl font-semibold text-slate-900">
@@ -82,61 +87,61 @@ const {
                 </template>
             </EmptyState>
 
-            <ul v-else class="flex flex-col gap-3">
-                <li
+            <div v-else class="flex flex-col gap-3" role="list">
+                <Card
                     v-for="control in props.controls"
                     :key="control.id"
-                    class="group relative flex cursor-pointer flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50/60"
+                    role="listitem"
+                    class="cursor-pointer transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50/40"
                     @click="openEdit(control)"
                 >
-                    <div class="flex items-start justify-between gap-3 pr-9">
-                        <div class="flex min-w-0 flex-col gap-1">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <h2 class="text-base font-semibold text-slate-900">
+                    <template #header>
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-2">
+                                <h2 class="truncate text-[15px] font-semibold text-slate-900">
                                     {{ control.name }}
                                 </h2>
                                 <Badge v-if="!control.isActive" tone="slate" :uppercase="false">
                                     Inactif
                                 </Badge>
+                                <FlagIcon
+                                    v-if="control.impliesUnavailability"
+                                    :icon="Ban"
+                                    tone="amber"
+                                    label="Génère une indisponibilité"
+                                    :size="15"
+                                />
                             </div>
-                            <p class="text-sm text-slate-600">
-                                {{ echeanceSummary(control) }}
-                            </p>
-                            <p class="text-xs text-slate-400">
-                                À partir de : {{ anchorLabel(control.anchor) }}
-                            </p>
+                            <button
+                                type="button"
+                                class="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors duration-[120ms] hover:bg-rose-50 hover:text-rose-600"
+                                aria-label="Supprimer ce contrôle"
+                                @click.stop="askDelete(control)"
+                            >
+                                <Trash2 :size="16" :stroke-width="1.75" />
+                            </button>
+                        </div>
+                    </template>
+
+                    <div class="flex flex-col gap-1.5">
+                        <p class="text-sm text-slate-700">{{ echeanceSummary(control) }}</p>
+                        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-slate-500">
+                            <span>Dès {{ anchorLabel(control.anchor) }}</span>
+                            <span v-if="control.ownRecipients.length > 0">
+                                · {{ control.ownRecipients.length }}
+                                destinataire{{ control.ownRecipients.length > 1 ? 's' : '' }}
+                            </span>
+                            <Badge v-if="control.notifyDriver" tone="blue" :uppercase="false">
+                                <BellRing :size="12" :stroke-width="1.75" class="mr-1" />
+                                Prévient le conducteur
+                            </Badge>
+                            <Badge v-if="control.customizeReminders" tone="slate" :uppercase="false">
+                                Rappels personnalisés
+                            </Badge>
                         </div>
                     </div>
-
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <Badge v-if="control.impliesUnavailability" tone="amber" :uppercase="false">
-                            Indisponibilité
-                        </Badge>
-                        <Badge v-if="control.notifyDriver" tone="blue" :uppercase="false">
-                            Prévient le conducteur
-                        </Badge>
-                        <Badge v-if="control.customizeReminders" tone="slate" :uppercase="false">
-                            Rappels personnalisés
-                        </Badge>
-                        <span
-                            v-if="control.ownRecipients.length > 0"
-                            class="text-xs text-slate-400"
-                        >
-                            +{{ control.ownRecipients.length }}
-                            destinataire{{ control.ownRecipients.length > 1 ? 's' : '' }}
-                        </span>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="absolute top-3 right-3 flex size-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-all duration-[120ms] group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100"
-                        aria-label="Supprimer ce contrôle"
-                        @click.stop="askDelete(control)"
-                    >
-                        <Trash2 :size="16" :stroke-width="1.75" />
-                    </button>
-                </li>
-            </ul>
+                </Card>
+            </div>
         </div>
 
         <ControlEditorModal

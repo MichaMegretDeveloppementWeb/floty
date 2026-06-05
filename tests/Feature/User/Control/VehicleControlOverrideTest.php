@@ -8,52 +8,166 @@ use App\Models\ControlDefinition;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleControlOverride;
+use App\Services\Control\EffectiveControlResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Feature des surcharges / contrôles spécifiques par véhicule (Chantier B / B2).
+ * Tests Feature des surcharges / contrôles spécifiques par véhicule (Chantier B).
+ * Une surcharge est un formulaire complet prérempli : le serveur ne stocke que
+ * ce qui DIFFÈRE du contrôle global (sinon NULL = hérite), n'enregistre jamais le
+ * nom, et ne matérialise pas une surcharge inerte.
  */
 final class VehicleControlOverrideTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function definition(array $overrides = []): ControlDefinition
+    {
+        return ControlDefinition::factory()->create(array_merge([
+            'name' => 'Contrôle technique',
+            'anchor' => 'first_origin_registration',
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+            'cycle_value' => 2,
+            'cycle_unit' => 'years',
+            'notify_driver' => false,
+            'implies_unavailability' => false,
+        ], $overrides));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function overridePayload(int $definitionId, array $overrides = []): array
+    {
+        // Defaults mirror the definition above, so an unchanged payload is inert.
+        return array_merge([
+            'control_definition_id' => $definitionId,
+            'status' => 'active',
+            'anchor' => 'first_origin_registration',
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+            'cycle_value' => 2,
+            'cycle_unit' => 'years',
+            'notify_driver' => false,
+            'implies_unavailability' => false,
+            'customize_reminders' => false,
+            'own_recipients' => [],
+            'excluded_default_emails' => [],
+        ], $overrides);
+    }
+
     #[Test]
-    public function store_surcharge_un_controle_global_avec_recette_personnalisee(): void
+    public function la_surcharge_ne_stocke_que_les_champs_differents_du_global(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $definition = ControlDefinition::factory()->create();
+        $definition = $this->definition();
 
         $this->actingAs($user)
-            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", [
-                'control_definition_id' => $definition->id,
-                'status' => 'active',
-                'customize_schedule' => true,
-                'name' => 'CT renforcé',
-                'anchor' => 'first_french_registration',
-                'initial_duration_value' => 3,
-                'initial_duration_unit' => 'years',
-                'cycle_value' => 1,
-                'cycle_unit' => 'years',
-                'customize_behaviour' => false,
-                'customize_reminders' => false,
-                'own_recipients' => [],
-                'excluded_default_emails' => [],
-            ])
+            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", $this->overridePayload($definition->id, [
+                'anchor' => 'first_french_registration', // diffère
+                'initial_duration_value' => 3,           // diffère
+                'cycle_value' => 2,                      // identique -> NULL
+                'implies_unavailability' => true,        // diffère
+                'notify_driver' => false,                // identique -> NULL
+            ]))
             ->assertRedirect()
             ->assertSessionHas('toast-success');
 
         $this->assertDatabaseHas('vehicle_control_overrides', [
             'vehicle_id' => $vehicle->id,
             'control_definition_id' => $definition->id,
-            'name' => 'CT renforcé',
+            'name' => null,
             'anchor' => 'first_french_registration',
             'initial_duration_value' => 3,
-            // Comportement non personnalisé -> hérite (NULL).
+            'cycle_value' => null,
+            'implies_unavailability' => true,
             'notify_driver' => null,
         ]);
+    }
+
+    #[Test]
+    public function la_surcharge_n_enregistre_jamais_le_nom(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $definition = $this->definition();
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", $this->overridePayload($definition->id, [
+                'name' => 'Tentative de renommage',
+                'initial_duration_value' => 3, // un diff pour matérialiser la ligne
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_control_overrides', [
+            'vehicle_id' => $vehicle->id,
+            'control_definition_id' => $definition->id,
+            'name' => null,
+            'initial_duration_value' => 3,
+        ]);
+    }
+
+    #[Test]
+    public function une_surcharge_inerte_ne_cree_pas_de_ligne(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $definition = $this->definition();
+
+        // Recette identique au global, aucun destinataire, active.
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", $this->overridePayload($definition->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('vehicle_control_overrides', 0);
+    }
+
+    #[Test]
+    public function une_surcharge_devenue_inerte_est_reinitialisee(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $definition = $this->definition();
+        $override = VehicleControlOverride::factory()->overrideOf($definition)->create([
+            'vehicle_id' => $vehicle->id,
+            'cycle_value' => 1, // une personnalisation existante
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}/controls/overrides/{$override->id}", $this->overridePayload($definition->id))
+            ->assertRedirect();
+
+        $this->assertSoftDeleted('vehicle_control_overrides', ['id' => $override->id]);
+    }
+
+    #[Test]
+    public function is_overridden_est_vrai_des_qu_un_champ_ou_un_destinataire_differe(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $definition = $this->definition();
+
+        // Diff de cycle uniquement (ancre inchangée pour un calcul d'échéance sûr).
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", $this->overridePayload($definition->id, [
+                'cycle_value' => 1,
+            ]))
+            ->assertRedirect();
+
+        $controls = app(EffectiveControlResolver::class)->resolve($vehicle->fresh(), CarbonImmutable::parse('2026-06-05'));
+        $control = collect($controls)->firstWhere('definitionId', $definition->id);
+
+        self::assertNotNull($control);
+        self::assertTrue($control->isOverridden);
     }
 
     #[Test]
@@ -62,12 +176,10 @@ final class VehicleControlOverrideTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
 
-        // Spécifique (pas de control_definition_id) sans nom -> rejeté.
         $this->actingAs($user)
             ->post("/app/vehicles/{$vehicle->id}/controls/overrides", [
                 'control_definition_id' => null,
                 'status' => 'active',
-                'customize_schedule' => false,
                 'name' => '',
                 'own_recipients' => [],
                 'excluded_default_emails' => [],
@@ -85,13 +197,15 @@ final class VehicleControlOverrideTest extends TestCase
             ->post("/app/vehicles/{$vehicle->id}/controls/overrides", [
                 'control_definition_id' => null,
                 'status' => 'active',
-                'customize_schedule' => true,
                 'name' => 'Contrôle hydraulique',
                 'anchor' => 'acquisition',
                 'initial_duration_value' => 2,
                 'initial_duration_unit' => 'years',
                 'cycle_value' => 1,
                 'cycle_unit' => 'years',
+                'notify_driver' => false,
+                'implies_unavailability' => false,
+                'customize_reminders' => false,
                 'own_recipients' => [],
                 'excluded_default_emails' => [],
             ])
@@ -109,7 +223,7 @@ final class VehicleControlOverrideTest extends TestCase
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $definition = ControlDefinition::factory()->create();
+        $definition = $this->definition();
 
         $this->actingAs($user)
             ->post("/app/vehicles/{$vehicle->id}/controls/status", [
@@ -124,7 +238,6 @@ final class VehicleControlOverrideTest extends TestCase
             'status' => 'disabled',
         ]);
 
-        // Réactivation : réutilise la même ligne (pas de doublon).
         $this->actingAs($user)
             ->post("/app/vehicles/{$vehicle->id}/controls/status", [
                 'control_definition_id' => $definition->id,
@@ -144,7 +257,7 @@ final class VehicleControlOverrideTest extends TestCase
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $definition = ControlDefinition::factory()->create();
+        $definition = $this->definition();
         $override = VehicleControlOverride::factory()->overrideOf($definition)->create([
             'vehicle_id' => $vehicle->id,
         ]);
@@ -161,20 +274,16 @@ final class VehicleControlOverrideTest extends TestCase
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $definition = ControlDefinition::factory()->create();
+        $definition = $this->definition();
 
+        // Recette identique au global mais des destinataires -> la ligne existe.
         $this->actingAs($user)
-            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", [
-                'control_definition_id' => $definition->id,
-                'status' => 'active',
-                'customize_schedule' => false,
-                'customize_behaviour' => false,
-                'customize_reminders' => false,
+            ->post("/app/vehicles/{$vehicle->id}/controls/overrides", $this->overridePayload($definition->id, [
                 'own_recipients' => [
                     ['name' => 'Garage', 'email' => 'Garage@Exemple.FR'],
                 ],
                 'excluded_default_emails' => ['ancien@exemple.fr'],
-            ])
+            ]))
             ->assertRedirect();
 
         $override = VehicleControlOverride::query()->firstOrFail();

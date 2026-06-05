@@ -102,7 +102,7 @@ export function useSidebarNav(open: Ref<boolean>): {
                     href: contractsIndexRoute.url(),
                 },
                 {
-                    label: 'Contrôles',
+                    label: 'Contrôles réglementaires',
                     icon: ClipboardCheck,
                     href: controlsIndexRoute.url(),
                 },

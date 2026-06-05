@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-vue-next';
+import { Ban, ChevronLeft, Pencil, Trash2, TrendingDown } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
+import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { edit as editRoute } from '@/routes/user/vehicles/events';
 import {
@@ -55,12 +56,18 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                     <Badge tone="slate" :uppercase="false">
                         {{ vehicleEventDisplayCategory(vehicleEvent) }}
                     </Badge>
-                    <Badge v-if="vehicleEvent.impliesUnavailability" tone="amber" :uppercase="false">
-                        Indisponibilité
-                    </Badge>
-                    <Badge v-if="vehicleEvent.hasFiscalImpact" tone="rose" :uppercase="false">
-                        Réducteur fiscal
-                    </Badge>
+                    <FlagIcon
+                        v-if="vehicleEvent.impliesUnavailability"
+                        :icon="Ban"
+                        tone="amber"
+                        label="Génère une indisponibilité"
+                    />
+                    <FlagIcon
+                        v-if="vehicleEvent.hasFiscalImpact"
+                        :icon="TrendingDown"
+                        tone="rose"
+                        label="Fiscalement réducteur"
+                    />
                 </div>
             </div>
 

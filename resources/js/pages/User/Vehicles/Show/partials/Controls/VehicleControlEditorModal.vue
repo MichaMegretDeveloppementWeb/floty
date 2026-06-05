@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
- * Éditeur d'un contrôle par véhicule (Chantier B / B2) : surcharge d'un contrôle
- * global (sections épars, gérées par des bascules « personnaliser ») ou contrôle
- * spécifique (recette complète). Logique dans useVehicleControlForm.
+ * Éditeur d'un contrôle par véhicule (Chantier B). Formulaire complet, prérempli
+ * avec les valeurs effectives : pour un contrôle global on modifie librement les
+ * champs (le serveur ne stocke que ce qui diffère du global, le nom reste celui
+ * du global), pour un contrôle spécifique on saisit la recette complète. Logique
+ * dans useVehicleControlForm.
  */
 import { CalendarClock, Mail, Plus, SlidersHorizontal, Trash2, Users } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
@@ -53,15 +55,15 @@ const title = computed<string>(() => {
         return isEditing.value ? 'Modifier le contrôle spécifique' : 'Nouveau contrôle spécifique';
     }
 
-    return 'Surcharger le contrôle pour ce véhicule';
+    return `Modifier « ${props.control?.name ?? ''} » pour ce véhicule`;
 });
 
 const submitLabel = computed<string>(() => {
-    if (isEditing.value) {
-        return 'Enregistrer';
+    if (isSpecific.value && !isEditing.value) {
+        return 'Créer le contrôle';
     }
 
-    return isSpecific.value ? 'Créer le contrôle' : 'Enregistrer la surcharge';
+    return 'Enregistrer';
 });
 
 function onSubmit(): void {
@@ -86,64 +88,65 @@ function onSubmit(): void {
                     <h3 class="text-sm font-semibold text-slate-900">Identité &amp; échéance</h3>
                 </div>
 
-                <CheckboxInput
+                <p
                     v-if="!isSpecific"
-                    v-model="form.customize_schedule"
-                    label="Personnaliser l'échéance pour ce véhicule"
-                    hint="Sinon, le contrôle reprend l'échéance du contrôle global."
+                    class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500"
+                >
+                    Contrôle global. Les valeurs sont préremplies avec les réglages par défaut ;
+                    modifiez-les pour ce véhicule. Le nom reste celui du contrôle global.
+                </p>
+
+                <TextInput
+                    v-if="isSpecific"
+                    v-model="form.name"
+                    label="Nom du contrôle"
+                    placeholder="Contrôle technique"
+                    required
+                    :error="fieldError('name')"
                 />
 
-                <template v-if="isSpecific || form.customize_schedule">
-                    <TextInput
-                        v-model="form.name"
-                        label="Nom du contrôle"
-                        placeholder="Contrôle technique"
+                <SelectInput
+                    v-model="form.anchor"
+                    label="Date de référence (ancre)"
+                    hint="Point de départ du calcul de la première échéance."
+                    :options="anchorOptions"
+                    required
+                    :error="fieldError('anchor')"
+                />
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <NumberInput
+                        v-model="form.initial_duration_value"
+                        label="Validité initiale"
+                        :min="1"
                         required
-                        :error="fieldError('name')"
+                        :error="fieldError('initial_duration_value')"
                     />
                     <SelectInput
-                        v-model="form.anchor"
-                        label="Date de référence (ancre)"
-                        :options="anchorOptions"
+                        v-model="form.initial_duration_unit"
+                        label="Unité"
+                        :options="durationUnitOptions"
                         required
-                        :error="fieldError('anchor')"
+                        :error="fieldError('initial_duration_unit')"
                     />
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <NumberInput
-                            v-model="form.initial_duration_value"
-                            label="Validité initiale"
-                            :min="1"
-                            required
-                            :error="fieldError('initial_duration_value')"
-                        />
-                        <SelectInput
-                            v-model="form.initial_duration_unit"
-                            label="Unité"
-                            :options="durationUnitOptions"
-                            required
-                            :error="fieldError('initial_duration_unit')"
-                        />
-                    </div>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <NumberInput
-                            v-model="form.cycle_value"
-                            label="Périodicité ensuite"
-                            :min="1"
-                            required
-                            :error="fieldError('cycle_value')"
-                        />
-                        <SelectInput
-                            v-model="form.cycle_unit"
-                            label="Unité"
-                            :options="durationUnitOptions"
-                            required
-                            :error="fieldError('cycle_unit')"
-                        />
-                    </div>
-                </template>
-                <p v-else class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
-                    Échéance héritée du contrôle global.
-                </p>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <NumberInput
+                        v-model="form.cycle_value"
+                        label="Périodicité ensuite"
+                        :min="1"
+                        required
+                        :error="fieldError('cycle_value')"
+                    />
+                    <SelectInput
+                        v-model="form.cycle_unit"
+                        label="Unité"
+                        :options="durationUnitOptions"
+                        required
+                        :error="fieldError('cycle_unit')"
+                    />
+                </div>
             </section>
 
             <!-- Comportement -->
@@ -154,27 +157,15 @@ function onSubmit(): void {
                 </div>
 
                 <CheckboxInput
-                    v-if="!isSpecific"
-                    v-model="form.customize_behaviour"
-                    label="Personnaliser le comportement pour ce véhicule"
-                    hint="Sinon, le contrôle reprend le comportement du contrôle global."
+                    v-model="form.implies_unavailability"
+                    label="Génère une indisponibilité du véhicule"
+                    hint="Lorsque le contrôle est réalisé, un événement d'indisponibilité est créé sur le véhicule."
                 />
-
-                <template v-if="isSpecific || form.customize_behaviour">
-                    <CheckboxInput
-                        v-model="form.implies_unavailability"
-                        label="Génère une indisponibilité du véhicule"
-                        hint="Lorsque le contrôle est réalisé, un événement d'indisponibilité est créé sur le véhicule."
-                    />
-                    <CheckboxInput
-                        v-model="form.notify_driver"
-                        label="Prévenir le conducteur"
-                        hint="Le conducteur du véhicule est ajouté aux destinataires des rappels (nécessite son email)."
-                    />
-                </template>
-                <p v-else class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
-                    Comportement hérité du contrôle global.
-                </p>
+                <CheckboxInput
+                    v-model="form.notify_driver"
+                    label="Prévenir le conducteur"
+                    hint="Le conducteur du véhicule est ajouté aux destinataires des rappels (nécessite son email)."
+                />
             </section>
 
             <!-- Rappels -->
