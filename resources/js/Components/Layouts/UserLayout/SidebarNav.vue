@@ -72,7 +72,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                                 :is="item.icon"
                                 :size="16"
                                 :stroke-width="1.75"
-                                class="shrink-0"
+                                class="shrink-0 text-[#266eb6]"
                                 aria-hidden="true"
                             />
                             <span :class="labelClass">{{ item.label }}</span>
