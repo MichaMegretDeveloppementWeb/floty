@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Models\VehicleEvent;
 use App\Models\User;
+use App\Models\VehicleEvent;
 
 /**
  * VehicleEvent policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).

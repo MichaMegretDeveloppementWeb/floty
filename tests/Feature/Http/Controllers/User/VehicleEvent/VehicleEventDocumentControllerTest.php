@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers\User\VehicleEvent;
 
-use App\Models\VehicleEvent;
-use App\Models\VehicleEventDocument;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
+use App\Models\VehicleEventDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

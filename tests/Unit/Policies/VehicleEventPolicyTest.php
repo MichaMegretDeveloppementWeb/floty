@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Policies;
 
-use App\Models\VehicleEvent;
 use App\Models\User;
+use App\Models\VehicleEvent;
 use App\Policies\VehicleEventPolicy;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
