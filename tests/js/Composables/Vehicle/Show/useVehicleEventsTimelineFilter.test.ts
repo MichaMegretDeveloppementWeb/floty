@@ -130,4 +130,21 @@ describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', 
         expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
         expect(f.totalAmountCents.value).toBe(8500);
     });
+
+    it('expose des chips actifs supprimables et un compteur d\'axes', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.selectedTypes.value = ['maintenance'];
+        f.selectedCategories.value = ['Vol'];
+
+        expect(f.activeAxisCount.value).toBe(2);
+        expect(f.activeFilterChips.value.map((c) => c.key)).toEqual(['type:maintenance', 'category:Vol']);
+
+        f.removeFilterChip('type:maintenance');
+        expect(f.selectedTypes.value).toEqual([]);
+        expect(f.selectedCategories.value).toEqual(['Vol']);
+
+        f.clearAxisFilters();
+        expect(f.activeAxisCount.value).toBe(0);
+    });
 });

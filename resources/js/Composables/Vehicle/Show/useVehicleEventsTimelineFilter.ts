@@ -6,6 +6,7 @@ import { vehicleEventTypeShortLabel } from '@/Utils/labels/vehicleEventEnumLabel
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type FilterOption = { value: string; label: string };
+type FilterChip = { key: string; label: string };
 
 export type TimelineScopeMode = 'year' | 'period';
 export type TimelineYearOption = { value: number; label: string };
@@ -68,6 +69,10 @@ export function useVehicleEventsTimelineFilter(
     typeOptions: ComputedRef<FilterOption[]>;
     categoryOptions: ComputedRef<FilterOption[]>;
     totalAmountCents: ComputedRef<number>;
+    activeAxisCount: ComputedRef<number>;
+    activeFilterChips: ComputedRef<FilterChip[]>;
+    removeFilterChip: (key: string) => void;
+    clearAxisFilters: () => void;
 } {
     const scopeMode = ref<TimelineScopeMode>('year');
     const selectedYear = ref<number>(ALL_YEARS);
@@ -269,6 +274,44 @@ export function useVehicleEventsTimelineFilter(
         filteredEvents.value.reduce((sum, event) => sum + (event.amountCents ?? 0), 0),
     );
 
+    const activeAxisCount = computed<number>(
+        () => selectedTypes.value.length + selectedCategories.value.length,
+    );
+
+    const activeFilterChips = computed<FilterChip[]>(() => {
+        const chips: FilterChip[] = [];
+
+        for (const type of selectedTypes.value) {
+            chips.push({
+                key: `type:${type}`,
+                label: `Type : ${vehicleEventTypeShortLabel[type as VehicleEventType] ?? type}`,
+            });
+        }
+
+        for (const category of selectedCategories.value) {
+            chips.push({ key: `category:${category}`, label: `Catégorie : ${category}` });
+        }
+
+        return chips;
+    });
+
+    function removeFilterChip(key: string): void {
+        const separator = key.indexOf(':');
+        const kind = key.slice(0, separator);
+        const value = key.slice(separator + 1);
+
+        if (kind === 'type') {
+            selectedTypes.value = selectedTypes.value.filter((t) => t !== value);
+        } else if (kind === 'category') {
+            selectedCategories.value = selectedCategories.value.filter((c) => c !== value);
+        }
+    }
+
+    function clearAxisFilters(): void {
+        selectedTypes.value = [];
+        selectedCategories.value = [];
+    }
+
     function setScopeMode(mode: TimelineScopeMode): void {
         scopeMode.value = mode;
 
@@ -333,5 +376,9 @@ export function useVehicleEventsTimelineFilter(
         typeOptions,
         categoryOptions,
         totalAmountCents,
+        activeAxisCount,
+        activeFilterChips,
+        removeFilterChip,
+        clearAxisFilters,
     };
 }

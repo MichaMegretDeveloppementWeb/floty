@@ -11,7 +11,7 @@
  */
 import { Link } from '@inertiajs/vue3';
 import { Ban, CalendarDays, Plus, TrendingDown } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -19,6 +19,8 @@ import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
+import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
+import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import {
     formatVehicleEventDaySpan,
     useVehicleEventsTimeline,
@@ -57,12 +59,17 @@ const {
     typeOptions,
     categoryOptions,
     totalAmountCents,
+    activeAxisCount,
+    activeFilterChips,
+    removeFilterChip,
+    clearAxisFilters,
 } = useVehicleEventsTimelineFilter(() => props.vehicleEvents, props.currentYear);
 
 const days = useVehicleEventsTimeline(filteredEvents, activeWindow);
 
 const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
 const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100, 2));
+const filtersOpen = ref<boolean>(false);
 </script>
 
 <template>
@@ -80,10 +87,6 @@ const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100
                         </template>
                         <template v-else>
                             enregistré{{ filteredEvents.length > 1 ? 's' : '' }}
-                        </template>
-                        <template v-if="totalAmountCents > 0">
-                            <span class="text-slate-300">·</span>
-                            Total <span class="font-mono font-semibold text-slate-700">{{ totalLabel }}</span>
                         </template>
                     </p>
                 </div>
@@ -106,25 +109,37 @@ const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100
         </p>
 
         <template v-else>
-            <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <MultiSelectFilter
-                    v-model="selectedTypes"
-                    label="Type"
-                    :options="typeOptions"
-                    placeholder="Filtrer par type"
-                />
-                <MultiSelectFilter
-                    v-model="selectedCategories"
-                    label="Catégorie"
-                    :options="categoryOptions"
-                    allow-free-entry
-                    placeholder="Filtrer par catégorie"
-                />
+            <!-- Total des coûts du jeu filtré · KPI mis en avant -->
+            <div v-if="totalAmountCents > 0" class="mb-4 inline-flex items-baseline gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-4 py-2.5">
+                <span class="eyebrow">Total des coûts</span>
+                <span class="font-mono text-xl font-semibold text-slate-900">{{ totalLabel }}</span>
             </div>
 
-            <div class="mb-5 flex flex-wrap items-center gap-3">
+            <div class="mb-3 flex flex-wrap items-center gap-3">
+                <FilterPopover
+                    v-model:open="filtersOpen"
+                    :active-count="activeAxisCount"
+                    @reset="clearAxisFilters"
+                >
+                    <div class="flex flex-col gap-4">
+                        <MultiSelectFilter
+                            v-model="selectedTypes"
+                            label="Type"
+                            :options="typeOptions"
+                            placeholder="Filtrer par type"
+                        />
+                        <MultiSelectFilter
+                            v-model="selectedCategories"
+                            label="Catégorie"
+                            :options="categoryOptions"
+                            allow-free-entry
+                            placeholder="Filtrer par catégorie"
+                        />
+                    </div>
+                </FilterPopover>
+
                 <div
-                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
+                    class="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
                     role="tablist"
                     aria-label="Mode de filtre temporel"
                 >
@@ -204,6 +219,12 @@ const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100
                     </div>
                 </div>
             </div>
+
+            <FilterChips
+                :chips="activeFilterChips"
+                class="mb-4"
+                @remove="removeFilterChip"
+            />
 
             <p
                 v-if="days.length === 0"

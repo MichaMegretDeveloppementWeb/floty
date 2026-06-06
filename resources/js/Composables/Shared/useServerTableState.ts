@@ -150,19 +150,23 @@ export function useServerTableState<F extends Record<string, unknown>>(
         // 1. Strip URL keys managed by the composable (standard table params + custom filter keys),
         //    so a filter that becomes null actually disappears from the URL instead of persisting.
         const baseKeys = ['page', 'perPage', 'search', 'sortKey', 'sortDirection'];
-        const managedKeys = new Set<string>(baseKeys);
+        const managedBaseNames = new Set<string>([
+            ...baseKeys,
+            ...Object.keys(params).filter((k) => !baseKeys.includes(k)),
+        ]);
 
-        for (const [key, value] of Object.entries(params)) {
-            if (baseKeys.includes(key)) {
-                continue;
+        // Strip every existing occurrence of a managed param, WHATEVER its array
+        // serialization: `key`, `key[]`, `key[0]`, `key[1]`, ... Inertia
+        // re-serialises array params as `key[0]=` on each reload, so a naive
+        // `delete('key[]')` misses the real URL keys and a removed filter would
+        // leak back into the next request (the chip disappears but results stay
+        // filtered, and sorts accumulate stale filters).
+        for (const urlKey of [...url.searchParams.keys()]) {
+            const baseName = urlKey.replace(/\[\d*\]$/, '');
+
+            if (managedBaseNames.has(baseName)) {
+                url.searchParams.delete(urlKey);
             }
-
-            // Array filters live under `key[]` in the URL; scalars under `key`.
-            managedKeys.add(Array.isArray(value) ? `${key}[]` : key);
-        }
-
-        for (const key of managedKeys) {
-            url.searchParams.delete(key);
         }
 
         // 2. Re-inject current values (filtering out null / empty arrays to keep

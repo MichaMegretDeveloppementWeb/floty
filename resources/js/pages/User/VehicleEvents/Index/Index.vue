@@ -6,7 +6,7 @@
  * d'événements ».
  */
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
@@ -14,6 +14,8 @@ import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSel
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
+import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import { useVehicleEventsTable } from '@/Composables/VehicleEvent/Index/useVehicleEventsTable';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
@@ -39,6 +41,7 @@ const props = defineProps<{
 }>();
 
 const tableState = useVehicleEventsTable({ query: props.query });
+const filtersOpen = ref<boolean>(false);
 
 const typeOptions = computed(() =>
     props.options.typeValues.map((value) => ({
@@ -109,49 +112,68 @@ function amountLabel(row: VehicleEventRow): string | null {
             </p>
 
             <template v-else>
-                <!-- Filtres · sur leur propre ligne, à gauche -->
-                <div class="flex flex-col gap-3">
-                    <div class="max-w-md">
+                <!-- Total des coûts du jeu filtré · KPI mis en avant -->
+                <div class="flex flex-wrap items-stretch gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200">
+                    <div class="flex-1 bg-white px-5 py-4">
+                        <p class="eyebrow mb-1">Total des coûts</p>
+                        <p class="font-mono text-[26px] leading-none font-semibold text-slate-900">
+                            {{ totalLabel }}
+                        </p>
+                    </div>
+                    <div class="flex-1 bg-white px-5 py-4">
+                        <p class="eyebrow mb-1">Événements</p>
+                        <p class="text-[26px] leading-none font-semibold text-slate-900">
+                            {{ events.meta.total }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Barre de filtres · search + popover filtres + année -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="max-w-md grow">
                         <SearchInput
                             v-model="searchModel"
                             placeholder="Rechercher (intitulé, description, immatriculation)"
                             aria-label="Rechercher un événement"
                         />
                     </div>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-                        <MultiSelectFilter
-                            v-model="typesModel"
-                            label="Type"
-                            :options="typeOptions"
-                            placeholder="Filtrer par type"
-                        />
-                        <MultiSelectFilter
-                            v-model="categoriesModel"
-                            label="Catégorie"
-                            :options="categoryOptions"
-                            allow-free-entry
-                            placeholder="Filtrer par catégorie"
-                        />
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-medium text-slate-500">Année</label>
-                            <InlineYearSelector
-                                id="events-year"
-                                v-model="yearModel"
-                                :options="yearOptions"
+
+                    <FilterPopover
+                        v-model:open="filtersOpen"
+                        :active-count="tableState.activeFiltersCount.value"
+                        @reset="tableState.state.clearFilters"
+                    >
+                        <div class="flex flex-col gap-4">
+                            <MultiSelectFilter
+                                v-model="typesModel"
+                                label="Type"
+                                :options="typeOptions"
+                                placeholder="Filtrer par type"
+                            />
+                            <MultiSelectFilter
+                                v-model="categoriesModel"
+                                label="Catégorie"
+                                :options="categoryOptions"
+                                allow-free-entry
+                                placeholder="Filtrer par catégorie"
                             />
                         </div>
+                    </FilterPopover>
+
+                    <div class="ml-auto flex items-center gap-2">
+                        <span class="text-sm font-medium text-slate-500">Année</span>
+                        <InlineYearSelector
+                            id="events-year"
+                            v-model="yearModel"
+                            :options="yearOptions"
+                        />
                     </div>
                 </div>
 
-                <!-- Stat · total des coûts du jeu filtré -->
-                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span class="text-sm text-slate-500">
-                        {{ events.meta.total }} événement{{ events.meta.total > 1 ? 's' : '' }}
-                    </span>
-                    <span class="text-slate-300">·</span>
-                    <span class="text-sm text-slate-500">Total</span>
-                    <span class="font-mono text-base font-semibold text-slate-900">{{ totalLabel }}</span>
-                </div>
+                <FilterChips
+                    :chips="tableState.activeFilterChips.value"
+                    @remove="tableState.removeFilterChip"
+                />
 
                 <DataTable
                     :columns="tableState.columns"

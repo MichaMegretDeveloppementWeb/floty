@@ -5,8 +5,10 @@ import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as vehicleEventShowRoute } from '@/routes/user/vehicles/events';
 import type { DataTableColumn } from '@/types/ui/data-table';
+import { vehicleEventTypeShortLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEventRow = App.Data.User.VehicleEvent.VehicleEventListItemData;
+type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type Query = App.Data.User.VehicleEvent.VehicleEventIndexQueryData;
 
 export type VehicleEventFilters = {
@@ -14,6 +16,8 @@ export type VehicleEventFilters = {
     categories: string[];
     year: number | null;
 };
+
+export type FilterChip = { key: string; label: string };
 
 /** Maps a sortable column key to its backend sortKey (whitelist). */
 const COLUMN_TO_SORT_KEY: Record<string, string> = {
@@ -32,6 +36,8 @@ export function useVehicleEventsTable(opts: { query: Query }): {
     state: ServerTableState<VehicleEventFilters>;
     activeSortColumnKey: ComputedRef<string | null>;
     activeFiltersCount: ComputedRef<number>;
+    activeFilterChips: ComputedRef<FilterChip[]>;
+    removeFilterChip: (key: string) => void;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: VehicleEventRow) => void;
 } {
@@ -75,6 +81,48 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         return f.types.length + f.categories.length + (f.year !== null ? 1 : 0);
     });
 
+    const activeFilterChips = computed<FilterChip[]>(() => {
+        const f = state.filters.value;
+        const chips: FilterChip[] = [];
+
+        for (const type of f.types) {
+            chips.push({
+                key: `type:${type}`,
+                label: `Type : ${vehicleEventTypeShortLabel[type as VehicleEventType] ?? type}`,
+            });
+        }
+
+        for (const category of f.categories) {
+            chips.push({ key: `category:${category}`, label: `Catégorie : ${category}` });
+        }
+
+        if (f.year !== null) {
+            chips.push({ key: 'year', label: `Année : ${f.year}` });
+        }
+
+        return chips;
+    });
+
+    function removeFilterChip(key: string): void {
+        const f = state.filters.value;
+
+        if (key === 'year') {
+            state.setFilter('year', null);
+
+            return;
+        }
+
+        const separator = key.indexOf(':');
+        const kind = key.slice(0, separator);
+        const value = key.slice(separator + 1);
+
+        if (kind === 'type') {
+            state.setFilter('types', f.types.filter((t) => t !== value));
+        } else if (kind === 'category') {
+            state.setFilter('categories', f.categories.filter((c) => c !== value));
+        }
+    }
+
     function onHeaderClick(columnKey: string): void {
         const sortKey = COLUMN_TO_SORT_KEY[columnKey];
 
@@ -94,6 +142,8 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         state,
         activeSortColumnKey,
         activeFiltersCount,
+        activeFilterChips,
+        removeFilterChip,
         onHeaderClick,
         onRowClick,
     };
