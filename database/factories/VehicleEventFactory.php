@@ -78,20 +78,31 @@ final class VehicleEventFactory extends Factory
     }
 
     /**
-     * Custom "Autre" event: free title/category, never fiscally reductive,
-     * with an opt-in unavailability flag (the only case that may be false).
+     * Custom "Autre" event: free title, never fiscally reductive, with an
+     * opt-in unavailability flag (the only case that may be false). Categories
+     * live in a child table · attach them with {@see self::withCategories()}.
      */
     public function custom(
         string $title = 'Événement personnalisé',
-        string $category = 'Divers',
         bool $impliesUnavailability = true,
     ): static {
         return $this->state(fn (array $attributes): array => [
             'type' => VehicleEventType::Other,
             'title' => $title,
-            'category' => $category,
             'has_fiscal_impact' => false,
             'implies_unavailability' => $impliesUnavailability,
         ]);
+    }
+
+    /**
+     * Attach categories (child rows) after creation.
+     */
+    public function withCategories(string ...$categories): static
+    {
+        return $this->afterCreating(function (VehicleEvent $event) use ($categories): void {
+            foreach ($categories as $category) {
+                $event->categories()->create(['category' => $category]);
+            }
+        });
     }
 }

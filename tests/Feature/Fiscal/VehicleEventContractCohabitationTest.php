@@ -92,7 +92,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
             endDate: '2024-01-24',
             description: null,
             title: null,
-            category: null,
+            categories: null,
         ));
 
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
@@ -134,7 +134,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
             endDate: '2024-04-14',
             description: null,
             title: null,
-            category: null,
+            categories: null,
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);

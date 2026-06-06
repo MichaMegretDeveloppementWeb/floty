@@ -3,7 +3,6 @@ import { computed, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
 import { destroy as vehicleEventsDestroyRoute } from '@/routes/user/vehicle-events';
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
-import { vehicleEventDisplayCategory } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
@@ -29,7 +28,7 @@ export function useVehicleEventShow(event: MaybeRefOrGetter<VehicleEvent>): {
     startLabel: ComputedRef<string>;
     endLabel: ComputedRef<string | null>;
     durationLabel: ComputedRef<string>;
-    category: ComputedRef<string>;
+    categories: ComputedRef<string[]>;
     fiscalStatus: ComputedRef<VehicleEventStatus>;
     availabilityStatus: ComputedRef<VehicleEventStatus>;
     openDelete: () => void;
@@ -81,7 +80,7 @@ export function useVehicleEventShow(event: MaybeRefOrGetter<VehicleEvent>): {
         return `${current.daysCount} jour${current.daysCount > 1 ? 's' : ''}`;
     });
 
-    const category = computed<string>(() => vehicleEventDisplayCategory(toValue(event)));
+    const categories = computed<string[]>(() => toValue(event).categories);
 
     const fiscalStatus = computed<VehicleEventStatus>(() => {
         const hasImpact = toValue(event).hasFiscalImpact;
@@ -114,7 +113,7 @@ export function useVehicleEventShow(event: MaybeRefOrGetter<VehicleEvent>): {
         startLabel,
         endLabel,
         durationLabel,
-        category,
+        categories,
         fiscalStatus,
         availabilityStatus,
         openDelete,

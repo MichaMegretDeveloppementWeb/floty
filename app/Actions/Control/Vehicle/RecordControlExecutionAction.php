@@ -12,6 +12,7 @@ use App\Data\User\Control\Vehicle\RecordControlExecutionData;
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
 use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\ControlExecution;
+use App\Support\VehicleEvent\EventCategoryList;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,6 +42,11 @@ final readonly class RecordControlExecutionAction
         return DB::transaction(function () use ($data, $userId): ControlExecution {
             [$name, $impliesUnavailability] = $this->resolveTarget($data);
 
+            // A control execution is always categorised « Contrôle » +
+            // « Entretien » (fixed), plus up to 3 custom categories from the
+            // modal. CreateVehicleEventAction recomposes (dedup + cap 5).
+            $categories = EventCategoryList::compose(['Contrôle', 'Entretien'], $data->categories);
+
             $event = $this->createEvent->execute(new StoreVehicleEventData(
                 vehicleId: $data->vehicleId,
                 type: VehicleEventType::Other,
@@ -48,7 +54,7 @@ final readonly class RecordControlExecutionAction
                 endDate: $data->executedOn,
                 description: $data->note,
                 title: $name,
-                category: 'Contrôle',
+                categories: $categories,
                 impliesUnavailability: $impliesUnavailability,
             ));
 

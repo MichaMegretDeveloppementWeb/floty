@@ -8,9 +8,11 @@ import { Paperclip, Trash2 } from 'lucide-vue-next';
 import { watch } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
+import EventCategoriesField from '@/Components/Ui/EventCategoriesField/EventCategoriesField.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { useRecordExecutionForm } from '@/Composables/Control/Vehicle/useRecordExecutionForm';
+import { vehicleEventCategorySuggestions } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type EffectiveControl = App.Data.User.Control.Vehicle.EffectiveControlData;
 
@@ -22,6 +24,11 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true });
 
 const { form, fieldError, addDocuments, removeDocument, seed, submit } = useRecordExecutionForm(props.vehicleId);
+
+// « Contrôle » + « Entretien » sont ajoutés d'office par le backend ; l'utilisateur
+// peut ajouter jusqu'à 3 catégories de plus (plafond de 5).
+const lockedControlCategories = ['Contrôle', 'Entretien'];
+const categorySuggestions = [...vehicleEventCategorySuggestions];
 
 watch(open, (isOpen) => {
     if (isOpen && props.control !== null) {
@@ -71,6 +78,15 @@ function onSubmit(): void {
                 />
                 <InputError :message="fieldError('note')" />
             </div>
+
+            <EventCategoriesField
+                :model-value="form.categories"
+                :locked-defaults="lockedControlCategories"
+                :suggestions="categorySuggestions"
+                :max="5"
+                :error="fieldError('categories')"
+                @update:model-value="(value: string[]) => (form.categories = value)"
+            />
 
             <div class="flex flex-col gap-2">
                 <span class="text-sm font-medium text-slate-700">

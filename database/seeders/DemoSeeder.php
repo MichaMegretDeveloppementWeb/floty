@@ -1213,13 +1213,16 @@ final class DemoSeeder extends Seeder
             description: 'Vol simple 14j 2025 · NON réductrice.',
         );
 
-        // Contrôle technique 2 jours (NON réductrice)
+        // Contrôle technique 2 jours (événement personnalisé · NON réductrice ;
+        // les contrôles réglementaires récurrents sont gérés par le Chantier B).
         $this->createVehicleEvent(
             vehicle: $vehicles['EJ-010-JJ'],
-            type: VehicleEventType::TechnicalInspection,
+            type: VehicleEventType::Other,
             startDate: '2025-09-08',
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
+            title: 'Contrôle technique',
+            categories: ['Contrôle réglementaire'],
         );
 
         // Réparation accident simple (NON réductrice)
@@ -1341,13 +1344,15 @@ final class DemoSeeder extends Seeder
             description: 'Réductrice sur élec · 0€ malgré indispo (exonération R-XXXX-016).',
         );
 
-        // CT contrôle technique
+        // CT contrôle technique (événement personnalisé · cf. Chantier B)
         $this->createVehicleEvent(
             vehicle: $vehicles['FA-027-AA'],
-            type: VehicleEventType::TechnicalInspection,
+            type: VehicleEventType::Other,
             startDate: '2026-09-15',
             endDate: '2026-09-16',
             description: 'CT 2026.',
+            title: 'Contrôle technique',
+            categories: ['Contrôle réglementaire'],
         );
 
         // Accident réparation sur véhicule E85 (vérifier que abat applique sans interférence)
@@ -1373,21 +1378,39 @@ final class DemoSeeder extends Seeder
         }
     }
 
+    /**
+     * @param  list<string>  $categories  Extra categories (custom events); the
+     *                                    type default is prepended automatically.
+     */
     private function createVehicleEvent(
         Vehicle $vehicle,
         VehicleEventType $type,
         string $startDate,
         string $endDate,
         ?string $description = null,
+        ?string $title = null,
+        array $categories = [],
     ): void {
-        VehicleEvent::create([
+        $isCustom = $type === VehicleEventType::Other;
+
+        $event = VehicleEvent::create([
             'vehicle_id' => $vehicle->id,
             'type' => $type,
+            'title' => $isCustom ? $title : null,
             'has_fiscal_impact' => $type->isFiscallyReductive(),
             'start_date' => $startDate,
             'end_date' => $endDate,
             'description' => $description,
         ]);
+
+        $default = $type->defaultCategory();
+        $finalCategories = array_values(array_unique(
+            $default === null ? $categories : array_merge([$default], $categories),
+        ));
+
+        foreach ($finalCategories as $category) {
+            $event->categories()->create(['category' => $category]);
+        }
     }
 
     /**

@@ -13,9 +13,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Read-side representation of a vehicle event (vehicle Show page, lists, etc.).
  *
- *   - `title` / `category`: custom identity, present only for the `other`
- *     type; null for known types (the frontend derives label and category
- *     from the enum).
+ *   - `title`: custom name, present only for the `other` type (null for known
+ *     types, whose label is derived from the enum on the front).
+ *   - `categories`: up to 5 free-text categories (known types carry their type
+ *     default; `other` carries the user-supplied ones); populated only when the
+ *     relation is eager-loaded.
  *   - `impliesUnavailability`: drives the "Indisponibilité" badge.
  *   - `hasFiscalImpact`: independent fiscal-reducer axis (never true for `other`).
  *   - `daysCount`: inclusive day count, or 0 when the event is still ongoing
@@ -27,6 +29,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class VehicleEventData extends Data
 {
     /**
+     * @param  list<string>  $categories
      * @param  list<VehicleEventDocumentData>  $documents
      */
     public function __construct(
@@ -34,7 +37,7 @@ final class VehicleEventData extends Data
         public int $vehicleId,
         public VehicleEventType $type,
         public ?string $title,
-        public ?string $category,
+        public array $categories,
         public bool $hasFiscalImpact,
         public bool $impliesUnavailability,
         public string $startDate,
@@ -51,8 +54,12 @@ final class VehicleEventData extends Data
             ? 0
             : ((int) $u->start_date->diffInDays($u->end_date)) + 1;
 
-        // Only attach documents when the relation is already loaded;
-        // avoids a silent N+1 when the caller forgot `->with('documents')`.
+        // Only attach relations when already loaded; avoids a silent N+1 when
+        // the caller forgot `->with('categories')` / `->with('documents')`.
+        $categories = $u->relationLoaded('categories')
+            ? $u->categories->pluck('category')->values()->all()
+            : [];
+
         $documents = $u->relationLoaded('documents')
             ? $u->documents
                 ->map(static fn ($d): VehicleEventDocumentData => VehicleEventDocumentData::fromModel($d))
@@ -64,7 +71,7 @@ final class VehicleEventData extends Data
             vehicleId: $u->vehicle_id,
             type: $u->type,
             title: $u->title,
-            category: $u->category,
+            categories: $categories,
             hasFiscalImpact: $u->has_fiscal_impact,
             impliesUnavailability: $u->implies_unavailability,
             startDate: $u->start_date->toDateString(),

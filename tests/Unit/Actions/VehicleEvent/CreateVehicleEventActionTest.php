@@ -38,7 +38,7 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-03-15',
             description: null,
             title: null,
-            category: null,
+            categories: null,
         ));
 
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
@@ -56,7 +56,7 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-04-03',
             description: null,
             title: null,
-            category: null,
+            categories: null,
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);
@@ -84,7 +84,7 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-05-20',
             description: null,
             title: null,
-            category: null,
+            categories: null,
         ));
 
         $this->assertDatabaseHas('vehicle_events', [
@@ -97,7 +97,49 @@ final class CreateVehicleEventActionTest extends TestCase
     }
 
     #[Test]
-    public function evenement_autre_persiste_titre_categorie_et_indispo(): void
+    public function type_connu_recoit_sa_categorie_par_defaut(): void
+    {
+        // Un type prédéfini reçoit automatiquement sa catégorie par défaut
+        // (stockée comme ligne, plus dérivée à l'affichage).
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Maintenance,
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            title: null,
+            categories: null,
+        ));
+
+        $this->assertSame(['Entretien'], $vehicleEvent->categories()->pluck('category')->all());
+    }
+
+    #[Test]
+    public function type_connu_prepend_le_defaut_puis_ajoute_les_categories_custom(): void
+    {
+        // Le défaut occupe 1 place, l'utilisateur peut en ajouter jusqu'à 4.
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Maintenance,
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            title: null,
+            categories: ['Pneus hiver', 'Révision'],
+        ));
+
+        $this->assertSame(
+            ['Entretien', 'Pneus hiver', 'Révision'],
+            $vehicleEvent->categories()->pluck('category')->all(),
+        );
+    }
+
+    #[Test]
+    public function evenement_autre_persiste_titre_et_categories(): void
     {
         $vehicle = Vehicle::factory()->create();
 
@@ -108,7 +150,7 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-06-02',
             description: null,
             title: 'Pose covering publicitaire',
-            category: 'Marketing',
+            categories: ['Marketing', 'Esthétique'],
             impliesUnavailability: true,
         ));
 
@@ -116,10 +158,35 @@ final class CreateVehicleEventActionTest extends TestCase
             'id' => $vehicleEvent->id,
             'type' => 'other',
             'title' => 'Pose covering publicitaire',
-            'category' => 'Marketing',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
         ]);
+        $this->assertSame(
+            ['Marketing', 'Esthétique'],
+            $vehicleEvent->categories()->pluck('category')->all(),
+        );
+    }
+
+    #[Test]
+    public function categories_dedupliquees_insensible_casse_et_plafonnees_a_cinq(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Other,
+            startDate: '2024-06-01',
+            endDate: '2024-06-02',
+            description: null,
+            title: 'Divers',
+            categories: ['A', 'a', 'B', 'C', 'D', 'E', 'F'],
+        ));
+
+        // 'a' dédupliqué de 'A', puis plafond à 5.
+        $this->assertSame(
+            ['A', 'B', 'C', 'D', 'E'],
+            $vehicleEvent->categories()->pluck('category')->all(),
+        );
     }
 
     #[Test]
@@ -134,7 +201,7 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-06-02',
             description: null,
             title: 'Changement de coordonnées',
-            category: 'Administratif',
+            categories: ['Administratif'],
             impliesUnavailability: false,
         ));
 
@@ -143,10 +210,11 @@ final class CreateVehicleEventActionTest extends TestCase
     }
 
     #[Test]
-    public function type_connu_force_implies_true_et_ignore_titre_categorie(): void
+    public function type_connu_force_implies_true_et_ignore_le_titre(): void
     {
-        // Robustesse : même si le client envoie titre/catégorie/implies pour
-        // un type connu, l'Action normalise (titre/catégorie null, implies true).
+        // Robustesse : même si le client envoie titre/implies pour un type
+        // connu, l'Action normalise (titre null, implies true). Les catégories
+        // custom, elles, sont acceptées en plus du défaut.
         $vehicle = Vehicle::factory()->create();
 
         $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
@@ -156,12 +224,12 @@ final class CreateVehicleEventActionTest extends TestCase
             endDate: '2024-06-02',
             description: null,
             title: 'devrait etre ignore',
-            category: 'devrait etre ignore',
+            categories: ['Pneus'],
             impliesUnavailability: false,
         ));
 
         $this->assertNull($vehicleEvent->title);
-        $this->assertNull($vehicleEvent->category);
         $this->assertTrue($vehicleEvent->implies_unavailability);
+        $this->assertSame(['Entretien', 'Pneus'], $vehicleEvent->categories()->pluck('category')->all());
     }
 }

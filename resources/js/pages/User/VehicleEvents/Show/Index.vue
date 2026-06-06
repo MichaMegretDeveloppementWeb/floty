@@ -27,7 +27,7 @@ const {
     startLabel,
     endLabel,
     durationLabel,
-    category,
+    categories,
     fiscalStatus,
     availabilityStatus,
     openDelete,
@@ -54,7 +54,7 @@ const pageTitle = computed<string>(() => vehicleEventDisplayTitle(props.vehicleE
                 :start-label="startLabel"
                 :end-label="endLabel"
                 :duration-label="durationLabel"
-                :category="category"
+                :categories="categories"
                 :fiscal-status="fiscalStatus"
                 :availability-status="availabilityStatus"
             />

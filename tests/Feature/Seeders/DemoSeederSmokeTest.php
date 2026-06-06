@@ -153,7 +153,7 @@ final class DemoSeederSmokeTest extends TestCase
             if ($u->type->isFiscallyReductive()) {
                 continue;
             }
-            // Type non réductrice (Maintenance, TechnicalInspection, etc.).
+            // Type non réductrice (Maintenance, événement personnalisé, etc.).
             $cohabitates = Contract::query()
                 ->where('vehicle_id', $u->vehicle_id)
                 ->where('start_date', '<=', $u->end_date ?? '2099-12-31')

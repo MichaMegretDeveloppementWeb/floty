@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/vue3';
 import type { InertiaForm } from '@inertiajs/vue3';
 import { store as storeRoute } from '@/routes/user/vehicles/controls/executions';
+import { cleanCustomCategories } from '@/Utils/vehicleEventCategories';
 
 type EffectiveControl = App.Data.User.Control.Vehicle.EffectiveControlData;
 
@@ -10,6 +11,9 @@ type RecordFormShape = {
     vehicle_control_override_id: number | null;
     executed_on: string;
     note: string;
+    // Custom categories added on the modal (« Contrôle » + « Entretien » are
+    // prepended by the backend); at most 3 to reach the cap of 5.
+    categories: string[];
     documents: File[];
 };
 
@@ -41,6 +45,7 @@ export function useRecordExecutionForm(vehicleId: number): {
         vehicle_control_override_id: null,
         executed_on: todayIso(),
         note: '',
+        categories: [],
         documents: [],
     });
 
@@ -67,6 +72,7 @@ export function useRecordExecutionForm(vehicleId: number): {
         form.vehicle_control_override_id = control.isVehicleSpecific ? control.overrideId : null;
         form.executed_on = todayIso();
         form.note = '';
+        form.categories = [];
         form.documents = [];
     }
 
@@ -75,6 +81,7 @@ export function useRecordExecutionForm(vehicleId: number): {
             .transform((data) => ({
                 ...data,
                 note: data.note.trim() === '' ? null : data.note.trim(),
+                categories: cleanCustomCategories(data.categories),
             }))
             .post(storeRoute.url(vehicleId), {
                 forceFormData: true,

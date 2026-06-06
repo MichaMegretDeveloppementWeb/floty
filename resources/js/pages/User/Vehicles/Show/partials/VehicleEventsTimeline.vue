@@ -25,10 +25,7 @@ import {
 import { useVehicleEventsTimelineFilter } from '@/Composables/Vehicle/Show/useVehicleEventsTimelineFilter';
 import { create as createRoute, show as showRoute } from '@/routes/user/vehicles/events';
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
-import {
-    vehicleEventDisplayCategory,
-    vehicleEventDisplayTitle,
-} from '@/Utils/labels/vehicleEventEnumLabels';
+import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
@@ -242,8 +239,13 @@ const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
                                                 {{ formatVehicleEventDaySpan(entry) }}
                                             </span>
                                             <span class="ml-4.5 flex flex-wrap items-center gap-1.5">
-                                                <Badge tone="slate" :uppercase="false">
-                                                    {{ vehicleEventDisplayCategory(entry.event) }}
+                                                <Badge
+                                                    v-for="cat in entry.event.categories"
+                                                    :key="cat"
+                                                    tone="slate"
+                                                    :uppercase="false"
+                                                >
+                                                    {{ cat }}
                                                 </Badge>
                                                 <FlagIcon
                                                     v-if="entry.event.impliesUnavailability"

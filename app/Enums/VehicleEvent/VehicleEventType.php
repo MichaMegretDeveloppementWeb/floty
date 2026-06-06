@@ -23,9 +23,8 @@ enum VehicleEventType: string
     case PoundPublic = 'pound_public';
     case CiSuspension = 'ci_suspension';
 
-    // Non-reducers (6)
+    // Non-reducers (5)
     case Maintenance = 'maintenance';
-    case TechnicalInspection = 'technical_inspection';
     case AccidentRepair = 'accident_repair';
     case PoundPrivate = 'pound_private';
     case Theft = 'theft';
@@ -56,10 +55,30 @@ enum VehicleEventType: string
             self::CiSuspension => 'C. route R. 322-6 ; BOFiP BOI-AIS-MOB-10-30-10 § 50',
             self::AccidentRepair => 'BOFiP BOI-AIS-MOB-10-30-10 § 50 (réparation simple = taxable, voir Remarque § 50)',
             self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 § 60 (fourrière privée non réductrice · exclusion explicite)',
-            self::Maintenance,
-            self::TechnicalInspection => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable, le § 50 ne couvre que les mises hors-circulation à la demande des pouvoirs publics)',
+            self::Maintenance => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable, le § 50 ne couvre que les mises hors-circulation à la demande des pouvoirs publics)',
             self::Theft => 'doctrine V1 (vol non assimilé à mise hors-circulation administrative au sens de L. 421-96)',
             self::Other => 'indéterminé',
+        };
+    }
+
+    /**
+     * Default category automatically attached to a known-type event (stored as
+     * a vehicle_event_categories row, then editable like any other). `null` for
+     * the custom `other` type, which carries only the user-supplied categories.
+     * Authoritative server-side source (the front keeps a mirror only to
+     * pre-fill the form).
+     */
+    public function defaultCategory(): ?string
+    {
+        return match ($this) {
+            self::AccidentNoCirculation,
+            self::AccidentRepair => 'Accident',
+            self::PoundPublic,
+            self::PoundPrivate => 'Fourrière',
+            self::CiSuspension => 'Administratif',
+            self::Maintenance => 'Entretien',
+            self::Theft => 'Vol',
+            self::Other => null,
         };
     }
 }

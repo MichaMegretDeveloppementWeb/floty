@@ -6,6 +6,7 @@ namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Models\VehicleEvent;
+use App\Models\VehicleEventCategory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -14,10 +15,20 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findForVehicle(int $vehicleId): Collection
     {
         return VehicleEvent::query()
-            ->with('documents')
+            ->with(['documents', 'categories'])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
+    }
+
+    public function distinctCategories(): array
+    {
+        return VehicleEventCategory::query()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category')
+            ->all();
     }
 
     public function findForVehicleIds(array $vehicleIds): array
@@ -48,7 +59,7 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findForVehicleDetail(int $vehicleId, int $vehicleEventId): VehicleEvent
     {
         return VehicleEvent::query()
-            ->with('documents')
+            ->with(['documents', 'categories'])
             ->where('vehicle_id', $vehicleId)
             ->findOrFail($vehicleEventId);
     }

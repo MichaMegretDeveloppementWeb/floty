@@ -6,7 +6,6 @@ import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { edit as editRoute } from '@/routes/user/vehicles/events';
 import {
-    vehicleEventDisplayCategory,
     vehicleEventDisplayTitle,
     vehicleEventTypeLabel,
 } from '@/Utils/labels/vehicleEventEnumLabels';
@@ -53,8 +52,13 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                     {{ vehicleEventTypeLabel[vehicleEvent.type] }}
                 </p>
                 <div class="mt-1 flex flex-wrap items-center gap-2">
-                    <Badge tone="slate" :uppercase="false">
-                        {{ vehicleEventDisplayCategory(vehicleEvent) }}
+                    <Badge
+                        v-for="cat in vehicleEvent.categories"
+                        :key="cat"
+                        tone="slate"
+                        :uppercase="false"
+                    >
+                        {{ cat }}
                     </Badge>
                     <FlagIcon
                         v-if="vehicleEvent.impliesUnavailability"

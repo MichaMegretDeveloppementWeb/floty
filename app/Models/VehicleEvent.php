@@ -28,14 +28,15 @@ use Illuminate\Support\Carbon;
  *     {@see VehicleEventType::isFiscallyReductive()}), denormalized with a SQL
  *     CHECK enforcing consistency with `type`. Never true for `other`.
  *
- * `title` / `category` carry the custom identity of an `other` event; known
- * types derive both from the enum on the front (columns stay null).
+ * `title` carries the custom name of an `other` event (null for known types,
+ * which derive their label from the enum on the front). Categories (up to 5,
+ * free text + suggestions) live in {@see VehicleEventCategory}; a known type
+ * gets its default category, the `other` type carries the user-supplied ones.
  *
  * @property int $id
  * @property int $vehicle_id
  * @property VehicleEventType $type
  * @property string|null $title
- * @property string|null $category
  * @property bool $has_fiscal_impact
  * @property bool $implies_unavailability
  * @property Carbon $start_date
@@ -49,7 +50,6 @@ use Illuminate\Support\Carbon;
     'vehicle_id',
     'type',
     'title',
-    'category',
     'has_fiscal_impact',
     'implies_unavailability',
     'start_date',
@@ -109,5 +109,16 @@ final class VehicleEvent extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(VehicleEventDocument::class);
+    }
+
+    /**
+     * Attached categories (free text + suggestions, up to 5), ordered by
+     * insertion so the type/control defaults come first.
+     *
+     * @return HasMany<VehicleEventCategory, $this>
+     */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(VehicleEventCategory::class)->orderBy('id');
     }
 }

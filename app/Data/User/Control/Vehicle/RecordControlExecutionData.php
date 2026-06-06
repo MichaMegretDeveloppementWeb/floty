@@ -26,6 +26,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[MapInputName(SnakeCaseMapper::class)]
 final class RecordControlExecutionData extends Data
 {
+    /**
+     * @param  list<string>  $categories  Custom categories added on the "Fait"
+     *                                    modal (the « Contrôle » + « Entretien »
+     *                                    defaults are prepended by the Action,
+     *                                    so at most 3 here to reach the cap of 5).
+     */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
         public int $vehicleId,
@@ -34,6 +40,7 @@ final class RecordControlExecutionData extends Data
         public ?int $controlDefinitionId = null,
         public ?int $vehicleControlOverrideId = null,
         public ?string $note = null,
+        public array $categories = [],
     ) {}
 
     /**
@@ -47,6 +54,10 @@ final class RecordControlExecutionData extends Data
             'control_definition_id' => ['nullable', 'integer', 'exists:control_definitions,id', 'required_without:vehicle_control_override_id'],
             'vehicle_control_override_id' => ['nullable', 'integer', 'exists:vehicle_control_overrides,id', 'required_without:control_definition_id'],
             'note' => ['nullable', 'string', 'max:500'],
+            // « Contrôle » + « Entretien » sont ajoutés d'office par l'Action,
+            // l'utilisateur peut en ajouter jusqu'à 3 (plafond total de 5).
+            'categories' => ['nullable', 'array', 'max:3'],
+            'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
             'documents' => ['nullable', 'array', 'max:5'],
             'documents.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ];
@@ -78,6 +89,8 @@ final class RecordControlExecutionData extends Data
         return [
             'executed_on.required' => 'La date de réalisation est obligatoire.',
             'control_definition_id.required_without' => 'Le contrôle ciblé est obligatoire.',
+            'categories.max' => 'Vous ne pouvez ajouter que 3 catégories (en plus de « Contrôle » et « Entretien »).',
+            'categories.*.distinct' => 'Cette catégorie est déjà présente.',
             'documents.max' => 'Vous ne pouvez joindre que 5 documents au maximum.',
             'documents.*.mimes' => 'Format invalide · seuls les fichiers PDF, JPG, PNG et WebP sont acceptés.',
             'documents.*.max' => 'Fichier trop volumineux · 5 Mo maximum.',

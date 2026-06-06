@@ -12,7 +12,7 @@ const props = defineProps<{
     startLabel: string;
     endLabel: string | null;
     durationLabel: string;
-    category: string;
+    categories: string[];
     fiscalStatus: VehicleEventStatus;
     availabilityStatus: VehicleEventStatus;
 }>();
@@ -65,11 +65,18 @@ const props = defineProps<{
         <div class="grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-3">
             <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
                 <p class="eyebrow mb-2">
-                    Catégorie
+                    Catégories
                 </p>
-                <p class="text-sm font-medium text-slate-900">
-                    {{ props.category }}
-                </p>
+                <div class="flex flex-wrap gap-1.5">
+                    <Badge
+                        v-for="cat in props.categories"
+                        :key="cat"
+                        tone="slate"
+                        :uppercase="false"
+                    >
+                        {{ cat }}
+                    </Badge>
+                </div>
             </div>
             <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
                 <p class="eyebrow mb-2">

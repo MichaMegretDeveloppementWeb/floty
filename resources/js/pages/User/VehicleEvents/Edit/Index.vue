@@ -17,6 +17,8 @@ const props = defineProps<{
     vehicle: VehicleHeader;
     vehicleEvent: VehicleEvent;
     busyDates: string[];
+    /** Catégories déjà saisies, pour l'auto-complétion. */
+    categorySuggestions: string[];
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });
@@ -47,6 +49,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                 :vehicle-id="vehicle.id"
                 :editing="vehicleEvent"
                 :busy-dates="busyDates"
+                :category-suggestions="categorySuggestions"
             />
         </div>
     </UserLayout>

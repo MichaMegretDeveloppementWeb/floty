@@ -8,11 +8,12 @@ use App\Contracts\Repositories\User\VehicleEvent\VehicleEventWriteRepositoryInte
 use App\Data\User\VehicleEvent\UpdateVehicleEventData;
 use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\VehicleEvent;
+use App\Support\VehicleEvent\EventCategoryList;
 
 /**
- * Updates a vehicle event. Recomputes `has_fiscal_impact` and re-normalises
- * the custom identity / unavailability flag from the (possibly new) type.
- * Symmetric to {@see CreateVehicleEventAction} regarding ADR-0019.
+ * Updates a vehicle event. Recomputes `has_fiscal_impact`, re-normalises the
+ * custom identity / unavailability flag and recomposes the categories from the
+ * (possibly new) type. Symmetric to {@see CreateVehicleEventAction} (ADR-0019).
  */
 final readonly class UpdateVehicleEventAction
 {
@@ -24,15 +25,20 @@ final readonly class UpdateVehicleEventAction
     {
         $isCustom = $data->type === VehicleEventType::Other;
 
+        $default = $data->type->defaultCategory();
+        $categories = EventCategoryList::compose(
+            $default === null ? [] : [$default],
+            $data->categories ?? [],
+        );
+
         return $this->repository->update($id, [
             'type' => $data->type,
             'title' => $isCustom ? $data->title : null,
-            'category' => $isCustom ? $data->category : null,
             'has_fiscal_impact' => $data->type->isFiscallyReductive(),
             'implies_unavailability' => $isCustom ? $data->impliesUnavailability : true,
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'description' => $data->description,
-        ]);
+        ], $categories);
     }
 }

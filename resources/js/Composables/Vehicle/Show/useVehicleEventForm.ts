@@ -9,17 +9,25 @@ import {
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
 import {
     isVehicleEventFiscallyReductive,
+    vehicleEventCategorySuggestions,
+    vehicleEventDefaultCategories,
     vehicleEventTypeLabel,
 } from '@/Utils/labels/vehicleEventEnumLabels';
+import {
+    cleanCustomCategories,
+    hasDuplicateCategories,
+    normalizeCategory,
+} from '@/Utils/vehicleEventCategories';
 
 type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
 type FormShape = {
     type: VehicleEventType;
-    // Custom identity, used only when type === 'other' (sent null otherwise).
+    // Custom name, used only when type === 'other' (sent null otherwise).
     title: string;
-    category: string;
+    // Custom categories (the locked type default is added by the backend).
+    categories: string[];
     // Informative unavailability flag (user-controlled only for 'other').
     implies_unavailability: boolean;
     start_date: string;
@@ -97,6 +105,8 @@ export function useVehicleEventForm(
         vehicleId: number;
         editing: VehicleEvent | null;
         busyDates: string[];
+        /** Distinct categories already used (backend), for autocomplete. */
+        categorySuggestions?: string[];
     },
     options: {
         /** Files queued in create mode, sent with the multipart create request. */
@@ -127,8 +137,12 @@ export function useVehicleEventForm(
     isFixedDate: ComputedRef<boolean>;
     /** Long French label of the fixed day (empty unless `isFixedDate`). */
     fixedDateLabel: ComputedRef<string>;
-    /** True when the custom "other" type is selected (reveals title/category/flag fields). */
+    /** True when the custom "other" type is selected (reveals title/flag fields). */
     isCustom: ComputedRef<boolean>;
+    /** Fixed default category(ies) of the selected type, shown locked. */
+    lockedDefaultCategories: ComputedRef<string[]>;
+    /** Autocomplete suggestions (backend distinct + seed), deduped. */
+    categorySuggestions: ComputedRef<string[]>;
     canSubmit: ComputedRef<boolean>;
     selectedIsReductive: ComputedRef<boolean>;
     conflictDaysCount: ComputedRef<number>;
@@ -162,7 +176,6 @@ export function useVehicleEventForm(
             isReductive: false,
             options: [
                 buildOption('maintenance'),
-                buildOption('technical_inspection'),
                 buildOption('accident_repair'),
                 buildOption('pound_private'),
                 buildOption('theft'),
@@ -173,12 +186,22 @@ export function useVehicleEventForm(
     const form = useForm<FormShape>({
         type: 'other',
         title: '',
-        category: '',
+        categories: [],
         implies_unavailability: true,
         start_date: '',
         end_date: '',
         description: '',
     });
+
+    // Custom categories of an edited event = stored list minus the type's
+    // locked default(s) (which the backend re-prepends on save).
+    const splitCustomCategories = (event: VehicleEvent): string[] => {
+        const locked = new Set(
+            vehicleEventDefaultCategories(event.type).map(normalizeCategory),
+        );
+
+        return event.categories.filter((c) => !locked.has(normalizeCategory(c)));
+    };
 
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
@@ -195,7 +218,7 @@ export function useVehicleEventForm(
             if (value) {
                 form.type = value.type;
                 form.title = value.title ?? '';
-                form.category = value.category ?? '';
+                form.categories = splitCustomCategories(value);
                 form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
                 range.value = {
@@ -251,6 +274,32 @@ export function useVehicleEventForm(
 
     const isCustom = computed<boolean>(() => form.type === 'other');
 
+    const lockedDefaultCategories = computed<string[]>(() =>
+        vehicleEventDefaultCategories(form.type),
+    );
+
+    const categorySuggestions = computed<string[]>(() => {
+        const seen = new Set<string>();
+        const merged: string[] = [];
+
+        for (const suggestion of [...(props.categorySuggestions ?? []), ...vehicleEventCategorySuggestions]) {
+            const key = normalizeCategory(suggestion);
+
+            if (key === '' || seen.has(key)) {
+                continue;
+            }
+
+            seen.add(key);
+            merged.push(suggestion);
+        }
+
+        return merged;
+    });
+
+    const hasCategoryDuplicates = computed<boolean>(() =>
+        hasDuplicateCategories(form.categories, lockedDefaultCategories.value),
+    );
+
     const canSubmit = computed<boolean>(() => {
         if (range.value.startDate === null) {
             return false;
@@ -260,11 +309,18 @@ export function useVehicleEventForm(
             return false;
         }
 
-        // Custom "other" events require a free name and category.
-        if (
-            isCustom.value
-            && (form.title.trim() === '' || form.category.trim() === '')
-        ) {
+        // Custom "other" events require a free name.
+        if (isCustom.value && form.title.trim() === '') {
+            return false;
+        }
+
+        // "other" needs at least one category; known types are covered by
+        // their locked default.
+        if (isCustom.value && cleanCustomCategories(form.categories).length === 0) {
+            return false;
+        }
+
+        if (hasCategoryDuplicates.value) {
             return false;
         }
 
@@ -289,9 +345,11 @@ export function useVehicleEventForm(
 
         return {
             type: data.type,
-            // Custom identity only for 'other'; known types derive it on display.
+            // Custom name only for 'other'; known types derive it on display.
             title: isOther && data.title.trim() !== '' ? data.title.trim() : null,
-            category: isOther && data.category.trim() !== '' ? data.category.trim() : null,
+            // Only the custom categories travel; the backend prepends the
+            // type default (and « Contrôle »/« Entretien » for control events).
+            categories: cleanCustomCategories(data.categories),
             // Known types always imply unavailability; only 'other' may opt out.
             implies_unavailability: isOther ? data.implies_unavailability : true,
             start_date: range.value.startDate,
@@ -335,6 +393,8 @@ export function useVehicleEventForm(
         isFixedDate,
         fixedDateLabel,
         isCustom,
+        lockedDefaultCategories,
+        categorySuggestions,
         canSubmit,
         selectedIsReductive,
         conflictDaysCount,

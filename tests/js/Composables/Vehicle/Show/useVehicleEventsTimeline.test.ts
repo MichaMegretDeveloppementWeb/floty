@@ -12,7 +12,7 @@ function makeEvent(overrides: Partial<VehicleEvent> & { id: number; startDate: s
         vehicleId: 1,
         type: 'maintenance',
         title: null,
-        category: null,
+        categories: [],
         hasFiscalImpact: false,
         impliesUnavailability: true,
         endDate: null,

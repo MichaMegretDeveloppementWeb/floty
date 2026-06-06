@@ -52,6 +52,7 @@ final class VehicleEventController extends Controller
             'vehicle' => $this->vehicleHeader($vehicle),
             'busyDates' => $this->busyDatesForYear($vehicle, $year),
             'initialDate' => $initialDate,
+            'categorySuggestions' => $this->events->distinctCategories(),
         ]);
     }
 
@@ -82,6 +83,7 @@ final class VehicleEventController extends Controller
             'vehicle' => $this->vehicleHeader($vehicle),
             'vehicleEvent' => VehicleEventData::fromModel($event),
             'busyDates' => $this->busyDatesForYear($vehicle, $event->start_date->year),
+            'categorySuggestions' => $this->events->distinctCategories(),
         ]);
     }
 

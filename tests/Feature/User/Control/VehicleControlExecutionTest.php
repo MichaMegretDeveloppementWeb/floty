@@ -57,11 +57,20 @@ final class VehicleControlExecutionTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'type' => 'other',
             'title' => 'Contrôle technique',
-            'category' => 'Contrôle',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
             'start_date' => '2024-03-10',
             'end_date' => '2024-03-10',
+        ]);
+
+        // Catégories par défaut d'une exécution de contrôle : « Contrôle » + « Entretien ».
+        $this->assertDatabaseHas('vehicle_event_categories', [
+            'vehicle_event_id' => $execution->vehicle_event_id,
+            'category' => 'Contrôle',
+        ]);
+        $this->assertDatabaseHas('vehicle_event_categories', [
+            'vehicle_event_id' => $execution->vehicle_event_id,
+            'category' => 'Entretien',
         ]);
     }
 

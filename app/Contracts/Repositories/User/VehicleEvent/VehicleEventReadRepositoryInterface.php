@@ -44,6 +44,15 @@ interface VehicleEventReadRepositoryInterface
     public function findById(int $id): VehicleEvent;
 
     /**
+     * Distinct categories already used across all events, ascending. Feeds the
+     * autocomplete suggestions (merged with the predefined seed on the front)
+     * and, later, the category filter facets.
+     *
+     * @return list<string>
+     */
+    public function distinctCategories(): array;
+
+    /**
      * Single event scoped to its vehicle, with `documents` eager-loaded,
      * for the dedicated detail / edit pages. Throws 404 when the id does
      * not exist OR does not belong to `$vehicleId` (URL consistency guard).

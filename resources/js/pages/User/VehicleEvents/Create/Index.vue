@@ -17,6 +17,8 @@ const props = defineProps<{
     busyDates: string[];
     /** ISO Y-m-d pré-sélectionnée (ajout depuis un jour précis de la timeline). */
     initialDate?: string | null;
+    /** Catégories déjà saisies, pour l'auto-complétion. */
+    categorySuggestions: string[];
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });
@@ -48,6 +50,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                 :editing="null"
                 :busy-dates="busyDates"
                 :initial-date="initialDate"
+                :category-suggestions="categorySuggestions"
             />
         </div>
     </UserLayout>

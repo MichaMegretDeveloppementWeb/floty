@@ -11,7 +11,6 @@ export const vehicleEventTypeLabel: Record<App.Enums.VehicleEvent.VehicleEventTy
     pound_public: 'Fourrière à la demande des pouvoirs publics',
     ci_suspension: 'Suspension du certificat d\'immatriculation',
     maintenance: 'Maintenance / entretien',
-    technical_inspection: 'Contrôle technique',
     accident_repair: 'Sinistre - réparation simple (sans interdiction de circuler)',
     pound_private: 'Fourrière à la demande d\'un privé (réquisition, autre)',
     theft: 'Vol (sans certificat de destruction délivré)',
@@ -27,7 +26,6 @@ export const vehicleEventTypeShortLabel: Record<App.Enums.VehicleEvent.VehicleEv
     pound_public: 'Fourrière publique',
     ci_suspension: 'Suspension CI',
     maintenance: 'Maintenance',
-    technical_inspection: 'Contrôle technique',
     accident_repair: 'Sinistre / réparation',
     pound_private: 'Fourrière privée',
     theft: 'Vol',
@@ -52,28 +50,40 @@ export function isVehicleEventFiscallyReductive(
 }
 
 /**
- * Category shown in the events list / timeline. Auto-derived for known
- * types; for the custom "other" type the user-supplied category is used
- * instead (this entry is only a fallback when none was provided).
+ * Default category prepended to a known-type event (mirror of the PHP
+ * `VehicleEventType::defaultCategory()`). Used ONLY by the form to show the
+ * locked default chip; the stored categories live on the event itself.
+ * `other` has no default (the user supplies all its categories).
  */
-export const vehicleEventTypeCategory: Record<App.Enums.VehicleEvent.VehicleEventType, string> = {
+const vehicleEventTypeDefaultCategory: Partial<Record<App.Enums.VehicleEvent.VehicleEventType, string>> = {
     accident_no_circulation: 'Accident',
     accident_repair: 'Accident',
     pound_public: 'Fourrière',
     pound_private: 'Fourrière',
     ci_suspension: 'Administratif',
     maintenance: 'Entretien',
-    technical_inspection: 'Contrôle réglementaire',
     theft: 'Vol',
-    other: 'Personnalisé',
 };
 
-/** Distinct known categories, offered as suggestions on the custom-type form. */
+/**
+ * Fixed default category(ies) of a type, shown locked in the form (the user
+ * adds custom categories on top). Empty for `other`.
+ */
+export function vehicleEventDefaultCategories(
+    type: App.Enums.VehicleEvent.VehicleEventType,
+): string[] {
+    const def = vehicleEventTypeDefaultCategory[type];
+
+    return def === undefined ? [] : [def];
+}
+
+/** Seed suggestions for the category autocomplete (merged with already-used ones). */
 export const vehicleEventCategorySuggestions: ReadonlyArray<string> = [
     'Accident',
     'Fourrière',
     'Administratif',
     'Entretien',
+    'Contrôle',
     'Contrôle réglementaire',
     'Vol',
 ];
@@ -81,7 +91,6 @@ export const vehicleEventCategorySuggestions: ReadonlyArray<string> = [
 type VehicleEventIdentity = {
     type: App.Enums.VehicleEvent.VehicleEventType;
     title: string | null;
-    category: string | null;
 };
 
 /**
@@ -92,11 +101,4 @@ export function vehicleEventDisplayTitle(event: VehicleEventIdentity): string {
     return event.type === 'other' && event.title !== null && event.title !== ''
         ? event.title
         : vehicleEventTypeShortLabel[event.type];
-}
-
-/** Display category: the free category for a custom event, the mapped one otherwise. */
-export function vehicleEventDisplayCategory(event: VehicleEventIdentity): string {
-    return event.type === 'other' && event.category !== null && event.category !== ''
-        ? event.category
-        : vehicleEventTypeCategory[event.type];
 }

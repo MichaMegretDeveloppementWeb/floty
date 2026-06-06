@@ -237,7 +237,7 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_cree_un_evenement_autre_avec_titre_categorie_et_indispo(): void
+    public function store_cree_un_evenement_autre_avec_titre_categories_et_indispo(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -247,21 +247,22 @@ final class VehicleEventControllerTest extends TestCase
                 'vehicle_id' => $vehicle->id,
                 'type' => 'other',
                 'title' => 'Pose covering publicitaire',
-                'category' => 'Marketing',
+                'categories' => ['Marketing', 'Esthétique'],
                 'implies_unavailability' => true,
                 'start_date' => '2024-09-01',
                 'end_date' => '2024-09-02',
             ])
             ->assertRedirect();
 
+        $event = VehicleEvent::query()->where('vehicle_id', $vehicle->id)->latest('id')->firstOrFail();
         $this->assertDatabaseHas('vehicle_events', [
-            'vehicle_id' => $vehicle->id,
+            'id' => $event->id,
             'type' => 'other',
             'title' => 'Pose covering publicitaire',
-            'category' => 'Marketing',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
         ]);
+        $this->assertSame(['Marketing', 'Esthétique'], $event->categories()->pluck('category')->all());
     }
 
     #[Test]
@@ -277,7 +278,7 @@ final class VehicleEventControllerTest extends TestCase
                 'start_date' => '2024-09-01',
                 'end_date' => '2024-09-02',
             ])
-            ->assertSessionHasErrors(['title', 'category']);
+            ->assertSessionHasErrors(['title', 'categories']);
     }
 
     #[Test]
@@ -291,7 +292,7 @@ final class VehicleEventControllerTest extends TestCase
                 'vehicle_id' => $vehicle->id,
                 'type' => 'other',
                 'title' => 'Note interne',
-                'category' => 'Divers',
+                'categories' => ['Divers'],
                 'implies_unavailability' => false,
                 'start_date' => '2024-09-01',
                 'end_date' => '2024-09-02',
