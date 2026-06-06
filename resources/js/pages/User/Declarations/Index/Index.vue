@@ -114,6 +114,7 @@ const statusOptions: { value: string | null; label: string }[] = [
                                 <FieldLabel for="filter-decl-company">Entreprise</FieldLabel>
                                 <SearchableSelect
                                     id="filter-decl-company"
+                                    dropdown-in-flow
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"

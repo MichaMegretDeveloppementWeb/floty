@@ -158,6 +158,7 @@ const contractsScopeModel = computed<string | number>({
                                 >
                                 <SearchableSelect
                                     id="filter-company"
+                                    dropdown-in-flow
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"

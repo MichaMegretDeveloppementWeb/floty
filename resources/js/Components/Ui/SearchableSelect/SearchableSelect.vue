@@ -25,6 +25,15 @@ const props = withDefaults(
          * avoid a double-click after "Add a driver".
          */
         autoOpenOnMount?: boolean;
+        /**
+         * Render the dropdown panel in the document flow instead of
+         * absolutely positioned. Use inside a short scrollable container
+         * (e.g. a FilterPopover): the panel then grows the container up to
+         * its max-height instead of overflowing it as a clipped, cramped
+         * floating list. Forms keep the default absolute overlay so opening
+         * the panel does not shift the surrounding fields.
+         */
+        dropdownInFlow?: boolean;
     }>(),
     {
         disabled: false,
@@ -32,6 +41,7 @@ const props = withDefaults(
         searchPlaceholder: 'Rechercher…',
         noResultsLabel: 'Aucun résultat',
         autoOpenOnMount: false,
+        dropdownInFlow: false,
     },
 );
 
@@ -207,7 +217,10 @@ function onTriggerKeyDown(event: KeyboardEvent): void {
             <div
                 v-if="isOpen"
                 :id="panelId"
-                class="absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+                :class="[
+                    'mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg',
+                    dropdownInFlow ? '' : 'absolute top-full right-0 left-0 z-20',
+                ]"
             >
                 <div class="border-b border-slate-100 p-2">
                     <input

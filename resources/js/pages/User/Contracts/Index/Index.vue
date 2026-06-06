@@ -183,6 +183,7 @@ const typeModel = computed<string | number>({
                                 <FieldLabel for="filter-vehicle">Véhicule</FieldLabel>
                                 <SearchableSelect
                                     id="filter-vehicle"
+                                    dropdown-in-flow
                                     v-model="vehicleIdModel"
                                     placeholder="Tous les véhicules"
                                     :options="vehicleSelectOptions"
@@ -192,6 +193,7 @@ const typeModel = computed<string | number>({
                                 <FieldLabel for="filter-company">Entreprise</FieldLabel>
                                 <SearchableSelect
                                     id="filter-company"
+                                    dropdown-in-flow
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"
@@ -201,6 +203,7 @@ const typeModel = computed<string | number>({
                                 <FieldLabel for="filter-driver">Conducteur</FieldLabel>
                                 <SearchableSelect
                                     id="filter-driver"
+                                    dropdown-in-flow
                                     v-model="driverIdModel"
                                     placeholder="Tous les conducteurs"
                                     :options="driverSelectOptions"

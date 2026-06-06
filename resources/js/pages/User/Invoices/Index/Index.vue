@@ -134,6 +134,7 @@ const monthOptions: { value: number | null; label: string }[] = [
                                 <FieldLabel for="filter-invoice-company">Entreprise</FieldLabel>
                                 <SearchableSelect
                                     id="filter-invoice-company"
+                                    dropdown-in-flow
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"

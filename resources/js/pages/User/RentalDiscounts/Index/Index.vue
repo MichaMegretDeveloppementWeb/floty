@@ -145,6 +145,7 @@ const statusModel = computed<string | number>({
                                 <FieldLabel for="filter-company">Entreprise</FieldLabel>
                                 <SearchableSelect
                                     id="filter-company"
+                                    dropdown-in-flow
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"
