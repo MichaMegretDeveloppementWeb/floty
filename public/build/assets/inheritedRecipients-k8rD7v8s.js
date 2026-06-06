@@ -1,0 +1,1 @@
+function e(e){return e.trim().toLowerCase()}function t(t,n){let r=e(t.alwaysNotifyEmail??``);return r!==``&&e(n)===r}function n(n){let r=e(n.alwaysNotifyEmail??``),i=[];r!==``&&i.push({name:n.alwaysNotifyName??r,email:r,isAlwaysNotify:!0});for(let e of n.defaultRecipients)t(n,e.email)||i.push({name:e.name,email:e.email,isAlwaysNotify:!1});return i}export{t as n,n as t};

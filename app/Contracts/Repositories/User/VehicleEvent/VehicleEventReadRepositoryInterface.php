@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\VehicleEvent;
 
+use App\Data\User\VehicleEvent\VehicleEventIndexQueryData;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\VehicleEvent;
 use App\Services\VehicleEvent\VehicleEventQueryService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -50,6 +52,46 @@ interface VehicleEventReadRepositoryInterface
      * the attached cost when re-syncing a read-only lifecycle marker.
      */
     public function findSystemEventForVehicle(int $vehicleId, VehicleEventSystemKind $kind): ?VehicleEvent;
+
+    /**
+     * Global vehicle-events index · slim, filtered, sorted, paginated (all
+     * vehicles). Eager-loads `vehicle:id,license_plate` + `categories`.
+     *
+     * NE PAS réutiliser pour la fiche détail ni la timeline véhicule (qui ont
+     * leurs propres méthodes `findForVehicle` / `findForVehicleDetail`).
+     *
+     * @return LengthAwarePaginator<int, VehicleEvent>
+     */
+    public function paginateForIndex(VehicleEventIndexQueryData $query): LengthAwarePaginator;
+
+    /**
+     * Sum of `amount_cents` (costs) over the SAME filtered set as
+     * {@see paginateForIndex} (all matching rows, not just the current page).
+     * One SQL `SUM`; powers the "Total" stat of the index.
+     */
+    public function sumAmountForIndex(VehicleEventIndexQueryData $query): int;
+
+    /**
+     * Distinct event TYPE values actually present in the data (enum values),
+     * for the type filter's real-value autocomplete.
+     *
+     * @return list<string>
+     */
+    public function distinctTypesPresent(): array;
+
+    /**
+     * Distinct calendar years of events (by `start_date`), descending, for the
+     * year filter.
+     *
+     * @return list<int>
+     */
+    public function distinctEventYears(): array;
+
+    /**
+     * Whether any vehicle event exists at all · drives the global index empty
+     * state placeholder (vs « no result for these filters »).
+     */
+    public function existsAnyVehicleEvent(): bool;
 
     /**
      * Distinct categories already used across all events, ascending. Feeds the

@@ -250,7 +250,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                 :min="0"
                 :step="0.01"
                 placeholder="0,00"
-                hint="Coût associé à cet événement (TTC), facultatif. Ne renseignez pas une recette (ex. vente)."
+                hint="Coût associé à cet événement (TTC), facultatif."
                 :error="amountError"
             >
                 <template #unit>€</template>

@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\VehicleEvent\VehicleEventIndexQueryData;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\VehicleEvent;
 use App\Models\VehicleEventCategory;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class VehicleEventReadRepository implements VehicleEventReadRepositoryInterface
 {
@@ -20,6 +26,104 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
+    }
+
+    public function paginateForIndex(VehicleEventIndexQueryData $query): LengthAwarePaginator
+    {
+        $eloquent = VehicleEvent::query()
+            ->with(['vehicle:id,license_plate', 'categories']);
+
+        $this->applyIndexFilters($eloquent, $query);
+
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+
+        match ($query->sortKey) {
+            'vehicle' => $eloquent
+                ->leftJoin('vehicles', 'vehicles.id', '=', 'vehicle_events.vehicle_id')
+                ->orderBy('vehicles.license_plate', $direction)
+                ->select('vehicle_events.*'),
+            'type' => $eloquent->orderBy('type', $direction),
+            'amount' => $eloquent->orderBy('amount_cents', $direction),
+            'startDate' => $eloquent->orderBy('start_date', $direction),
+            default => $eloquent->orderByDesc('start_date'),
+        };
+
+        return $eloquent->paginate(perPage: $query->perPage, page: $query->page);
+    }
+
+    public function sumAmountForIndex(VehicleEventIndexQueryData $query): int
+    {
+        $eloquent = VehicleEvent::query();
+        $this->applyIndexFilters($eloquent, $query);
+
+        return (int) $eloquent->sum('amount_cents');
+    }
+
+    public function distinctTypesPresent(): array
+    {
+        return VehicleEvent::query()
+            ->select('type')
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type')
+            ->map(static fn (VehicleEventType $type): string => $type->value)
+            ->all();
+    }
+
+    public function distinctEventYears(): array
+    {
+        return VehicleEvent::query()
+            ->selectRaw('DISTINCT YEAR(start_date) as year')
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->map(static fn (mixed $year): int => (int) $year)
+            ->all();
+    }
+
+    public function existsAnyVehicleEvent(): bool
+    {
+        return VehicleEvent::query()->exists();
+    }
+
+    /**
+     * Shared filter clauses for the global index (used by both the paginated
+     * listing and the cost total). Multi-value axes are OR-within / AND-between.
+     *
+     * @param  Builder<VehicleEvent>  $query
+     */
+    private function applyIndexFilters(Builder $query, VehicleEventIndexQueryData $data): void
+    {
+        if ($data->types !== null && $data->types !== []) {
+            $query->whereIn('type', $data->types);
+        }
+
+        if ($data->categories !== null && $data->categories !== []) {
+            $lowered = array_map(
+                static fn (string $c): string => mb_strtolower(trim($c)),
+                $data->categories,
+            );
+
+            $query->whereHas('categories', static function (Builder $c) use ($lowered): void {
+                $c->whereIn(DB::raw('LOWER(category)'), $lowered);
+            });
+        }
+
+        if ($data->year !== null) {
+            $query->whereBetween('start_date', [
+                sprintf('%d-01-01', $data->year),
+                sprintf('%d-12-31', $data->year),
+            ]);
+        }
+
+        if ($data->search !== null) {
+            $term = '%'.$data->search.'%';
+
+            $query->where(static function (Builder $w) use ($term): void {
+                $w->where('title', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhereHas('vehicle', static fn (Builder $v) => $v->where('license_plate', 'like', $term));
+            });
+        }
     }
 
     public function distinctCategories(): array

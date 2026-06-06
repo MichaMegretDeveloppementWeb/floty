@@ -288,6 +288,10 @@ Route::middleware('auth')
             ->whereNumber(['vehicle', 'vehicleEvent'])
             ->name('vehicles.events.edit');
 
+        // Global vehicle-events index (all vehicles), reached from the navbar.
+        Route::get('/vehicle-events', [VehicleEventController::class, 'index'])
+            ->name('vehicle-events.index');
+
         // Vehicle events · CRUD operated from the vehicle detail page.
         Route::post('/vehicle-events', [VehicleEventController::class, 'store'])
             ->middleware('throttle:300,1')

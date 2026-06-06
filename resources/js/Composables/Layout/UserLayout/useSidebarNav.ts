@@ -3,6 +3,7 @@ import {
     BadgePercent,
     BellRing,
     Building2,
+    CalendarClock,
     CalendarDays,
     ClipboardCheck,
     FileCheck2,
@@ -31,6 +32,7 @@ import { index as rentalDiscountsIndexRoute } from '@/routes/user/rental-discoun
 import { edit as billingSettingsEditRoute } from '@/routes/user/settings/billing';
 import { edit as controlRemindersEditRoute } from '@/routes/user/settings/control-reminders';
 import { edit as fiscalRiskSettingsEditRoute } from '@/routes/user/settings/fiscal-risk';
+import { index as vehicleEventsIndexRoute } from '@/routes/user/vehicle-events';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
 export type NavItem = {
@@ -105,6 +107,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Contrôles réglementaires',
                     icon: ClipboardCheck,
                     href: controlsIndexRoute.url(),
+                },
+                {
+                    label: 'Événements',
+                    icon: CalendarClock,
+                    href: vehicleEventsIndexRoute.url(),
                 },
             ],
         },

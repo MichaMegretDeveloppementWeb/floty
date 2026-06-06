@@ -48,9 +48,10 @@ export type ServerTableStateOptions<F extends Record<string, unknown>> = {
     initialFilters?: F;
     /**
      * Serialises domain filters to key/value pairs for `router.reload`'s `data`.
-     * Return `null` to omit a key from the URL.
+     * Return `null` to omit a key from the URL. An array value is serialised as
+     * repeated `key[]=` params (multi-value filters); an empty array is omitted.
      */
-    serializeFilters: (filters: F) => Record<string, string | number | null>;
+    serializeFilters: (filters: F) => Record<string, string | number | null | string[]>;
     /** Search debounce in ms (default 300). */
     debounceMs?: number;
 };
@@ -102,8 +103,8 @@ export function useServerTableState<F extends Record<string, unknown>>(
     let searchTimer: ReturnType<typeof setTimeout> | null = null;
     let pendingCancel: (() => void) | null = null;
 
-    function buildQueryData(): Record<string, string | number | null> {
-        const data: Record<string, string | number | null> = {
+    function buildQueryData(): Record<string, string | number | null | string[]> {
+        const data: Record<string, string | number | null | string[]> = {
             page: page.value !== FACTORY_DEFAULT_PAGE ? page.value : null,
             perPage:
                 perPage.value !== FACTORY_DEFAULT_PER_PAGE ? perPage.value : null,
@@ -148,29 +149,38 @@ export function useServerTableState<F extends Record<string, unknown>>(
 
         // 1. Strip URL keys managed by the composable (standard table params + custom filter keys),
         //    so a filter that becomes null actually disappears from the URL instead of persisting.
-        const managedKeys = new Set<string>([
-            'page',
-            'perPage',
-            'search',
-            'sortKey',
-            'sortDirection',
-            ...Object.keys(params).filter(
-                (k) =>
-                    !['page', 'perPage', 'search', 'sortKey', 'sortDirection'].includes(
-                        k,
-                    ),
-            ),
-        ]);
+        const baseKeys = ['page', 'perPage', 'search', 'sortKey', 'sortDirection'];
+        const managedKeys = new Set<string>(baseKeys);
+
+        for (const [key, value] of Object.entries(params)) {
+            if (baseKeys.includes(key)) {
+                continue;
+            }
+
+            // Array filters live under `key[]` in the URL; scalars under `key`.
+            managedKeys.add(Array.isArray(value) ? `${key}[]` : key);
+        }
 
         for (const key of managedKeys) {
             url.searchParams.delete(key);
         }
 
-        // 2. Re-inject current values (filtering out null to keep the URL clean).
+        // 2. Re-inject current values (filtering out null / empty arrays to keep
+        //    the URL clean). Arrays become repeated `key[]=` params.
         for (const [key, value] of Object.entries(params)) {
-            if (value !== null) {
-                url.searchParams.set(key, String(value));
+            if (value === null) {
+                continue;
             }
+
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    url.searchParams.append(`${key}[]`, String(item));
+                }
+
+                continue;
+            }
+
+            url.searchParams.set(key, String(value));
         }
 
         router.get(

@@ -13,11 +13,13 @@ use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInter
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
 use App\Data\User\VehicleEvent\UpdateVehicleEventData;
 use App\Data\User\VehicleEvent\VehicleEventData;
+use App\Data\User\VehicleEvent\VehicleEventIndexQueryData;
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleEventDocument;
 use App\Services\Contract\ContractQueryService;
+use App\Services\VehicleEvent\VehicleEventQueryService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,31 @@ final class VehicleEventController extends Controller
         private readonly VehicleEventReadRepositoryInterface $events,
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
+        private readonly VehicleEventQueryService $eventQuery,
     ) {}
+
+    /**
+     * Global vehicle-events index (all vehicles): server-side filtered,
+     * sorted, paginated list with the total cost of the filtered set. Filters
+     * by type / category (multi-value, free text + real-value autocomplete)
+     * and year; each row links to the event detail.
+     */
+    public function index(VehicleEventIndexQueryData $query): Response
+    {
+        Gate::authorize('viewAny', VehicleEvent::class);
+
+        return Inertia::render('User/VehicleEvents/Index/Index', [
+            'events' => $this->eventQuery->listForGlobalIndex($query),
+            'totalAmountCents' => $this->events->sumAmountForIndex($query),
+            'query' => $query,
+            'hasAnyVehicleEvent' => $this->events->existsAnyVehicleEvent(),
+            'options' => [
+                'typeValues' => $this->events->distinctTypesPresent(),
+                'categorySuggestions' => $this->events->distinctCategories(),
+                'availableYears' => $this->events->distinctEventYears(),
+            ],
+        ]);
+    }
 
     /**
      * Render the dedicated "new event" form page for a vehicle. An optional
