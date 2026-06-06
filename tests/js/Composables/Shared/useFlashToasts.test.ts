@@ -123,6 +123,23 @@ describe('useFlashToasts', () => {
         unmount();
     });
 
+    it('ne pousse pas deux fois la même entrée id (dédup retour arrière)', async () => {
+        const entry = { id: 'dedup-back-1', tone: 'success', message: 'Action réalisée.' };
+        flashState.toasts = [entry];
+
+        const { unmount } = await mountAndFlush();
+        expect(useToasts().toasts.length).toBe(1);
+
+        // Inertia restaure les mêmes flash.toasts (même id) au retour arrière :
+        // le watcher se redéclenche mais l'id déjà vu est ignoré.
+        flashState.toasts = [{ ...entry }];
+        await nextTick();
+
+        expect(useToasts().toasts.length).toBe(1);
+
+        unmount();
+    });
+
     it('ignore les entrées avec un tone non reconnu', async () => {
         flashState.toasts = [
             buildEntry('mystery', 'Tone inconnu, devrait être skip.'),

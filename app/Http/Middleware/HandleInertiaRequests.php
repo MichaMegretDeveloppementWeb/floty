@@ -13,6 +13,7 @@ use App\Support\Toasts\ToastDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 /**
@@ -117,10 +118,15 @@ final class HandleInertiaRequests extends Middleware
      * so the frontend can deduplicate on browser back/forward (without
      * stability the same toast would reappear on each cached visit).
      *
-     * IDs are deterministic across multiple `share()` calls within the
-     * same request lifecycle: legacy scalar toasts use a hash of
-     * `tone|message`, so any rebuild produces the same id. The
-     * `ToastDispatcher` channel already persists its UUIDs in session.
+     * IDs are unique per request but deterministic across multiple
+     * `share()` calls within the same request lifecycle: legacy scalar
+     * toasts use a per-request nonce (memoized on the request), so any
+     * rebuild during the same request produces the same id, but two
+     * separate actions, even with an identical message, get distinct ids
+     * and both fire. A content hash would have made the frontend
+     * deduplicate a repeated action (same message) as if it were a
+     * back/forward cache replay. The `ToastDispatcher` channel already
+     * persists its UUIDs in session.
      */
     private function buildFlashData(Request $request): FlashData
     {
@@ -132,11 +138,12 @@ final class HandleInertiaRequests extends Middleware
         $info = $session->get('toast-info');
 
         $toasts = [];
+        $nonce = $this->flashToastNonce($request);
 
         foreach (['success' => $success, 'error' => $error, 'warning' => $warning, 'info' => $info] as $tone => $message) {
             if ($message !== null && $message !== '') {
                 $toasts[] = new ToastEntryData(
-                    id: 'legacy-'.hash('xxh3', $tone.'|'.$message),
+                    id: 'flash-'.$nonce.'-'.$tone,
                     tone: $tone,
                     message: $message,
                 );
@@ -160,6 +167,24 @@ final class HandleInertiaRequests extends Middleware
             info: $info,
             toasts: $toasts,
         );
+    }
+
+    /**
+     * Per-request nonce used to build stable-yet-unique toast ids. Memoized
+     * on the request so several `share()` rebuilds within the same request
+     * reuse the same value, while distinct requests (including a repeat of
+     * the same action) get a fresh one.
+     */
+    private function flashToastNonce(Request $request): string
+    {
+        $nonce = $request->attributes->get('flash_toast_nonce');
+
+        if (! is_string($nonce)) {
+            $nonce = Str::uuid()->toString();
+            $request->attributes->set('flash_toast_nonce', $nonce);
+        }
+
+        return $nonce;
     }
 
     /**

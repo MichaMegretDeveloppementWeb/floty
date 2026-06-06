@@ -22,7 +22,7 @@ const {
     reactivateModalOpen,
     openExit,
     openReactivate,
-} = useVehicleShowActions();
+} = useVehicleShowActions(() => props.vehicle.isExited);
 </script>
 
 <template>

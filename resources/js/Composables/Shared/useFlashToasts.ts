@@ -28,6 +28,12 @@ const TONE_TITLES: Record<ToastTone, string> = {
 
 const STORAGE_KEY = 'floty:seen-toast-ids';
 
+// Toast ids are now unique per request (one per action), so the dedup set
+// grows with every action in the session. Cap it to the most recent ids:
+// back/forward dedup only needs recent history, and a JS Set preserves
+// insertion order, so we drop the oldest entries past the cap.
+const MAX_SEEN_TOAST_IDS = 100;
+
 const loadSeenToastIds = (): Set<string> => {
     if (typeof window === 'undefined') {
         return new Set();
@@ -62,6 +68,24 @@ const persistSeenToastIds = (ids: Set<string>): void => {
     } catch {
         // sessionStorage may be unavailable (private mode quota etc.) ·
         // dedup degrades to module-level only, no user-facing failure.
+    }
+};
+
+const trimSeenToastIds = (ids: Set<string>): void => {
+    const overflow = ids.size - MAX_SEEN_TOAST_IDS;
+
+    if (overflow <= 0) {
+        return;
+    }
+
+    const iterator = ids.values();
+
+    for (let i = 0; i < overflow; i++) {
+        const oldest = iterator.next().value;
+
+        if (oldest !== undefined) {
+            ids.delete(oldest);
+        }
     }
 };
 
@@ -109,6 +133,7 @@ export function useFlashToasts(): void {
             }
 
             if (added) {
+                trimSeenToastIds(seenToastIds);
                 persistSeenToastIds(seenToastIds);
             }
         },
