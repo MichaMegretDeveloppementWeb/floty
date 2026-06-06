@@ -6,6 +6,7 @@ namespace Tests\Feature\User\Vehicle;
 
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
@@ -344,5 +345,138 @@ final class ExitVehicleControllerTest extends TestCase
                 )
                 ->etc(),
             );
+    }
+
+    #[Test]
+    public function exit_cree_un_repere_sortie_de_flotte_dans_la_timeline(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'exit_date' => null,
+            'current_status' => VehicleStatus::Active,
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/exit", [
+                'exit_date' => '2025-06-15',
+                'exit_reason' => 'sold',
+                'note' => 'Vendu au garage Dupont.',
+            ])
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->sole();
+
+        self::assertSame(VehicleEventType::Other, $event->type);
+        self::assertSame('Sortie de flotte', $event->title);
+        self::assertFalse($event->implies_unavailability);
+        self::assertFalse($event->has_fiscal_impact);
+        self::assertSame('2025-06-15', $event->start_date->toDateString());
+        self::assertSame('2025-06-15', $event->end_date->toDateString());
+        self::assertSame('Vendu · Vendu au garage Dupont.', $event->description);
+        self::assertSame(['Cycle de vie'], $event->categories()->pluck('category')->all());
+    }
+
+    #[Test]
+    public function reactivate_retire_le_repere_sortie_de_flotte(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => null]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/exit", [
+                'exit_date' => '2025-06-15',
+                'exit_reason' => 'sold',
+                'note' => null,
+            ])
+            ->assertRedirect();
+
+        self::assertSame(1, $this->fleetExitEventsCount($vehicle->id));
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/reactivate")
+            ->assertRedirect();
+
+        self::assertSame(0, $this->fleetExitEventsCount($vehicle->id));
+    }
+
+    #[Test]
+    public function cycle_exit_reactivate_exit_ne_laisse_qu_un_seul_repere_a_jour(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => null]);
+
+        $this->actingAs($user)->post("/app/vehicles/{$vehicle->id}/exit", [
+            'exit_date' => '2025-06-15',
+            'exit_reason' => 'sold',
+            'note' => null,
+        ])->assertRedirect();
+
+        $this->actingAs($user)->post("/app/vehicles/{$vehicle->id}/reactivate")->assertRedirect();
+
+        $this->actingAs($user)->post("/app/vehicles/{$vehicle->id}/exit", [
+            'exit_date' => '2025-08-01',
+            'exit_reason' => 'destroyed',
+            'note' => 'Destruction VHU.',
+        ])->assertRedirect();
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->sole();
+
+        self::assertSame('2025-08-01', $event->start_date->toDateString());
+        self::assertSame('Détruit · Destruction VHU.', $event->description);
+    }
+
+    #[Test]
+    public function un_repere_systeme_n_est_pas_modifiable_ni_supprimable(): void
+    {
+        // Le repère « Sortie de flotte » est piloté par l'état du véhicule :
+        // la policy interdit l'édition (page edit) comme la suppression. Une
+        // ability refusée est rendue par un redirect vers le dashboard avec un
+        // toast-error (cf. UserFacingExceptionRenderer), pas un 403 brut.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => null]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)->post("/app/vehicles/{$vehicle->id}/exit", [
+            'exit_date' => '2025-06-15',
+            'exit_reason' => 'sold',
+            'note' => null,
+        ])->assertRedirect();
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->sole();
+
+        // La page d'édition n'est pas rendue : on est renvoyé hors du formulaire.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/{$event->id}/edit")
+            ->assertRedirect(route('user.dashboard'))
+            ->assertSessionHas('toast-error');
+
+        $this->actingAs($user)
+            ->delete("/app/vehicle-events/{$event->id}")
+            ->assertRedirect(route('user.dashboard'))
+            ->assertSessionHas('toast-error');
+
+        // Le repère est toujours là (la suppression a bien été refusée).
+        self::assertSame(1, $this->fleetExitEventsCount($vehicle->id));
+        self::assertDatabaseHas('vehicle_events', [
+            'id' => $event->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    private function fleetExitEventsCount(int $vehicleId): int
+    {
+        return VehicleEvent::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->count();
     }
 }

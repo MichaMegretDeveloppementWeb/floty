@@ -14,7 +14,10 @@ use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +64,27 @@ final class CreateVehicleActionTest extends TestCase
         $vfc = VehicleFiscalCharacteristics::where('vehicle_id', $vehicle->id)->firstOrFail();
         $this->assertSame('2023-06-15', $vfc->effective_from->toDateString());
         $this->assertNull($vfc->effective_to);
+    }
+
+    #[Test]
+    public function cree_le_repere_entree_en_flotte_a_la_date_d_acquisition(): void
+    {
+        $data = $this->makeData(acquisitionDate: '2024-01-10');
+
+        $vehicle = $this->action->execute($data);
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::Acquisition)
+            ->sole();
+
+        $this->assertSame(VehicleEventType::Other, $event->type);
+        $this->assertSame('Entrée en flotte', $event->title);
+        $this->assertFalse($event->implies_unavailability);
+        $this->assertFalse($event->has_fiscal_impact);
+        $this->assertSame('2024-01-10', $event->start_date->toDateString());
+        $this->assertSame('2024-01-10', $event->end_date->toDateString());
+        $this->assertSame(['Cycle de vie'], $event->categories()->pluck('category')->all());
     }
 
     #[Test]

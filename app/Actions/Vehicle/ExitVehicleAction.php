@@ -9,6 +9,7 @@ use App\Data\User\Vehicle\ExitVehicleData;
 use App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException;
 use App\Models\Vehicle;
 use App\Services\Vehicle\VehicleExitImpactComputer;
+use App\Services\VehicleEvent\VehicleLifecycleEventRecorder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,6 +29,7 @@ final readonly class ExitVehicleAction
     public function __construct(
         private VehicleWriteRepositoryInterface $writer,
         private VehicleExitImpactComputer $impactComputer,
+        private VehicleLifecycleEventRecorder $lifecycle,
     ) {}
 
     public function execute(int $vehicleId, ExitVehicleData $data): Vehicle
@@ -39,7 +41,12 @@ final readonly class ExitVehicleAction
                 throw VehicleExitBlockedByConflictsException::withImpact($impact);
             }
 
-            return $this->writer->markAsExited($vehicleId, $data);
+            $vehicle = $this->writer->markAsExited($vehicleId, $data);
+
+            // Carnet de bord : repère « Sortie de flotte » (retiré si annulé).
+            $this->lifecycle->recordExit($vehicle, $data);
+
+            return $vehicle;
         });
     }
 }

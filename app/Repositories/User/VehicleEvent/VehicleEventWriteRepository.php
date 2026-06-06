@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventWriteRepositoryInterface;
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\VehicleEvent;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,14 @@ final class VehicleEventWriteRepository implements VehicleEventWriteRepositoryIn
     public function softDelete(int $id): void
     {
         VehicleEvent::query()->findOrFail($id)->delete();
+    }
+
+    public function deleteSystemEventsForVehicle(int $vehicleId, VehicleEventSystemKind $kind): void
+    {
+        VehicleEvent::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('system_kind', $kind)
+            ->delete();
     }
 
     /**

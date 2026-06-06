@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRep
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Models\Vehicle;
+use App\Services\VehicleEvent\VehicleLifecycleEventRecorder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,6 +26,7 @@ final readonly class CreateVehicleAction
     public function __construct(
         private VehicleWriteRepositoryInterface $vehicles,
         private VehicleFiscalCharacteristicsWriteRepositoryInterface $fiscalCharacteristics,
+        private VehicleLifecycleEventRecorder $lifecycle,
     ) {}
 
     public function execute(StoreVehicleData $data): Vehicle
@@ -37,6 +39,9 @@ final readonly class CreateVehicleAction
                 data: $data,
                 effectiveFrom: $vehicle->acquisition_date,
             );
+
+            // Carnet de bord : repère « Entrée en flotte » à la date d'acquisition.
+            $this->lifecycle->recordAcquisition($vehicle);
 
             return $vehicle;
         });

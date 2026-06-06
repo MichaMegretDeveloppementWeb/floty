@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Policies;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\User;
 use App\Models\VehicleEvent;
 use App\Policies\VehicleEventPolicy;
@@ -16,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 final class VehicleEventPolicyTest extends TestCase
 {
     #[Test]
-    public function toutes_les_abilities_retournent_true_v1(): void
+    public function un_evenement_utilisateur_autorise_toutes_les_abilities_v1(): void
     {
         $policy = new VehicleEventPolicy;
         $user = new User;
@@ -27,5 +28,19 @@ final class VehicleEventPolicyTest extends TestCase
         $this->assertTrue($policy->create($user));
         $this->assertTrue($policy->update($user, $vehicleEvent));
         $this->assertTrue($policy->delete($user, $vehicleEvent));
+    }
+
+    #[Test]
+    public function un_repere_systeme_est_consultable_mais_ni_modifiable_ni_supprimable(): void
+    {
+        $policy = new VehicleEventPolicy;
+        $user = new User;
+        $systemEvent = new VehicleEvent(['system_kind' => VehicleEventSystemKind::FleetExit]);
+
+        // Lecture autorisée (la fiche détail reste consultable)...
+        $this->assertTrue($policy->view($user, $systemEvent));
+        // ...mais édition et suppression refusées (piloté par l'état véhicule).
+        $this->assertFalse($policy->update($user, $systemEvent));
+        $this->assertFalse($policy->delete($user, $systemEvent));
     }
 }

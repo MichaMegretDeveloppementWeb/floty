@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\VehicleEvent;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\VehicleEvent;
 
 /**
@@ -27,4 +28,11 @@ interface VehicleEventWriteRepositoryInterface
     public function update(int $id, array $attributes, array $categories = []): VehicleEvent;
 
     public function softDelete(int $id): void;
+
+    /**
+     * Soft-delete the vehicle's system-generated events of the given kind
+     * (lifecycle markers). Used to remove the exit event on reactivation and
+     * to re-sync the acquisition event.
+     */
+    public function deleteSystemEventsForVehicle(int $vehicleId, VehicleEventSystemKind $kind): void;
 }

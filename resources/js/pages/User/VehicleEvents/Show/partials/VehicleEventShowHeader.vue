@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Ban, ChevronLeft, Pencil, Trash2, TrendingDown } from 'lucide-vue-next';
+import { Ban, ChevronLeft, Lock, Pencil, Trash2, TrendingDown } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
@@ -76,21 +76,31 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
             </div>
 
             <div class="flex items-center gap-1.5">
-                <Link
-                    :href="editRoute.url({ vehicle: vehicle.id, vehicleEvent: vehicleEvent.id })"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                <template v-if="!vehicleEvent.isReadOnly">
+                    <Link
+                        :href="editRoute.url({ vehicle: vehicle.id, vehicleEvent: vehicleEvent.id })"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                        <Pencil :size="12" :stroke-width="1.75" />
+                        Modifier
+                    </Link>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                        @click="$emit('open-delete')"
+                    >
+                        <Trash2 :size="12" :stroke-width="1.75" />
+                        Supprimer
+                    </button>
+                </template>
+                <span
+                    v-else
+                    class="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-500"
+                    title="Événement automatique du cycle de vie · piloté par l'état du véhicule"
                 >
-                    <Pencil :size="12" :stroke-width="1.75" />
-                    Modifier
-                </Link>
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                    @click="$emit('open-delete')"
-                >
-                    <Trash2 :size="12" :stroke-width="1.75" />
-                    Supprimer
-                </button>
+                    <Lock :size="12" :stroke-width="1.75" />
+                    Événement automatique
+                </span>
             </div>
         </div>
     </div>

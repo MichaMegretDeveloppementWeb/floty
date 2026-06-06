@@ -18,6 +18,7 @@ function makeEvent(overrides: Partial<VehicleEvent> & { id: number; startDate: s
         endDate: null,
         description: null,
         daysCount: 0,
+        isReadOnly: false,
         documents: [],
         ...overrides,
     };

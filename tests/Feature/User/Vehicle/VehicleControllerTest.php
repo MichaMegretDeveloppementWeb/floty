@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Vehicle;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
+use App\Services\VehicleEvent\VehicleLifecycleEventRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1084,6 +1087,49 @@ final class VehicleControllerTest extends TestCase
             'effective_from' => '2024-01-01',
             'effective_to' => null,
         ]);
+    }
+
+    #[Test]
+    public function update_avec_nouvelle_date_d_acquisition_resynchronise_le_repere_entree_en_flotte(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['acquisition_date' => '2024-01-10']);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-10',
+            'effective_to' => null,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'body_type' => 'CI',
+            'seats_count' => 5,
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6d_isc_fcm',
+            'homologation_method' => 'WLTP',
+            'co2_wltp' => 120,
+            'kerb_mass' => 1300,
+        ]);
+
+        // Repère « Entrée en flotte » existant, posé à la date initiale.
+        $this->app->make(VehicleLifecycleEventRecorder::class)
+            ->recordAcquisition($vehicle);
+
+        // Correction de la date d'acquisition, sans aucun changement fiscal.
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'acquisition_date' => '2024-05-20',
+            'effective_from' => null,
+            'change_reason' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::Acquisition)
+            ->sole();
+
+        self::assertSame('2024-05-20', $event->start_date->toDateString());
     }
 
     #[Test]

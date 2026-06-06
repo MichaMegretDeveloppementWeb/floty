@@ -44,6 +44,8 @@ final class VehicleEventData extends Data
         public ?string $endDate,
         public ?string $description,
         public int $daysCount,
+        /** System-generated lifecycle marker (acquisition / exit): not editable. */
+        public bool $isReadOnly,
         #[DataCollectionOf(VehicleEventDocumentData::class)]
         public array $documents,
     ) {}
@@ -78,6 +80,7 @@ final class VehicleEventData extends Data
             endDate: $u->end_date?->toDateString(),
             description: $u->description,
             daysCount: $daysCount,
+            isReadOnly: $u->isSystemGenerated(),
             documents: $documents,
         );
     }

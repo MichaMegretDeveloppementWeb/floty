@@ -12,6 +12,7 @@ use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Exceptions\Vehicle\MissingNewVersionMetadataException;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\VehicleEvent\VehicleLifecycleEventRecorder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -54,12 +55,21 @@ final readonly class UpdateVehicleAction
         private VehicleWriteRepositoryInterface $vehicleWriter,
         private VehicleFiscalCharacteristicsReadRepositoryInterface $fiscalReader,
         private VehicleFiscalCharacteristicsWriteRepositoryInterface $fiscalWriter,
+        private VehicleLifecycleEventRecorder $lifecycle,
     ) {}
 
     public function execute(int $vehicleId, UpdateVehicleData $data): Vehicle
     {
         return DB::transaction(function () use ($vehicleId, $data): Vehicle {
+            $previousAcquisitionDate = $this->vehicles->findOrFail($vehicleId)->acquisition_date->toDateString();
+
             $vehicle = $this->vehicleWriter->update($vehicleId, $data);
+
+            // Keep the « Entrée en flotte » marker in sync if the acquisition
+            // date changed.
+            if ($vehicle->acquisition_date->toDateString() !== $previousAcquisitionDate) {
+                $this->lifecycle->recordAcquisition($vehicle);
+            }
 
             $current = $this->loadCurrentVfc($vehicleId);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Enums\VehicleEvent\VehicleEventType;
 use App\Observers\VehicleEventObserver;
 use Database\Factories\VehicleEventFactory;
@@ -36,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $vehicle_id
  * @property VehicleEventType $type
+ * @property VehicleEventSystemKind|null $system_kind
  * @property string|null $title
  * @property bool $has_fiscal_impact
  * @property bool $implies_unavailability
@@ -49,6 +51,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'vehicle_id',
     'type',
+    'system_kind',
     'title',
     'has_fiscal_impact',
     'implies_unavailability',
@@ -71,11 +74,21 @@ final class VehicleEvent extends Model
     {
         return [
             'type' => VehicleEventType::class,
+            'system_kind' => VehicleEventSystemKind::class,
             'has_fiscal_impact' => 'boolean',
             'implies_unavailability' => 'boolean',
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    /**
+     * Whether this is a system-generated lifecycle event (acquisition, fleet
+     * exit) · read-only, not manually editable or deletable.
+     */
+    public function isSystemGenerated(): bool
+    {
+        return $this->system_kind !== null;
     }
 
     /**
