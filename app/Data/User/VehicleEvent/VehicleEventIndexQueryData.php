@@ -6,8 +6,6 @@ namespace App\Data\User\VehicleEvent;
 
 use App\Data\Shared\Listing\IndexQueryData;
 use App\Data\Shared\Listing\SortDirection;
-use App\Enums\VehicleEvent\VehicleEventType;
-use Illuminate\Validation\Rule;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -15,7 +13,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Multi-value filters (the user can combine several), matched OR within an
  * axis, AND between axes (cf. plan « coûts d'événements ») :
- *  - `types`: VehicleEventType enum values · `whereIn('type', ...)`.
+ *  - `types`: either a known VehicleEventType enum value, or the custom title
+ *    of an « other » event (custom events surface by title, like categories,
+ *    not under a generic « Personnalisé » bucket).
  *  - `categories`: free-text categories · case-insensitive match on the
  *    `vehicle_event_categories` child rows.
  *  - `year`: events whose reference date (`start_date`) falls in that year.
@@ -49,14 +49,11 @@ final class VehicleEventIndexQueryData extends IndexQueryData
 
     public static function rules(): array
     {
-        $typeValues = array_map(
-            static fn (VehicleEventType $t): string => $t->value,
-            VehicleEventType::cases(),
-        );
-
         return array_merge(parent::rules(), [
             'types' => ['nullable', 'array'],
-            'types.*' => ['string', Rule::in($typeValues)],
+            // A value is either an enum value or a custom event title (max 120,
+            // mirroring the `title` column), so the rule is a bounded string.
+            'types.*' => ['string', 'max:120'],
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:60'],
             'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],

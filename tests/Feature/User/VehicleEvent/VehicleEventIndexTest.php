@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\VehicleEvent;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -69,6 +70,67 @@ final class VehicleEventIndexTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 2)
                 ->has('events.data', 2),
+            );
+    }
+
+    #[Test]
+    public function suggestions_de_type_exposent_les_titres_personnalises_pas_le_bucket_other(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create();
+        VehicleEvent::factory()->custom('Lavage')->create();
+        VehicleEvent::factory()->custom('Lavage')->create();
+        VehicleEvent::factory()->custom('Changement de pneus')->create();
+        // System lifecycle marker (other + system_kind): never a suggestion.
+        VehicleEvent::factory()->custom('Sortie de flotte')->create([
+            'system_kind' => VehicleEventSystemKind::FleetExit,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicle-events')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('options.typeValues', [
+                    'maintenance',
+                    'Changement de pneus',
+                    'Lavage',
+                ]),
+            );
+    }
+
+    #[Test]
+    public function filtre_par_titre_personnalise(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->custom('Lavage')->create(['amount_cents' => 3000]);
+        VehicleEvent::factory()->custom('Lavage')->create(['amount_cents' => 4000]);
+        VehicleEvent::factory()->custom('Changement de pneus')->create(['amount_cents' => 50000]);
+        VehicleEvent::factory()->maintenance()->create(['amount_cents' => 99999]);
+
+        $this->actingAs($user)
+            ->get(route('user.vehicle-events.index', ['types' => ['Lavage']]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 2)
+                ->where('totalAmountCents', 7000),
+            );
+    }
+
+    #[Test]
+    public function filtre_combine_type_connu_et_titre_personnalise_ou_dans_l_axe(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create();
+        VehicleEvent::factory()->custom('Lavage')->create();
+        VehicleEvent::factory()->custom('Changement de pneus')->create();
+        VehicleEvent::factory()->poundPublic()->create();
+
+        // maintenance (enum connu) OU « Lavage » (titre personnalisé).
+        $this->actingAs($user)
+            ->get(route('user.vehicle-events.index', ['types' => ['maintenance', 'Lavage']]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 2),
             );
     }
 

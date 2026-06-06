@@ -90,15 +90,36 @@ describe('vehicleEventOverlapsWindow', () => {
 describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', () => {
     const events: VehicleEvent[] = [
         makeEvent({ id: 1, startDate: '2026-03-01', type: 'maintenance', categories: ['Entretien'], amountCents: 10000 }),
-        makeEvent({ id: 2, startDate: '2026-04-01', type: 'other', title: 'Contrôle', categories: ['Contrôle', 'Entretien'], amountCents: 8500 }),
+        makeEvent({ id: 2, startDate: '2026-04-01', type: 'other', title: 'Lavage', categories: ['Contrôle', 'Entretien'], amountCents: 8500 }),
         makeEvent({ id: 3, startDate: '2026-05-01', type: 'theft', categories: ['Vol'], amountCents: null }),
+        // System lifecycle marker (read-only): never seeds the type axis.
+        makeEvent({ id: 4, startDate: '2026-02-01', type: 'other', title: 'Sortie de flotte', isReadOnly: true, categories: ['Cycle de vie'] }),
     ];
 
     it('expose les options de type et catégorie réellement présentes', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        expect(f.typeOptions.value.map((o) => o.value).sort()).toEqual(['maintenance', 'other', 'theft']);
-        expect(f.categoryOptions.value.map((o) => o.value)).toEqual(['Contrôle', 'Entretien', 'Vol']);
+        // Les événements personnalisés (« other ») apparaissent par leur titre,
+        // pas sous un bucket générique « other » / « Personnalisé ». Les repères
+        // système (lecture seule) sont exclus de l'axe type.
+        expect(f.typeOptions.value.map((o) => o.value).sort()).toEqual(['Lavage', 'maintenance', 'theft']);
+        expect(f.typeOptions.value.find((o) => o.value === 'Lavage')?.label).toBe('Lavage');
+        expect(f.typeOptions.value.find((o) => o.value === 'maintenance')?.label).toBe('Maintenance');
+        expect(f.typeOptions.value.some((o) => o.value === 'other')).toBe(false);
+        expect(f.typeOptions.value.some((o) => o.value === 'Sortie de flotte')).toBe(false);
+        expect(f.categoryOptions.value.map((o) => o.value)).toEqual(['Contrôle', 'Cycle de vie', 'Entretien', 'Vol']);
+    });
+
+    it('filtre les événements personnalisés par leur titre (et « other » ne matche rien)', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.selectedTypes.value = ['Lavage'];
+        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
+        expect(f.totalAmountCents.value).toBe(8500);
+
+        // L'ancienne sélection par valeur d'enum « other » ne capture plus rien.
+        f.selectedTypes.value = ['other'];
+        expect(f.filteredEvents.value).toHaveLength(0);
     });
 
     it('filtre par type et somme le coût du jeu filtré', () => {
@@ -124,7 +145,7 @@ describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', 
     it('combine type ET catégorie', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.selectedTypes.value = ['other'];
+        f.selectedTypes.value = ['Lavage'];
         f.selectedCategories.value = ['Contrôle'];
 
         expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);

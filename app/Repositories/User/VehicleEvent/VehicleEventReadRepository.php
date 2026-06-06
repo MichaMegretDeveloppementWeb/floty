@@ -59,15 +59,41 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
         return (int) $eloquent->sum('amount_cents');
     }
 
+    /**
+     * Distinct values for the « Type » filter axis, mirroring the categories
+     * behaviour for custom events: the known enum types actually present
+     * (excluding the generic « other ») plus the distinct custom titles of the
+     * « other » events (the values the user typed, « la saisie fait foi »).
+     * The generic « Personnalisé » bucket is never offered as a suggestion.
+     *
+     * @return list<string>
+     */
     public function distinctTypesPresent(): array
     {
-        return VehicleEvent::query()
+        $known = VehicleEvent::query()
             ->select('type')
             ->distinct()
+            ->where('type', '!=', VehicleEventType::Other->value)
             ->orderBy('type')
             ->pluck('type')
             ->map(static fn (VehicleEventType $type): string => $type->value)
             ->all();
+
+        $customTitles = VehicleEvent::query()
+            ->select('title')
+            ->distinct()
+            ->where('type', VehicleEventType::Other->value)
+            // System lifecycle markers (acquisition / fleet exit) are stored as
+            // `other` with a system_kind; they belong to the « Cycle de vie »
+            // category, not the user's custom types, so they never seed the axis.
+            ->whereNull('system_kind')
+            ->whereNotNull('title')
+            ->where('title', '!=', '')
+            ->orderBy('title')
+            ->pluck('title')
+            ->all();
+
+        return [...$known, ...$customTitles];
     }
 
     public function distinctEventYears(): array
@@ -94,7 +120,38 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     private function applyIndexFilters(Builder $query, VehicleEventIndexQueryData $data): void
     {
         if ($data->types !== null && $data->types !== []) {
-            $query->whereIn('type', $data->types);
+            $enumValues = array_map(
+                static fn (VehicleEventType $t): string => $t->value,
+                VehicleEventType::cases(),
+            );
+
+            // A selected value is either a known enum type, or a custom title of
+            // an « other » event (which surfaces by its title, not under the
+            // generic « Personnalisé », cf. distinctTypesPresent()).
+            $knownTypes = array_values(array_filter(
+                $data->types,
+                static fn (string $t): bool => in_array($t, $enumValues, true)
+                    && $t !== VehicleEventType::Other->value,
+            ));
+            $customTitles = array_values(array_filter(
+                $data->types,
+                static fn (string $t): bool => ! in_array($t, $enumValues, true),
+            ));
+
+            if ($knownTypes !== [] || $customTitles !== []) {
+                $query->where(static function (Builder $w) use ($knownTypes, $customTitles): void {
+                    if ($knownTypes !== []) {
+                        $w->orWhereIn('type', $knownTypes);
+                    }
+
+                    if ($customTitles !== []) {
+                        $w->orWhere(static function (Builder $o) use ($customTitles): void {
+                            $o->where('type', VehicleEventType::Other->value)
+                                ->whereIn('title', $customTitles);
+                        });
+                    }
+                });
+            }
         }
 
         if ($data->categories !== null && $data->categories !== []) {

@@ -68,7 +68,7 @@ const {
             </Badge>
         </div>
 
-        <div class="relative">
+        <div>
             <input
                 v-model="query"
                 type="text"
@@ -81,9 +81,15 @@ const {
                 @keydown.enter.prevent="commitFreeEntry()"
                 @blur="open = false"
             />
+            <!--
+              In-flow (not absolute) so the suggestion list grows the enclosing
+              FilterPopover up to its max-height instead of overflowing a short
+              container · avoids the cramped double-scrollbar. The list keeps its
+              own max-height as a safety cap for very long suggestion sets.
+            -->
             <ul
                 v-if="open && (filteredOptions.length > 0 || canCommitFreeEntry)"
-                class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                class="mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
             >
                 <li
                     v-for="option in filteredOptions"

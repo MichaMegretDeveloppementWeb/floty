@@ -124,20 +124,34 @@ export function useVehicleEventsTimelineFilter(
     ]);
 
     // Filter suggestions = the type / category values actually present on this
-    // vehicle's loaded events (real values, « ce qui existe vraiment »).
+    // vehicle's loaded events (real values, « ce qui existe vraiment »). Custom
+    // events (`other`) surface by their individual title, mirroring categories,
+    // never under a single generic « Personnalisé » bucket.
     const typeOptions = computed<FilterOption[]>(() => {
-        const present = new Set<string>();
+        const knownTypes = new Set<string>();
+        const customTitles = new Set<string>();
 
         for (const event of toValue(events)) {
-            present.add(event.type);
+            if (event.type === 'other') {
+                // System lifecycle markers (read-only) belong to « Cycle de vie »,
+                // not the user's custom types · they never seed the type axis.
+                if (!event.isReadOnly && event.title !== null && event.title !== '') {
+                    customTitles.add(event.title);
+                }
+            } else {
+                knownTypes.add(event.type);
+            }
         }
 
-        return [...present]
-            .sort()
-            .map((value) => ({
-                value,
-                label: vehicleEventTypeShortLabel[value as VehicleEventType] ?? value,
-            }));
+        const knownOptions = [...knownTypes].sort().map((value) => ({
+            value,
+            label: vehicleEventTypeShortLabel[value as VehicleEventType] ?? value,
+        }));
+        const customOptions = [...customTitles]
+            .sort((a, b) => a.localeCompare(b, 'fr'))
+            .map((title) => ({ value: title, label: title }));
+
+        return [...knownOptions, ...customOptions];
     });
 
     const categoryOptions = computed<FilterOption[]>(() => {
@@ -159,8 +173,14 @@ export function useVehicleEventsTimelineFilter(
      * of the year/period window. Empty axis = no constraint on that axis.
      */
     function matchesAxes(event: VehicleEvent): boolean {
-        if (selectedTypes.value.length > 0 && !selectedTypes.value.includes(event.type)) {
-            return false;
+        if (selectedTypes.value.length > 0) {
+            // Custom events are matched by their title (the suggestion value),
+            // known events by their enum type.
+            const typeValue = event.type === 'other' ? (event.title ?? '') : event.type;
+
+            if (!selectedTypes.value.includes(typeValue)) {
+                return false;
+            }
         }
 
         if (selectedCategories.value.length > 0) {
