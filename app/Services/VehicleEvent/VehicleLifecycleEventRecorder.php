@@ -40,11 +40,15 @@ final readonly class VehicleLifecycleEventRecorder
      */
     public function recordAcquisition(Vehicle $vehicle, ?int $amountCents = null): void
     {
-        $existing = $this->eventsRead->findSystemEventForVehicle(
-            $vehicle->id,
-            VehicleEventSystemKind::Acquisition,
-        );
-        $finalAmountCents = $amountCents ?? $existing?->amount_cents;
+        // Preserve the existing cost on a re-sync. The `??` short-circuits, so
+        // the lookup only hits the DB when NO amount is provided (an
+        // acquisition-date correction), never on a create that already supplies
+        // one · no wasted query on the common path.
+        $finalAmountCents = $amountCents
+            ?? $this->eventsRead->findSystemEventForVehicle(
+                $vehicle->id,
+                VehicleEventSystemKind::Acquisition,
+            )?->amount_cents;
 
         $this->events->deleteSystemEventsForVehicle($vehicle->id, VehicleEventSystemKind::Acquisition);
 
