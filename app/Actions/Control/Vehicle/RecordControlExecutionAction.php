@@ -21,6 +21,11 @@ use Illuminate\Support\Facades\DB;
  * execution row linked to that event. The recorded date becomes the new
  * reference for the next échéance. Documents are uploaded separately by the
  * controller (mirroring the VehicleEvent create flow).
+ *
+ * A "Fait" is a point-in-time act, so the generated event is a SINGLE day
+ * (start = end = execution date). A null end_date would mean "ongoing", which
+ * for an `implies_unavailability` control would mark the vehicle unavailable
+ * indefinitely in the heatmap / usage / planning views.
  */
 final readonly class RecordControlExecutionAction
 {
@@ -40,7 +45,7 @@ final readonly class RecordControlExecutionAction
                 vehicleId: $data->vehicleId,
                 type: VehicleEventType::Other,
                 startDate: $data->executedOn,
-                endDate: null,
+                endDate: $data->executedOn,
                 description: $data->note,
                 title: $name,
                 category: 'Contrôle',

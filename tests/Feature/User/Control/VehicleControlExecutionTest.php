@@ -49,6 +49,9 @@ final class VehicleControlExecutionTest extends TestCase
 
         // L'exécution génère un événement véhicule (Chantier A), catégorie Contrôle,
         // non fiscal, indisponibilité selon le flag effectif de la définition.
+        // L'événement est sur UN SEUL jour (start = end = date d'exécution) : un
+        // « Fait » est ponctuel, un end_date null marquerait le véhicule
+        // indisponible indéfiniment (heatmap / usage / planning).
         $this->assertDatabaseHas('vehicle_events', [
             'id' => $execution->vehicle_event_id,
             'vehicle_id' => $vehicle->id,
@@ -57,6 +60,8 @@ final class VehicleControlExecutionTest extends TestCase
             'category' => 'Contrôle',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
+            'start_date' => '2024-03-10',
+            'end_date' => '2024-03-10',
         ]);
     }
 
@@ -113,6 +118,38 @@ final class VehicleControlExecutionTest extends TestCase
                 ->has('vehicleControls.controls', 1, fn (AssertableInertia $control) => $control
                     ->where('lastExecutionDate', '2024-06-01')
                     ->where('nextDueDate', '2026-06-01')
+                    ->etc()));
+    }
+
+    #[Test]
+    public function fait_en_avance_la_date_saisie_devient_la_reference(): void
+    {
+        // Échéance initiale au 2027-06-01 (immat. 2023-06-01 + 4 ans), mais on
+        // fait le contrôle EN AVANCE le 2026-05-01 : cette date devient la
+        // nouvelle référence -> prochaine = 2026-05-01 + cycle (2 ans).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['first_origin_registration_date' => '2023-06-01']);
+        $definition = ControlDefinition::factory()->create([
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+            'cycle_value' => 2,
+            'cycle_unit' => 'years',
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/controls/executions", [
+                'vehicle_id' => $vehicle->id,
+                'control_definition_id' => $definition->id,
+                'executed_on' => '2026-05-01',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}?tab=controls")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicleControls.controls', 1, fn (AssertableInertia $control) => $control
+                    ->where('lastExecutionDate', '2026-05-01')
+                    ->where('nextDueDate', '2028-05-01')
                     ->etc()));
     }
 

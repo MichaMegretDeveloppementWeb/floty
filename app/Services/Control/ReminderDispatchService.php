@@ -71,7 +71,7 @@ final readonly class ReminderDispatchService
                 }
 
                 $nextDue = CarbonImmutable::parse($control->nextDueDate);
-                $kind = $this->occurrence->fires(
+                $fired = $this->occurrence->fires(
                     $nextDue,
                     $control->effectiveReminderDaysBefore,
                     $control->effectiveReminderOnDueDay,
@@ -79,16 +79,20 @@ final readonly class ReminderDispatchService
                     $today,
                 );
 
-                if ($kind === null) {
+                if ($fired === null) {
                     continue;
                 }
+
+                // Idempotence key = the occurrence's canonical date, not the run
+                // date, so a catch-up run after a missed day does not re-send.
+                $reminderOn = $fired->scheduledOn->toDateString();
 
                 if ($this->logReader->existsForOccurrence(
                     $vehicle->id,
                     $control->definitionId,
                     $control->overrideId,
                     $nextDue->toDateString(),
-                    $today->toDateString(),
+                    $reminderOn,
                 )) {
                     $skippedAlreadySent++;
 
@@ -108,7 +112,7 @@ final readonly class ReminderDispatchService
 
                 try {
                     foreach ($recipients as $recipient) {
-                        $this->sender->send($recipient, $control, $vehicle, $kind);
+                        $this->sender->send($recipient, $control, $vehicle, $fired->kind);
                         $emailsSent++;
                     }
 
@@ -117,8 +121,8 @@ final readonly class ReminderDispatchService
                         'control_definition_id' => $control->definitionId,
                         'vehicle_control_override_id' => $control->overrideId,
                         'due_on' => $nextDue->toDateString(),
-                        'reminder_on' => $today->toDateString(),
-                        'kind' => $kind->value,
+                        'reminder_on' => $reminderOn,
+                        'kind' => $fired->kind->value,
                         'recipients_count' => count($recipients),
                         'sent_at' => CarbonImmutable::now(),
                     ]);

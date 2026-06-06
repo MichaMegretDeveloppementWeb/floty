@@ -105,6 +105,33 @@ final class DispatchControlRemindersTest extends TestCase
     }
 
     #[Test]
+    public function le_rappel_avant_se_rattrape_quand_le_cron_a_manque_un_jour(): void
+    {
+        // Échéance 2026-06-20, rappel « avant » canonique le 2026-06-05. Le cron
+        // ne tourne pas le 05 mais le 06 : le rappel doit partir quand même,
+        // journalisé sur la date canonique (05), pas la date de run (06).
+        $vehicle = $this->vehicleDueSoon();
+        $this->technicalControl();
+
+        Artisan::call('controls:dispatch-reminders', ['--date' => '2026-06-06']);
+
+        Notification::assertCount(1);
+        $this->assertDatabaseHas('control_reminder_logs', [
+            'vehicle_id' => $vehicle->id,
+            'due_on' => '2026-06-20',
+            'reminder_on' => '2026-06-05', // canonique, pas la date de run (06-06)
+            'kind' => 'before',
+        ]);
+
+        // Un passage le lendemain ne renvoie pas le même « avant » (idempotence
+        // par occurrence canonique, malgré une date de run différente).
+        Artisan::call('controls:dispatch-reminders', ['--date' => '2026-06-07']);
+
+        Notification::assertCount(1);
+        self::assertSame(1, ControlReminderLog::query()->count());
+    }
+
+    #[Test]
     public function un_controle_en_pause_est_ignore(): void
     {
         $vehicle = $this->vehicleDueSoon();

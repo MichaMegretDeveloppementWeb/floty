@@ -12,6 +12,9 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests Unit du calcul d'occurrence des rappels de contrôle (Chantier B / B3).
+ * Échéance de référence : 2026-06-15 (donc fenêtre « avant » ouverte le 05-31).
+ * Le matching est FENÊTRÉ : un jour de cron manqué est rattrapé, et la date
+ * canonique retournée (clé d'idempotence) est le 1er jour de la fenêtre.
  */
 final class ControlReminderOccurrenceTest extends TestCase
 {
@@ -27,20 +30,35 @@ final class ControlReminderOccurrenceTest extends TestCase
     }
 
     #[Test]
-    public function le_rappel_avant_echeance_se_declenche_a_j_moins_days_before(): void
+    public function le_rappel_avant_echeance_se_declenche_a_l_ouverture_de_la_fenetre(): void
     {
         $today = CarbonImmutable::parse('2026-05-31'); // 15 jours avant le 15/06.
 
-        self::assertSame(
-            ReminderKind::Before,
-            $this->occurrence->fires($this->nextDue, 15, true, 5, $today),
-        );
+        $fired = $this->occurrence->fires($this->nextDue, 15, true, 5, $today);
+
+        self::assertNotNull($fired);
+        self::assertSame(ReminderKind::Before, $fired->kind);
+        self::assertSame('2026-05-31', $fired->scheduledOn->toDateString());
     }
 
     #[Test]
-    public function aucun_rappel_un_jour_avant_la_fenetre(): void
+    public function le_rappel_avant_se_rattrape_apres_un_jour_manque(): void
     {
-        $today = CarbonImmutable::parse('2026-06-01'); // 14 jours avant (pas 15).
+        // Cron tombé le 05-31 : le 06-01 (14 j avant) rattrape le « avant », et
+        // la date canonique reste le 05-31 -> dédup contre l'envoi unique.
+        $today = CarbonImmutable::parse('2026-06-01');
+
+        $fired = $this->occurrence->fires($this->nextDue, 15, true, 5, $today);
+
+        self::assertNotNull($fired);
+        self::assertSame(ReminderKind::Before, $fired->kind);
+        self::assertSame('2026-05-31', $fired->scheduledOn->toDateString());
+    }
+
+    #[Test]
+    public function aucun_rappel_avant_l_ouverture_de_la_fenetre(): void
+    {
+        $today = CarbonImmutable::parse('2026-05-30'); // 16 jours avant.
 
         self::assertNull($this->occurrence->fires($this->nextDue, 15, true, 5, $today));
     }
@@ -48,16 +66,33 @@ final class ControlReminderOccurrenceTest extends TestCase
     #[Test]
     public function le_rappel_jour_j_se_declenche_a_l_echeance(): void
     {
-        self::assertSame(
-            ReminderKind::OnDue,
-            $this->occurrence->fires($this->nextDue, 15, true, 5, $this->nextDue),
-        );
+        $fired = $this->occurrence->fires($this->nextDue, 15, true, 5, $this->nextDue);
+
+        self::assertNotNull($fired);
+        self::assertSame(ReminderKind::OnDue, $fired->kind);
+        self::assertSame('2026-06-15', $fired->scheduledOn->toDateString());
+    }
+
+    #[Test]
+    public function le_rappel_jour_j_se_rattrape_avant_le_premier_apres(): void
+    {
+        // Cron tombé le jour J : le 06-19 (J+4, avant le 1er « après » à J+5)
+        // rattrape le jour J, date canonique = l'échéance.
+        $today = CarbonImmutable::parse('2026-06-19');
+
+        $fired = $this->occurrence->fires($this->nextDue, 15, true, 5, $today);
+
+        self::assertNotNull($fired);
+        self::assertSame(ReminderKind::OnDue, $fired->kind);
+        self::assertSame('2026-06-15', $fired->scheduledOn->toDateString());
     }
 
     #[Test]
     public function pas_de_rappel_jour_j_quand_desactive(): void
     {
         self::assertNull($this->occurrence->fires($this->nextDue, 15, false, 5, $this->nextDue));
+        // Et pas de rattrapage jour J non plus quand il est désactivé.
+        self::assertNull($this->occurrence->fires($this->nextDue, 15, false, 5, CarbonImmutable::parse('2026-06-19')));
     }
 
     #[Test]
@@ -66,16 +101,29 @@ final class ControlReminderOccurrenceTest extends TestCase
         $plus5 = CarbonImmutable::parse('2026-06-20');
         $plus10 = CarbonImmutable::parse('2026-06-25');
 
-        self::assertSame(ReminderKind::After, $this->occurrence->fires($this->nextDue, 15, true, 5, $plus5));
-        self::assertSame(ReminderKind::After, $this->occurrence->fires($this->nextDue, 15, true, 5, $plus10));
+        $fired5 = $this->occurrence->fires($this->nextDue, 15, true, 5, $plus5);
+        $fired10 = $this->occurrence->fires($this->nextDue, 15, true, 5, $plus10);
+
+        self::assertNotNull($fired5);
+        self::assertSame(ReminderKind::After, $fired5->kind);
+        self::assertSame('2026-06-20', $fired5->scheduledOn->toDateString());
+
+        self::assertNotNull($fired10);
+        self::assertSame(ReminderKind::After, $fired10->kind);
+        self::assertSame('2026-06-25', $fired10->scheduledOn->toDateString());
     }
 
     #[Test]
-    public function pas_de_rappel_apres_un_jour_hors_cycle(): void
+    public function le_rappel_apres_se_rattrape_dans_sa_fenetre(): void
     {
-        $plus4 = CarbonImmutable::parse('2026-06-19'); // 4 jours après, cycle 5.
+        // Cron tombé le J+5 : le J+6 rattrape, date canonique = J+5 (06-20).
+        $plus6 = CarbonImmutable::parse('2026-06-21');
 
-        self::assertNull($this->occurrence->fires($this->nextDue, 15, true, 5, $plus4));
+        $fired = $this->occurrence->fires($this->nextDue, 15, true, 5, $plus6);
+
+        self::assertNotNull($fired);
+        self::assertSame(ReminderKind::After, $fired->kind);
+        self::assertSame('2026-06-20', $fired->scheduledOn->toDateString());
     }
 
     #[Test]

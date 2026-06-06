@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\User\Control;
 
 use App\Models\ControlDefinition;
+use App\Models\ControlRecipientDelta;
+use App\Models\ControlReminderSettings;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleControlOverride;
@@ -267,6 +269,75 @@ final class VehicleControlOverrideTest extends TestCase
             ->assertRedirect();
 
         $this->assertSoftDeleted('vehicle_control_overrides', ['id' => $override->id]);
+    }
+
+    #[Test]
+    public function la_cascade_destinataires_resout_les_trois_niveaux(): void
+    {
+        // Exemple client (memo Chantier B §7) : Sabrina = destinataire global ;
+        // le contrôle global enlève Sabrina + ajoute Hugo ; le véhicule enlève
+        // Hugo + ajoute Vanessa. L'email « toujours prévenu » reste partout.
+        $vehicle = Vehicle::factory()->create();
+        $definition = $this->definition();
+
+        // Niveau 0 : email toujours prévenu + destinataire global Sabrina.
+        $settings = ControlReminderSettings::singleton();
+        $settings->always_notify_name = 'Patron';
+        $settings->always_notify_email = 'patron@floty.fr';
+        $settings->save();
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'sabrina@exemple.fr',
+            'name' => 'Sabrina',
+        ]);
+
+        // Niveau 1 (contrôle global) : enlève Sabrina, ajoute Hugo.
+        ControlRecipientDelta::query()->create([
+            'level' => 'definition',
+            'control_definition_id' => $definition->id,
+            'operation' => 'exclude',
+            'email' => 'sabrina@exemple.fr',
+        ]);
+        ControlRecipientDelta::query()->create([
+            'level' => 'definition',
+            'control_definition_id' => $definition->id,
+            'operation' => 'include',
+            'email' => 'hugo@exemple.fr',
+            'name' => 'Hugo',
+        ]);
+
+        // Niveau 2 (véhicule) : enlève Hugo, ajoute Vanessa.
+        $override = VehicleControlOverride::factory()->overrideOf($definition)->create([
+            'vehicle_id' => $vehicle->id,
+        ]);
+        ControlRecipientDelta::query()->create([
+            'level' => 'vehicle',
+            'vehicle_control_override_id' => $override->id,
+            'operation' => 'exclude',
+            'email' => 'hugo@exemple.fr',
+        ]);
+        ControlRecipientDelta::query()->create([
+            'level' => 'vehicle',
+            'vehicle_control_override_id' => $override->id,
+            'operation' => 'include',
+            'email' => 'vanessa@exemple.fr',
+            'name' => 'Vanessa',
+        ]);
+
+        $controls = app(EffectiveControlResolver::class)->resolve($vehicle->fresh(), CarbonImmutable::parse('2026-06-05'));
+        $control = collect($controls)->firstWhere('definitionId', $definition->id);
+        self::assertNotNull($control);
+
+        // Niveau 1 résolu (hérité par le véhicule s'il ne surcharge pas) :
+        // toujours-prévenu + Hugo, plus de Sabrina.
+        $inherited = collect($control->inheritedRecipients)->pluck('email')->sort()->values()->all();
+        self::assertSame(['hugo@exemple.fr', 'patron@floty.fr'], $inherited);
+
+        // Niveau 2 résolu (effectif) : toujours-prévenu + Vanessa, plus de Hugo
+        // ni de Sabrina.
+        $effective = collect($control->effectiveRecipients)->pluck('email')->sort()->values()->all();
+        self::assertSame(['patron@floty.fr', 'vanessa@exemple.fr'], $effective);
     }
 
     #[Test]
