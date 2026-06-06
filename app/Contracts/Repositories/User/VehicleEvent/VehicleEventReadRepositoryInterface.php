@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\VehicleEvent;
 
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\VehicleEvent;
 use App\Services\VehicleEvent\VehicleEventQueryService;
 use Illuminate\Support\Collection;
@@ -42,6 +43,13 @@ interface VehicleEventReadRepositoryInterface
      * Unitary lookup · throws 404 if the id does not exist.
      */
     public function findById(int $id): VehicleEvent;
+
+    /**
+     * The system-generated lifecycle event of a given kind (acquisition / fleet
+     * exit) for a vehicle, or null when none exists. Lets the recorder preserve
+     * the attached cost when re-syncing a read-only lifecycle marker.
+     */
+    public function findSystemEventForVehicle(int $vehicleId, VehicleEventSystemKind $kind): ?VehicleEvent;
 
     /**
      * Distinct categories already used across all events, ascending. Feeds the

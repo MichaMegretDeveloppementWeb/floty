@@ -75,6 +75,30 @@ final class VehicleControlExecutionTest extends TestCase
     }
 
     #[Test]
+    public function record_execution_porte_le_cout_du_controle_sur_l_evenement(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['first_origin_registration_date' => '2020-01-01']);
+        $definition = ControlDefinition::factory()->create();
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/controls/executions", [
+                'vehicle_id' => $vehicle->id,
+                'control_definition_id' => $definition->id,
+                'executed_on' => '2024-03-10',
+                'amount_cents' => 14_500,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('toast-success');
+
+        $execution = ControlExecution::query()->firstOrFail();
+        $this->assertDatabaseHas('vehicle_events', [
+            'id' => $execution->vehicle_event_id,
+            'amount_cents' => 14_500,
+        ]);
+    }
+
+    #[Test]
     public function record_execution_attache_les_documents(): void
     {
         Storage::fake(config('filesystems.default'));

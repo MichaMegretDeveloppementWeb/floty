@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
+use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\VehicleEvent;
 use App\Models\VehicleEventCategory;
 use Illuminate\Support\Carbon;
@@ -54,6 +55,14 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findById(int $id): VehicleEvent
     {
         return VehicleEvent::query()->findOrFail($id);
+    }
+
+    public function findSystemEventForVehicle(int $vehicleId, VehicleEventSystemKind $kind): ?VehicleEvent
+    {
+        return VehicleEvent::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('system_kind', $kind)
+            ->first();
     }
 
     public function findForVehicleDetail(int $vehicleId, int $vehicleEventId): VehicleEvent

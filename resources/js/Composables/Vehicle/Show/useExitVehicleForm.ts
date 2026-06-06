@@ -4,6 +4,7 @@ import { computed, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import { exit as vehiclesExitRoute } from '@/routes/user/vehicles';
+import { eurosToCents } from '@/Utils/format/money';
 import { vehicleExitReasonLabel } from '@/Utils/labels/vehicleEnumLabels';
 
 type VehicleExitReason = App.Enums.Vehicle.VehicleExitReason;
@@ -12,6 +13,8 @@ type FormShape = {
     exit_date: string;
     exit_reason: VehicleExitReason | '';
     note: string;
+    // Optional exit cost in EUROS (converted to amount_cents on submit).
+    amount: number | null;
 };
 
 type SelectOption = { value: VehicleExitReason; label: string };
@@ -38,6 +41,8 @@ export function useExitVehicleForm(
     today: string;
     form: InertiaForm<FormShape>;
     canSubmit: ComputedRef<boolean>;
+    /** Server error for the amount (payload key `amount_cents`, outside FormShape). */
+    amountError: ComputedRef<string | undefined>;
     submit: () => void;
 } {
     const reasonOptions: SelectOption[] = (
@@ -53,6 +58,7 @@ export function useExitVehicleForm(
         exit_date: today,
         exit_reason: '',
         note: '',
+        amount: null,
     });
 
     watch(open, (value) => {
@@ -61,9 +67,14 @@ export function useExitVehicleForm(
             form.exit_date = today;
             form.exit_reason = '';
             form.note = '';
+            form.amount = null;
             form.clearErrors();
         }
     });
+
+    const amountError = computed<string | undefined>(
+        () => (form.errors as Record<string, string | undefined>).amount_cents,
+    );
 
     const canSubmit = computed<boolean>(() => {
         return form.exit_date !== '' && form.exit_reason !== '';
@@ -73,6 +84,7 @@ export function useExitVehicleForm(
         exit_date: data.exit_date,
         exit_reason: data.exit_reason,
         note: data.note === '' ? null : data.note,
+        amount_cents: eurosToCents(data.amount),
     });
 
     const submit = (): void => {
@@ -91,6 +103,7 @@ export function useExitVehicleForm(
         today,
         form,
         canSubmit,
+        amountError,
         submit,
     };
 }

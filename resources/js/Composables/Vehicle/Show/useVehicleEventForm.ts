@@ -7,6 +7,7 @@ import {
     update as vehicleEventsUpdateRoute,
 } from '@/routes/user/vehicle-events';
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
+import { centsToEuros, eurosToCents } from '@/Utils/format/money';
 import {
     isVehicleEventFiscallyReductive,
     vehicleEventCategorySuggestions,
@@ -33,6 +34,8 @@ type FormShape = {
     start_date: string;
     end_date: string;
     description: string;
+    // Optional cost in EUROS (converted to amount_cents on submit); costs only.
+    amount: number | null;
 };
 
 type DateRange = { startDate: string | null; endDate: string | null };
@@ -146,6 +149,8 @@ export function useVehicleEventForm(
     canSubmit: ComputedRef<boolean>;
     selectedIsReductive: ComputedRef<boolean>;
     conflictDaysCount: ComputedRef<number>;
+    /** Server error for the amount (payload key `amount_cents`, outside FormShape). */
+    amountError: ComputedRef<string | undefined>;
     submit: () => void;
 } {
 
@@ -191,6 +196,7 @@ export function useVehicleEventForm(
         start_date: '',
         end_date: '',
         description: '',
+        amount: null,
     });
 
     // Custom categories of an edited event = stored list minus the type's
@@ -221,6 +227,7 @@ export function useVehicleEventForm(
                 form.categories = splitCustomCategories(value);
                 form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
+                form.amount = centsToEuros(value.amountCents);
                 range.value = {
                     startDate: value.startDate,
                     endDate: value.endDate,
@@ -331,6 +338,10 @@ export function useVehicleEventForm(
         isVehicleEventFiscallyReductive(form.type),
     );
 
+    const amountError = computed<string | undefined>(
+        () => (form.errors as Record<string, string | undefined>).amount_cents,
+    );
+
     const conflictDaysCount = computed<number>(() =>
         countConflictDaysInRange(
             props.busyDates,
@@ -355,6 +366,7 @@ export function useVehicleEventForm(
             start_date: range.value.startDate,
             end_date: ongoing.value ? null : range.value.endDate,
             description: data.description === '' ? null : data.description,
+            amount_cents: eurosToCents(data.amount),
         };
     };
 
@@ -398,6 +410,7 @@ export function useVehicleEventForm(
         canSubmit,
         selectedIsReductive,
         conflictDaysCount,
+        amountError,
         submit,
     };
 }

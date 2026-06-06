@@ -46,6 +46,11 @@ export type VehicleFormShape = FiscalCharacteristicsFieldsShape & {
     first_origin_registration_date: string;
     first_economic_use_date: string;
     acquisition_date: string;
+    // Optional purchase price in EUROS (converted to acquisition_amount_cents on
+    // submit); recorded as the cost of the "Entrée en flotte" lifecycle event.
+    // Optional in the shared shape so the edit form (which reuses this shape but
+    // has no acquisition-cost field) is unaffected; the create form always sets it.
+    acquisition_amount?: number | null;
     mileage_current: number | null;
     notes: string;
 };

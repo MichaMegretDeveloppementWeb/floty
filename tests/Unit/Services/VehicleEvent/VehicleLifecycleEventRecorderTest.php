@@ -176,4 +176,59 @@ final class VehicleLifecycleEventRecorderTest extends TestCase
                 ->count(),
         );
     }
+
+    #[Test]
+    public function record_exit_porte_le_cout_de_sortie(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $this->recorder->recordExit($vehicle, new ExitVehicleData(
+            exitDate: '2025-08-01',
+            exitReason: VehicleExitReason::Destroyed,
+            note: null,
+            amountCents: 45000,
+        ));
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->sole();
+
+        self::assertSame(45000, $event->amount_cents);
+    }
+
+    #[Test]
+    public function record_acquisition_porte_le_prix_d_achat(): void
+    {
+        $vehicle = Vehicle::factory()->create(['acquisition_date' => '2024-03-08']);
+
+        $this->recorder->recordAcquisition($vehicle, 2_500_000);
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::Acquisition)
+            ->sole();
+
+        self::assertSame(2_500_000, $event->amount_cents);
+    }
+
+    #[Test]
+    public function record_acquisition_preserve_le_cout_a_la_resync_sans_montant(): void
+    {
+        // Création avec prix d'achat, puis resync (ex. correction de la date
+        // d'acquisition) sans montant explicite : le coût ne doit pas être perdu.
+        $vehicle = Vehicle::factory()->create(['acquisition_date' => '2024-03-08']);
+        $this->recorder->recordAcquisition($vehicle, 2_500_000);
+
+        $vehicle->acquisition_date = Carbon::parse('2024-05-20');
+        $this->recorder->recordAcquisition($vehicle);
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::Acquisition)
+            ->sole();
+
+        self::assertSame('2024-05-20', $event->start_date->toDateString());
+        self::assertSame(2_500_000, $event->amount_cents);
+    }
 }

@@ -380,6 +380,29 @@ final class ExitVehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function exit_avec_un_cout_porte_le_montant_sur_le_repere(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => null]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/exit", [
+                'exit_date' => '2025-06-15',
+                'exit_reason' => 'destroyed',
+                'note' => null,
+                'amount_cents' => 30000,
+            ])
+            ->assertRedirect();
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::FleetExit)
+            ->sole();
+
+        self::assertSame(30000, $event->amount_cents);
+    }
+
+    #[Test]
     public function reactivate_retire_le_repere_sortie_de_flotte(): void
     {
         $user = User::factory()->create();

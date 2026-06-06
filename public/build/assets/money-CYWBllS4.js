@@ -1,0 +1,1 @@
+function e(e){return e==null||Number.isNaN(e)?null:Math.round(e*100)}function t(e){return e==null?null:e/100}export{e as n,t};

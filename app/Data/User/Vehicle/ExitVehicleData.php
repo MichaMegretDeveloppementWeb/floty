@@ -8,7 +8,9 @@ use App\Enums\Vehicle\VehicleExitReason;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\BeforeOrEqual;
 use Spatie\LaravelData\Attributes\Validation\Date;
+use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -30,6 +32,10 @@ final class ExitVehicleData extends Data
 
         #[Max(2000)]
         public ?string $note = null,
+
+        /** Optional exit COST (TTC) in cents; leave null for a sale (revenue). */
+        #[IntegerType, Min(0)]
+        public ?int $amountCents = null,
     ) {}
 
     /**

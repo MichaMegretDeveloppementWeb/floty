@@ -3,6 +3,7 @@ import { ArrowRight, Download, FileText, ImageIcon } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import type { VehicleEventStatus } from '@/Composables/VehicleEvent/Show/useVehicleEventShow';
+import { formatEur } from '@/Utils/format/formatEur';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
@@ -59,6 +60,22 @@ const props = defineProps<{
                     </p>
                 </div>
             </div>
+        </div>
+
+        <!-- Montant · cost attached to the event (carnet de dépenses) -->
+        <div class="rounded-xl border border-slate-200 bg-white px-6 py-5">
+            <p class="eyebrow mb-2">
+                Montant
+            </p>
+            <p
+                v-if="props.vehicleEvent.amountCents !== null"
+                class="font-mono text-lg font-semibold text-slate-900"
+            >
+                {{ formatEur(props.vehicleEvent.amountCents / 100, 2) }}
+            </p>
+            <p v-else class="text-sm text-slate-400 italic">
+                Aucun montant renseigné.
+            </p>
         </div>
 
         <!-- Nature · category / fiscal / availability -->

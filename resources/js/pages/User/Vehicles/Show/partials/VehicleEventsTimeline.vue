@@ -25,6 +25,7 @@ import {
 import { useVehicleEventsTimelineFilter } from '@/Composables/Vehicle/Show/useVehicleEventsTimelineFilter';
 import { create as createRoute, show as showRoute } from '@/routes/user/vehicles/events';
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
+import { formatEur } from '@/Utils/format/formatEur';
 import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
@@ -261,6 +262,12 @@ const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
                                                     label="Fiscalement réducteur"
                                                     :size="15"
                                                 />
+                                                <span
+                                                    v-if="entry.event.amountCents !== null"
+                                                    class="font-mono text-xs font-medium text-slate-600"
+                                                >
+                                                    {{ formatEur(entry.event.amountCents / 100, 2) }}
+                                                </span>
                                             </span>
                                         </div>
                                         <p

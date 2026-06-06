@@ -56,6 +56,7 @@ final readonly class RecordControlExecutionAction
                 title: $name,
                 categories: $categories,
                 impliesUnavailability: $impliesUnavailability,
+                amountCents: $data->amountCents,
             ));
 
             return $this->executions->create([

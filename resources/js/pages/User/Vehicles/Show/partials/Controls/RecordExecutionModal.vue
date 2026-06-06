@@ -11,6 +11,7 @@ import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import EventCategoriesField from '@/Components/Ui/EventCategoriesField/EventCategoriesField.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import { useRecordExecutionForm } from '@/Composables/Control/Vehicle/useRecordExecutionForm';
 import { vehicleEventCategorySuggestions } from '@/Utils/labels/vehicleEventEnumLabels';
 
@@ -78,6 +79,18 @@ function onSubmit(): void {
                 />
                 <InputError :message="fieldError('note')" />
             </div>
+
+            <NumberInput
+                v-model="form.amount"
+                label="Coût"
+                :min="0"
+                :step="0.01"
+                placeholder="0,00"
+                hint="Coût du contrôle (TTC), facultatif."
+                :error="fieldError('amount_cents')"
+            >
+                <template #unit>€</template>
+            </NumberInput>
 
             <EventCategoriesField
                 :model-value="form.categories"

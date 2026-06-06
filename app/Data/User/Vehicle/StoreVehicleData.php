@@ -115,6 +115,11 @@ final class StoreVehicleData extends Data
         public bool $n1RemovableSecondRowSeat = false,
 
         public bool $n1SkiLiftUse = false,
+
+        // Optional purchase price (cost, TTC) in cents · recorded on the
+        // "Entrée en flotte" lifecycle event. Costs only.
+        #[IntegerType, Min(0)]
+        public ?int $acquisitionAmountCents = null,
     ) {}
 
     /**

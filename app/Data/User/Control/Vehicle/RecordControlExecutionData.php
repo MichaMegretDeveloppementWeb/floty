@@ -41,6 +41,8 @@ final class RecordControlExecutionData extends Data
         public ?int $vehicleControlOverrideId = null,
         public ?string $note = null,
         public array $categories = [],
+        /** Optional cost (TTC) in cents of the control; costs only. */
+        public ?int $amountCents = null,
     ) {}
 
     /**
@@ -54,6 +56,7 @@ final class RecordControlExecutionData extends Data
             'control_definition_id' => ['nullable', 'integer', 'exists:control_definitions,id', 'required_without:vehicle_control_override_id'],
             'vehicle_control_override_id' => ['nullable', 'integer', 'exists:vehicle_control_overrides,id', 'required_without:control_definition_id'],
             'note' => ['nullable', 'string', 'max:500'],
+            'amount_cents' => ['nullable', 'integer', 'min:0'],
             // « Contrôle » + « Entretien » sont ajoutés d'office par l'Action,
             // l'utilisateur peut en ajouter jusqu'à 3 (plafond total de 5).
             'categories' => ['nullable', 'array', 'max:3'],

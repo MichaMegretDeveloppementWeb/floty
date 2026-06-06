@@ -45,6 +45,43 @@ final class CreateVehicleEventActionTest extends TestCase
     }
 
     #[Test]
+    public function persiste_le_cout_en_centimes(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Maintenance,
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            title: null,
+            categories: null,
+            amountCents: 123_456,
+        ));
+
+        $this->assertSame(123_456, $vehicleEvent->fresh()->amount_cents);
+    }
+
+    #[Test]
+    public function cout_null_par_defaut(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Maintenance,
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            title: null,
+            categories: null,
+        ));
+
+        $this->assertNull($vehicleEvent->fresh()->amount_cents);
+    }
+
+    #[Test]
     public function calcule_has_fiscal_impact_a_false_pour_la_maintenance(): void
     {
         $vehicle = Vehicle::factory()->create();

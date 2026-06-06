@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\VehicleEvent;
 
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventWriteRepositoryInterface;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
@@ -28,10 +29,23 @@ final readonly class VehicleLifecycleEventRecorder
 
     public function __construct(
         private VehicleEventWriteRepositoryInterface $events,
+        private VehicleEventReadRepositoryInterface $eventsRead,
     ) {}
 
-    public function recordAcquisition(Vehicle $vehicle): void
+    /**
+     * Records (or re-syncs) the "Entrée en flotte" marker on the acquisition
+     * date. The cost is preserved across a re-sync: when called without an
+     * explicit `$amountCents` (e.g. an acquisition-date correction), the cost
+     * of the existing marker is kept rather than wiped by the delete + recreate.
+     */
+    public function recordAcquisition(Vehicle $vehicle, ?int $amountCents = null): void
     {
+        $existing = $this->eventsRead->findSystemEventForVehicle(
+            $vehicle->id,
+            VehicleEventSystemKind::Acquisition,
+        );
+        $finalAmountCents = $amountCents ?? $existing?->amount_cents;
+
         $this->events->deleteSystemEventsForVehicle($vehicle->id, VehicleEventSystemKind::Acquisition);
 
         $date = $vehicle->acquisition_date->toDateString();
@@ -46,6 +60,7 @@ final readonly class VehicleLifecycleEventRecorder
             'start_date' => $date,
             'end_date' => $date,
             'description' => null,
+            'amount_cents' => $finalAmountCents,
         ], [self::CATEGORY]);
     }
 
@@ -68,6 +83,7 @@ final readonly class VehicleLifecycleEventRecorder
             'start_date' => $data->exitDate,
             'end_date' => $data->exitDate,
             'description' => $description,
+            'amount_cents' => $data->amountCents,
         ], [self::CATEGORY]);
     }
 

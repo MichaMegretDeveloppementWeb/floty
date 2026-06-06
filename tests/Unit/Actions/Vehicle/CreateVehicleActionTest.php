@@ -88,6 +88,21 @@ final class CreateVehicleActionTest extends TestCase
     }
 
     #[Test]
+    public function le_prix_d_achat_est_porte_par_le_repere_entree_en_flotte(): void
+    {
+        $data = $this->makeData(acquisitionAmountCents: 1_850_000);
+
+        $vehicle = $this->action->execute($data);
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('system_kind', VehicleEventSystemKind::Acquisition)
+            ->sole();
+
+        $this->assertSame(1_850_000, $event->amount_cents);
+    }
+
+    #[Test]
     public function rollback_si_la_creation_de_la_periode_fiscale_echoue(): void
     {
         $vfcRepo = $this->createMock(VehicleFiscalCharacteristicsWriteRepositoryInterface::class);
@@ -113,6 +128,7 @@ final class CreateVehicleActionTest extends TestCase
     private function makeData(
         string $licensePlate = 'AB-456-CD',
         string $acquisitionDate = '2024-01-10',
+        ?int $acquisitionAmountCents = null,
     ): StoreVehicleData {
         return new StoreVehicleData(
             licensePlate: $licensePlate,
@@ -137,6 +153,7 @@ final class CreateVehicleActionTest extends TestCase
             co2Wltp: 110,
             co2Nedc: null,
             taxableHorsepower: 6,
+            acquisitionAmountCents: $acquisitionAmountCents,
         );
     }
 }

@@ -53,6 +53,9 @@ final class UpdateVehicleEventData extends Data
 
         /** Informative unavailability flag; forced true for known types. */
         public bool $impliesUnavailability = true,
+
+        /** Optional cost (TTC) in cents; costs only, never a revenue. */
+        public ?int $amountCents = null,
     ) {}
 
     /**
@@ -65,6 +68,7 @@ final class UpdateVehicleEventData extends Data
         return [
             'title' => ['nullable', 'string', 'max:120', 'required_if:type,other'],
             'implies_unavailability' => ['boolean'],
+            'amount_cents' => ['nullable', 'integer', 'min:0'],
             'categories' => $isOther
                 ? ['required', 'array', 'min:1', 'max:'.EventCategoryList::MAX]
                 : ['nullable', 'array', 'max:'.(EventCategoryList::MAX - 1)],

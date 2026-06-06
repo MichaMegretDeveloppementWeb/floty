@@ -9,6 +9,7 @@ import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
 import EventCategoriesField from '@/Components/Ui/EventCategoriesField/EventCategoriesField.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useToasts } from '@/Composables/Shared/useToasts';
 import { useVehicleEventForm } from '@/Composables/Vehicle/Show/useVehicleEventForm';
@@ -66,6 +67,7 @@ const {
     canSubmit,
     selectedIsReductive,
     conflictDaysCount,
+    amountError,
     submit,
 } = useVehicleEventForm(
     {
@@ -234,6 +236,25 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                     </p>
                 </div>
             </div>
+        </Card>
+
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Montant
+                </h2>
+            </template>
+            <NumberInput
+                v-model="form.amount"
+                label="Coût"
+                :min="0"
+                :step="0.01"
+                placeholder="0,00"
+                hint="Coût associé à cet événement (TTC), facultatif. Ne renseignez pas une recette (ex. vente)."
+                :error="amountError"
+            >
+                <template #unit>€</template>
+            </NumberInput>
         </Card>
 
         <Card>

@@ -43,6 +43,8 @@ final class VehicleEventData extends Data
         public string $startDate,
         public ?string $endDate,
         public ?string $description,
+        /** Optional cost (TTC) in cents attached to this event; null = no cost. */
+        public ?int $amountCents,
         public int $daysCount,
         /** System-generated lifecycle marker (acquisition / exit): not editable. */
         public bool $isReadOnly,
@@ -79,6 +81,7 @@ final class VehicleEventData extends Data
             startDate: $u->start_date->toDateString(),
             endDate: $u->end_date?->toDateString(),
             description: $u->description,
+            amountCents: $u->amount_cents,
             daysCount: $daysCount,
             isReadOnly: $u->isSystemGenerated(),
             documents: $documents,

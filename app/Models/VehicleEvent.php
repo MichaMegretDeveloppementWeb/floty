@@ -44,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $start_date
  * @property Carbon|null $end_date
  * @property string|null $description
+ * @property int|null $amount_cents
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -58,6 +59,7 @@ use Illuminate\Support\Carbon;
     'start_date',
     'end_date',
     'description',
+    'amount_cents',
 ])]
 #[ObservedBy([VehicleEventObserver::class])]
 final class VehicleEvent extends Model
@@ -79,6 +81,7 @@ final class VehicleEvent extends Model
             'implies_unavailability' => 'boolean',
             'start_date' => 'date',
             'end_date' => 'date',
+            'amount_cents' => 'integer',
         ];
     }
 

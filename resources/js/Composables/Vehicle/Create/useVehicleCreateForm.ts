@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import { store as vehiclesStoreRoute } from '@/routes/user/vehicles';
+import { eurosToCents } from '@/Utils/format/money';
 
 /**
  * Inertia form, initial values and submit handler for the vehicle create page.
@@ -24,6 +25,7 @@ export function useVehicleCreateForm(): {
         first_origin_registration_date: '',
         first_economic_use_date: '',
         acquisition_date: '',
+        acquisition_amount: null,
         mileage_current: null,
         notes: '',
         reception_category: 'M1',
@@ -98,6 +100,7 @@ export function useVehicleCreateForm(): {
                         ? null
                         : data.underlying_combustion_engine_type,
                 euro_standard: data.euro_standard === '' ? null : data.euro_standard,
+                acquisition_amount_cents: eurosToCents(data.acquisition_amount),
             }))
             .post(vehiclesStoreRoute.url());
     };

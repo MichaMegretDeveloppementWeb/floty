@@ -2,6 +2,7 @@
 import type { InertiaForm } from '@inertiajs/vue3';
 import { CalendarDays } from 'lucide-vue-next';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import FieldWithManualHint from './FieldWithManualHint.vue';
 
@@ -58,6 +59,18 @@ defineProps<{
                 :error="form.errors.first_economic_use_date"
                 required
             />
+            <NumberInput
+                :model-value="form.acquisition_amount ?? null"
+                label="Prix d'achat (optionnel)"
+                :min="0"
+                :step="0.01"
+                placeholder="0,00"
+                hint="Coût d'acquisition (TTC). Enregistré sur l'événement « Entrée en flotte »."
+                :error="(form.errors as Record<string, string | undefined>).acquisition_amount_cents"
+                @update:model-value="(value: number | null) => (form.acquisition_amount = value)"
+            >
+                <template #unit>€</template>
+            </NumberInput>
         </div>
     </section>
 </template>

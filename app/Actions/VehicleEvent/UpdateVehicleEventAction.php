@@ -39,6 +39,7 @@ final readonly class UpdateVehicleEventAction
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'description' => $data->description,
+            'amount_cents' => $data->amountCents,
         ], $categories);
     }
 }

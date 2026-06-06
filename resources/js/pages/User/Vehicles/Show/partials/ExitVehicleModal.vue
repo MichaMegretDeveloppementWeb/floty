@@ -3,6 +3,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { useExitVehicleForm } from '@/Composables/Vehicle/Show/useExitVehicleForm';
 
@@ -18,6 +19,7 @@ const {
     today,
     form,
     canSubmit,
+    amountError,
     submit,
 } = useExitVehicleForm(props, open);
 </script>
@@ -65,6 +67,18 @@ const {
                 />
                 <InputError v-if="form.errors.note" :message="form.errors.note" />
             </div>
+
+            <NumberInput
+                v-model="form.amount"
+                label="Coût de sortie (optionnel)"
+                :min="0"
+                :step="0.01"
+                placeholder="0,00"
+                hint="Coût éventuel lié à la sortie (TTC). Laissez vide pour une vente."
+                :error="amountError"
+            >
+                <template #unit>€</template>
+            </NumberInput>
 
             <p
                 class="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-snug text-amber-800"

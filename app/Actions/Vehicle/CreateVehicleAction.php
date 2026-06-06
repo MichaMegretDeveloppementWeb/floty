@@ -40,8 +40,9 @@ final readonly class CreateVehicleAction
                 effectiveFrom: $vehicle->acquisition_date,
             );
 
-            // Carnet de bord : repère « Entrée en flotte » à la date d'acquisition.
-            $this->lifecycle->recordAcquisition($vehicle);
+            // Carnet de bord : repère « Entrée en flotte » à la date d'acquisition,
+            // avec le prix d'achat éventuel (coût).
+            $this->lifecycle->recordAcquisition($vehicle, $data->acquisitionAmountCents);
 
             return $vehicle;
         });
