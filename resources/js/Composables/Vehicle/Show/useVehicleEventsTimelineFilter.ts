@@ -1,8 +1,11 @@
 import { computed, onBeforeUnmount, onMounted, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref, WritableComputedRef } from 'vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { vehicleEventTypeShortLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
+type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
+type FilterOption = { value: string; label: string };
 
 export type TimelineScopeMode = 'year' | 'period';
 export type TimelineYearOption = { value: number; label: string };
@@ -60,9 +63,16 @@ export function useVehicleEventsTimelineFilter(
     isFiltered: ComputedRef<boolean>;
     activeWindow: ComputedRef<{ from: string | null; to: string | null } | null>;
     filteredEvents: ComputedRef<VehicleEvent[]>;
+    selectedTypes: Ref<string[]>;
+    selectedCategories: Ref<string[]>;
+    typeOptions: ComputedRef<FilterOption[]>;
+    categoryOptions: ComputedRef<FilterOption[]>;
+    totalAmountCents: ComputedRef<number>;
 } {
     const scopeMode = ref<TimelineScopeMode>('year');
     const selectedYear = ref<number>(ALL_YEARS);
+    const selectedTypes = ref<string[]>([]);
+    const selectedCategories = ref<string[]>([]);
     const periodStart = ref<string | null>(null);
     const periodEnd = ref<string | null>(null);
     const periodOngoing = ref<boolean>(false);
@@ -108,6 +118,58 @@ export function useVehicleEventsTimelineFilter(
         ...availableYears.value.map((year) => ({ value: year, label: String(year) })),
     ]);
 
+    // Filter suggestions = the type / category values actually present on this
+    // vehicle's loaded events (real values, « ce qui existe vraiment »).
+    const typeOptions = computed<FilterOption[]>(() => {
+        const present = new Set<string>();
+
+        for (const event of toValue(events)) {
+            present.add(event.type);
+        }
+
+        return [...present]
+            .sort()
+            .map((value) => ({
+                value,
+                label: vehicleEventTypeShortLabel[value as VehicleEventType] ?? value,
+            }));
+    });
+
+    const categoryOptions = computed<FilterOption[]>(() => {
+        const present = new Set<string>();
+
+        for (const event of toValue(events)) {
+            for (const category of event.categories) {
+                present.add(category);
+            }
+        }
+
+        return [...present]
+            .sort((a, b) => a.localeCompare(b, 'fr'))
+            .map((category) => ({ value: category, label: category }));
+    });
+
+    /**
+     * Type + category axes (OR within an axis, AND between axes), applied on top
+     * of the year/period window. Empty axis = no constraint on that axis.
+     */
+    function matchesAxes(event: VehicleEvent): boolean {
+        if (selectedTypes.value.length > 0 && !selectedTypes.value.includes(event.type)) {
+            return false;
+        }
+
+        if (selectedCategories.value.length > 0) {
+            const eventCategories = new Set(event.categories.map((c) => c.trim().toLowerCase()));
+            const hit = selectedCategories.value.some((c) => eventCategories.has(c.trim().toLowerCase()));
+
+            if (!hit) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     const yearModel = computed<number>({
         get: () => selectedYear.value,
         set: (value: number) => {
@@ -143,6 +205,10 @@ export function useVehicleEventsTimelineFilter(
     });
 
     const isFiltered = computed<boolean>(() => {
+        if (selectedTypes.value.length > 0 || selectedCategories.value.length > 0) {
+            return true;
+        }
+
         if (scopeMode.value === 'period') {
             return Boolean(periodStart.value) || Boolean(periodEnd.value);
         }
@@ -171,7 +237,7 @@ export function useVehicleEventsTimelineFilter(
         return { from: `${selectedYear.value}-01-01`, to: `${selectedYear.value}-12-31` };
     });
 
-    const filteredEvents = computed<VehicleEvent[]>(() => {
+    const windowEvents = computed<VehicleEvent[]>(() => {
         const all = toValue(events);
 
         if (scopeMode.value === 'period') {
@@ -194,6 +260,14 @@ export function useVehicleEventsTimelineFilter(
 
         return all.filter((event) => vehicleEventOverlapsWindow(event, from, to));
     });
+
+    const filteredEvents = computed<VehicleEvent[]>(() =>
+        windowEvents.value.filter((event) => matchesAxes(event)),
+    );
+
+    const totalAmountCents = computed<number>(() =>
+        filteredEvents.value.reduce((sum, event) => sum + (event.amountCents ?? 0), 0),
+    );
 
     function setScopeMode(mode: TimelineScopeMode): void {
         scopeMode.value = mode;
@@ -254,5 +328,10 @@ export function useVehicleEventsTimelineFilter(
         isFiltered,
         activeWindow,
         filteredEvents,
+        selectedTypes,
+        selectedCategories,
+        typeOptions,
+        categoryOptions,
+        totalAmountCents,
     };
 }

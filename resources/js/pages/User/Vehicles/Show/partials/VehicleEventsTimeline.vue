@@ -18,6 +18,7 @@ import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
+import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
 import {
     formatVehicleEventDaySpan,
     useVehicleEventsTimeline,
@@ -51,11 +52,17 @@ const {
     isFiltered,
     activeWindow,
     filteredEvents,
+    selectedTypes,
+    selectedCategories,
+    typeOptions,
+    categoryOptions,
+    totalAmountCents,
 } = useVehicleEventsTimelineFilter(() => props.vehicleEvents, props.currentYear);
 
 const days = useVehicleEventsTimeline(filteredEvents, activeWindow);
 
 const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
+const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100, 2));
 </script>
 
 <template>
@@ -73,6 +80,10 @@ const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
                         </template>
                         <template v-else>
                             enregistré{{ filteredEvents.length > 1 ? 's' : '' }}
+                        </template>
+                        <template v-if="totalAmountCents > 0">
+                            <span class="text-slate-300">·</span>
+                            Total <span class="font-mono font-semibold text-slate-700">{{ totalLabel }}</span>
                         </template>
                     </p>
                 </div>
@@ -95,6 +106,22 @@ const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
         </p>
 
         <template v-else>
+            <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <MultiSelectFilter
+                    v-model="selectedTypes"
+                    label="Type"
+                    :options="typeOptions"
+                    placeholder="Filtrer par type"
+                />
+                <MultiSelectFilter
+                    v-model="selectedCategories"
+                    label="Catégorie"
+                    :options="categoryOptions"
+                    allow-free-entry
+                    placeholder="Filtrer par catégorie"
+                />
+            </div>
+
             <div class="mb-5 flex flex-wrap items-center gap-3">
                 <div
                     class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
