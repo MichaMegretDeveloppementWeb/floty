@@ -84,7 +84,6 @@ export const vehicleEventCategorySuggestions: ReadonlyArray<string> = [
     'Administratif',
     'Entretien',
     'Contrôle',
-    'Contrôle réglementaire',
     'Vol',
 ];
 

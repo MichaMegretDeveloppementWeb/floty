@@ -1222,7 +1222,7 @@ final class DemoSeeder extends Seeder
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire'],
+            categories: ['Contrôle'],
         );
 
         // Réparation accident simple (NON réductrice)
@@ -1352,7 +1352,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-09-16',
             description: 'CT 2026.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire'],
+            categories: ['Contrôle'],
         );
 
         // Accident réparation sur véhicule E85 (vérifier que abat applique sans interférence)
