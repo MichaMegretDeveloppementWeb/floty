@@ -40,7 +40,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
             </div>
         </div>
 
-        <nav class="flex-1 overflow-y-auto py-4">
+        <nav class="flex-1 overflow-y-auto py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div v-for="section in sections" :key="section.title" class="mb-5">
                 <p
                     class="eyebrow mb-1.5 overflow-hidden px-6 whitespace-nowrap text-slate-400 opacity-100 transition-opacity duration-200 ease-out md:opacity-0 md:group-hover/sidebar:opacity-100 wide:opacity-100"
@@ -56,8 +56,11 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                                 isActive(item.href) ? 'page' : undefined
                             "
                             :class="[
-                                'relative flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
-                                'md:justify-center md:group-hover/sidebar:justify-start wide:justify-start',
+                                'relative flex items-center gap-3 px-6 py-2 text-base transition-[color,background-color,padding] duration-200 ease-out',
+                                // Collapsed rail: 18px left padding centers the 28px box in the
+                                // 64px rail; expands to 24px on hover/wide. Animating the padding
+                                // (synced with the width transition) avoids a brutal icon jump.
+                                'md:pl-[18px] md:group-hover/sidebar:pl-6 wide:pl-6',
                                 isActive(item.href)
                                     ? 'bg-slate-50 font-medium text-slate-900'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
