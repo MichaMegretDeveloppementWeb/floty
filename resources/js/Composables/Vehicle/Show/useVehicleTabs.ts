@@ -40,6 +40,7 @@ export interface VehicleTabsState {
     isActive: (tab: VehicleTabKey) => boolean;
     loadingTab: Ref<VehicleTabKey | null>;
     markStale: (tabs: readonly VehicleTabKey[]) => void;
+    refreshAfterMutation: () => void;
 }
 
 const VEHICLE_TABS_KEY: InjectionKey<VehicleTabsState> = Symbol('vehicleTabs');
@@ -132,6 +133,20 @@ export function useVehicleTabs(): VehicleTabsState {
         tabs.forEach((t) => visitedTabs.value.delete(t));
     }
 
+    /**
+     * Called after a vehicle-level mutation (exit / reactivation) that changes
+     * the vehicle and redirects to the show page without `?tab`. The redirect
+     * drops every lazy tab prop while the cumulative cache still marks them
+     * loaded, which would leave the active tab stuck on its skeleton and other
+     * visited tabs showing stale data. Drop the whole cache and re-fetch the
+     * active tab now (the `only:[prop]` partial reload resolves the optional
+     * prop even without `?tab`).
+     */
+    function refreshAfterMutation(): void {
+        visitedTabs.value.clear();
+        ensureTabLoaded(activeTab.value);
+    }
+
     onMounted(() => {
         const initialTab = readFromUrl();
         activeTab.value = initialTab;
@@ -149,6 +164,7 @@ export function useVehicleTabs(): VehicleTabsState {
         isActive,
         loadingTab,
         markStale,
+        refreshAfterMutation,
     };
 
     provide(VEHICLE_TABS_KEY, state);

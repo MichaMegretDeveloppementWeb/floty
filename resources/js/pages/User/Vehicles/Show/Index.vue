@@ -5,6 +5,7 @@
  * the others arrive via partial reload on first visit.
  */
 import { Head } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useVehicleTabs } from '@/Composables/Vehicle/Show/useVehicleTabs';
 import TabLoadingSkeleton from '@/pages/User/Companies/Show/partials/TabLoadingSkeleton.vue';
@@ -31,7 +32,16 @@ const props = defineProps<{
     vehicleControls?: App.Data.User.Control.Vehicle.VehicleControlsTabData;
 }>();
 
-const { activeTab, setTab, loadingTab } = useVehicleTabs();
+const { activeTab, setTab, loadingTab, refreshAfterMutation } = useVehicleTabs();
+
+// Exit / reactivation redirects to the show page without `?tab`, dropping the
+// lazy tab props while the cumulative cache still marks them loaded. `isExited`
+// is the only field those mutations flip, so re-fetch the active tab when it
+// changes (otherwise the active tab, p. ex. Contrôles, reste sur son skeleton).
+watch(
+    () => props.vehicle.isExited,
+    () => refreshAfterMutation(),
+);
 </script>
 
 <template>
