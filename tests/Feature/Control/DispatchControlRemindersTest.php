@@ -203,6 +203,61 @@ final class DispatchControlRemindersTest extends TestCase
     }
 
     #[Test]
+    public function un_controle_global_surcharge_par_vehicule_est_journalise_et_idempotent(): void
+    {
+        // Régression : un contrôle GLOBAL surchargé par un override véhicule
+        // (ex. un destinataire par défaut retiré sur ce véhicule) porte à la
+        // fois un control_definition_id ET un vehicle_control_override_id. Le
+        // journal d'idempotence ne doit écrire QU'UNE seule FK (la définition,
+        // cf. target_key « def:{id} ») : écrire les deux viole chk_crl_target,
+        // l'écriture du journal échoue, l'occurrence n'est jamais enregistrée
+        // et le rappel repart à chaque run (1 mail/run au lieu d'1 par occurrence).
+        $vehicle = $this->vehicleDueSoon();
+        $definition = $this->technicalControl();
+
+        // Destinataire par défaut niveau 0 (en plus de l'email toujours prévenu).
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'atelier@test.fr',
+            'name' => 'Atelier',
+        ]);
+
+        // Override véhicule actif qui retire ce destinataire par défaut.
+        $override = VehicleControlOverride::factory()->overrideOf($definition)->create([
+            'vehicle_id' => $vehicle->id,
+        ]);
+        ControlRecipientDelta::query()->create([
+            'level' => 'vehicle',
+            'vehicle_control_override_id' => $override->id,
+            'operation' => 'exclude',
+            'email' => 'atelier@test.fr',
+        ]);
+
+        $this->dispatch();
+        $this->dispatch();
+
+        // Un seul envoi (flotte@ ; atelier@ retiré au niveau véhicule) malgré
+        // deux runs : la deuxième passe est bien dédupliquée.
+        Notification::assertCount(1);
+        Notification::assertSentOnDemand(
+            ControlReminderNotification::class,
+            static fn ($notification, array $channels, object $notifiable): bool => ($notifiable->routes['mail'] ?? null) === 'flotte@test.fr',
+        );
+
+        // Journalisé une seule fois, contre la définition (override mis à NULL
+        // pour respecter chk_crl_target).
+        self::assertSame(1, ControlReminderLog::query()->count());
+        $this->assertDatabaseHas('control_reminder_logs', [
+            'vehicle_id' => $vehicle->id,
+            'control_definition_id' => $definition->id,
+            'vehicle_control_override_id' => null,
+            'target_key' => 'def:'.$definition->id,
+            'recipients_count' => 1,
+        ]);
+    }
+
+    #[Test]
     public function le_catalogue_n_est_lu_qu_une_fois_quel_que_soit_le_nombre_de_vehicules(): void
     {
         Vehicle::factory()->count(3)->create(['first_origin_registration_date' => '2022-06-20']);
