@@ -64,7 +64,10 @@ final readonly class VehicleControlsService
             if ($control->scheduleStatus === ControlScheduleStatus::Overdue) {
                 $overdueCount++;
                 $dueCount++;
-            } elseif ($control->scheduleStatus === ControlScheduleStatus::DueSoon) {
+            } elseif (
+                $control->scheduleStatus === ControlScheduleStatus::DueToday
+                || $control->scheduleStatus === ControlScheduleStatus::DueSoon
+            ) {
                 $dueCount++;
             }
         }

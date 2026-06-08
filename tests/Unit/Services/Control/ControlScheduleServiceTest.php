@@ -126,6 +126,21 @@ final class ControlScheduleServiceTest extends TestCase
     }
 
     #[Test]
+    public function statut_a_faire_aujourd_hui_quand_echeance_est_aujourd_hui(): void
+    {
+        // Échéance pile aujourd'hui : « À faire aujourd'hui », pas « proche ».
+        $status = $this->service->deriveStatus(
+            CarbonImmutable::parse('2026-06-08'),
+            null,
+            CarbonImmutable::parse('2026-06-08'),
+            15,
+            null,
+        );
+
+        self::assertSame(ControlScheduleStatus::DueToday, $status);
+    }
+
+    #[Test]
     public function statut_non_applicable_quand_echeance_apres_sortie_de_flotte(): void
     {
         $status = $this->service->deriveStatus(
@@ -134,6 +149,22 @@ final class ControlScheduleServiceTest extends TestCase
             CarbonImmutable::parse('2024-06-01'),
             15,
             CarbonImmutable::parse('2025-01-01'),
+        );
+
+        self::assertSame(ControlScheduleStatus::NotApplicable, $status);
+    }
+
+    #[Test]
+    public function statut_non_applicable_quand_echeance_le_jour_meme_de_la_sortie(): void
+    {
+        // Véhicule sorti aujourd'hui, échéance aujourd'hui : le contrôle n'est
+        // plus à faire (le jour de sortie appartient au nouveau propriétaire).
+        $status = $this->service->deriveStatus(
+            CarbonImmutable::parse('2026-06-08'),
+            null,
+            CarbonImmutable::parse('2026-06-08'),
+            15,
+            CarbonImmutable::parse('2026-06-08'),
         );
 
         self::assertSame(ControlScheduleStatus::NotApplicable, $status);

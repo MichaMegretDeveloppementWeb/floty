@@ -11,16 +11,18 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * (Chantier B / B2), computed by {@see App\Services\Control\ControlScheduleService}
  * relative to "today" and the reminder lead window:
  *   - `Upcoming`      : échéance far ahead.
- *   - `DueSoon`       : within the reminder lead window before the échéance.
+ *   - `DueSoon`       : within the reminder lead window, before the échéance.
+ *   - `DueToday`      : échéance is exactly today.
  *   - `Overdue`       : échéance passed, control not done.
  *   - `DoneRecently`  : an execution was recorded within the recent window.
- *   - `NotApplicable` : échéance falls after the vehicle left the fleet (ADR-0018).
+ *   - `NotApplicable` : échéance falls on or after the vehicle left the fleet (ADR-0018).
  */
 #[TypeScript]
 enum ControlScheduleStatus: string
 {
     case Upcoming = 'upcoming';
     case DueSoon = 'due_soon';
+    case DueToday = 'due_today';
     case Overdue = 'overdue';
     case DoneRecently = 'done_recently';
     case NotApplicable = 'not_applicable';
@@ -33,6 +35,7 @@ enum ControlScheduleStatus: string
         return match ($this) {
             self::Upcoming => 'À venir',
             self::DueSoon => 'Échéance proche',
+            self::DueToday => 'À faire aujourd\'hui',
             self::Overdue => 'En retard',
             self::DoneRecently => 'Fait récemment',
             self::NotApplicable => 'Non applicable',
@@ -47,6 +50,7 @@ enum ControlScheduleStatus: string
         return match ($this) {
             self::Upcoming => 'slate',
             self::DueSoon => 'amber',
+            self::DueToday => 'amber',
             self::Overdue => 'rose',
             self::DoneRecently => 'emerald',
             self::NotApplicable => 'slate',

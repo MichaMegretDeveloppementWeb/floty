@@ -16,6 +16,7 @@ type EcheanceFields = {
 const SCHEDULE_STATUS_LABEL: Readonly<Record<string, string>> = {
     upcoming: 'À venir',
     due_soon: 'Échéance proche',
+    due_today: 'À faire aujourd\'hui',
     overdue: 'En retard',
     done_recently: 'Fait récemment',
     not_applicable: 'Non applicable',
@@ -24,6 +25,7 @@ const SCHEDULE_STATUS_LABEL: Readonly<Record<string, string>> = {
 const SCHEDULE_STATUS_TONE: Readonly<Record<string, BadgeTone>> = {
     upcoming: 'slate',
     due_soon: 'amber',
+    due_today: 'amber',
     overdue: 'rose',
     done_recently: 'emerald',
     not_applicable: 'slate',
@@ -32,6 +34,7 @@ const SCHEDULE_STATUS_TONE: Readonly<Record<string, BadgeTone>> = {
 const SCHEDULE_STATUS_ICON: Readonly<Record<string, Component>> = {
     upcoming: Clock,
     due_soon: AlarmClock,
+    due_today: AlarmClock,
     overdue: TriangleAlert,
     done_recently: CircleCheck,
     not_applicable: Minus,

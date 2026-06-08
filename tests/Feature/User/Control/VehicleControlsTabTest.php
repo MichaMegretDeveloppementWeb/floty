@@ -203,6 +203,52 @@ final class VehicleControlsTabTest extends TestCase
     }
 
     #[Test]
+    public function le_badge_compte_un_controle_a_faire_aujourd_hui(): void
+    {
+        // Échéance pile aujourd'hui (mise en circulation il y a 4 ans) -> DueToday,
+        // compté dans dueCount, mais pas en retard.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'first_origin_registration_date' => now()->subYears(4)->toDateString(),
+        ]);
+        ControlDefinition::factory()->create([
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('controlsBadge.dueCount', 1)
+                ->where('controlsBadge.overdueCount', 0)
+                ->etc());
+    }
+
+    #[Test]
+    public function le_badge_ne_compte_pas_un_controle_dont_l_echeance_tombe_le_jour_de_la_sortie(): void
+    {
+        // Régression : véhicule sorti aujourd'hui, échéance aujourd'hui -> le
+        // contrôle n'est plus à faire (NotApplicable), badge à 0.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'first_origin_registration_date' => now()->subYears(4)->toDateString(),
+            'exit_date' => now()->toDateString(),
+            'exit_reason' => 'sold',
+        ]);
+        ControlDefinition::factory()->create([
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('controlsBadge.dueCount', 0)
+                ->where('controlsBadge.overdueCount', 0)
+                ->etc());
+    }
+
+    #[Test]
     public function le_badge_ignore_un_vehicule_sorti_de_flotte(): void
     {
         // Échéance (~aujourd'hui) postérieure à la sortie -> NotApplicable
