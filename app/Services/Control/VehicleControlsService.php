@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Control;
 
 use App\Data\User\Control\ControlReminderSettingsData;
+use App\Data\User\Control\Vehicle\VehicleControlsBadgeData;
 use App\Data\User\Control\Vehicle\VehicleControlsTabData;
 use App\Enums\Control\ControlAnchor;
+use App\Enums\Control\ControlScheduleStatus;
 use App\Enums\Control\DurationUnit;
 use App\Enums\Control\VehicleControlStatus;
 use App\Models\Vehicle;
@@ -41,5 +43,32 @@ final readonly class VehicleControlsService
                 $context->defaultRecipients,
             ),
         );
+    }
+
+    /**
+     * Eager, lightweight count of the vehicle's controls that need attention,
+     * for the tab-label badge. Mirrors the reminder dispatch eligibility:
+     * paused/disabled and not-applicable (vehicle left the fleet) controls do
+     * not count. Bounded to one vehicle's resolved control set.
+     */
+    public function dueBadgeForVehicle(Vehicle $vehicle, CarbonImmutable $today): VehicleControlsBadgeData
+    {
+        $dueCount = 0;
+        $overdueCount = 0;
+
+        foreach ($this->resolver->resolve($vehicle, $today) as $control) {
+            if ($control->status !== VehicleControlStatus::Active) {
+                continue;
+            }
+
+            if ($control->scheduleStatus === ControlScheduleStatus::Overdue) {
+                $overdueCount++;
+                $dueCount++;
+            } elseif ($control->scheduleStatus === ControlScheduleStatus::DueSoon) {
+                $dueCount++;
+            }
+        }
+
+        return new VehicleControlsBadgeData(dueCount: $dueCount, overdueCount: $overdueCount);
     }
 }

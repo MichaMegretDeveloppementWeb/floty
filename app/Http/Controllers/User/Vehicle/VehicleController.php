@@ -127,6 +127,10 @@ final class VehicleController extends Controller
 
         return Inertia::render('User/Vehicles/Show/Index', [
             'vehicle' => $vehicleData,
+            // Eager (independent of the active tab): drives the count badge on
+            // the "Contrôles réglementaires" tab label, so a due/overdue control
+            // is visible without opening the tab. Bounded one-vehicle resolution.
+            'controlsBadge' => $this->vehicleControls->dueBadgeForVehicle($vehicleModel, CarbonImmutable::today()),
             // Overview-tab-only payload (usage timeline, current-year KPI,
             // busy dates, multi-year history). Eager only when
             // ?tab=overview, Inertia::optional otherwise (tab-gating). The

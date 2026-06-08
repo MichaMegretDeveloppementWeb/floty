@@ -3,6 +3,7 @@ import type { VehicleTabKey } from '@/Composables/Vehicle/Show/useVehicleTabs';
 
 defineProps<{
     activeTab: VehicleTabKey;
+    controlsBadge: App.Data.User.Control.Vehicle.VehicleControlsBadgeData;
 }>();
 
 defineEmits<{
@@ -38,6 +39,22 @@ const tabs: readonly { key: VehicleTabKey; label: string }[] = [
             @click="$emit('change', tab.key)"
         >
             {{ tab.label }}
+            <span
+                v-if="tab.key === 'controls' && controlsBadge.dueCount > 0"
+                :class="[
+                    'inline-flex min-w-[1.125rem] items-center justify-center rounded-full px-1 text-[0.6875rem] leading-[1.125rem] font-semibold',
+                    controlsBadge.overdueCount > 0
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-amber-100 text-amber-700',
+                ]"
+                :title="
+                    controlsBadge.overdueCount > 0
+                        ? `${controlsBadge.overdueCount} contrôle${controlsBadge.overdueCount > 1 ? 's' : ''} en retard`
+                        : `${controlsBadge.dueCount} contrôle${controlsBadge.dueCount > 1 ? 's' : ''} à échéance`
+                "
+            >
+                {{ controlsBadge.dueCount }}
+            </span>
         </button>
     </div>
 </template>

@@ -22,6 +22,7 @@ const props = defineProps<{
     billingYear: number;
     fiscalYear: number;
     fiscalYearScope: App.Data.Shared.YearScopeData;
+    controlsBadge: App.Data.User.Control.Vehicle.VehicleControlsBadgeData;
 
     // Lazy: populated after the matching tab is first visited.
     vehicleOverview?: App.Data.User.Vehicle.VehicleOverviewData;
@@ -40,7 +41,11 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
         <div class="flex flex-col gap-6 max-w-[80em] m-auto">
             <VehicleHeader :vehicle="props.vehicle" />
 
-            <VehicleTabsNav :active-tab="activeTab" @change="setTab" />
+            <VehicleTabsNav
+                :active-tab="activeTab"
+                :controls-badge="props.controlsBadge"
+                @change="setTab"
+            />
 
             <!--
                 Overview is tab-gated: its heavy payload (`vehicleOverview`:
