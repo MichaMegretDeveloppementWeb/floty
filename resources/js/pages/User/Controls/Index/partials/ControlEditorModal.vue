@@ -3,7 +3,7 @@
  * Inline editor (création / édition) d'un contrôle réglementaire global
  * (Chantier B / B1, domaine B). Organisé en sections claires : identité &
  * échéance, comportement, rappels (hérités ou surchargés), destinataires
- * (toujours prévenu, hérités retirables, propres au contrôle). Toute la logique
+ * (hérités retirables, propres au contrôle). Toute la logique
  * est dans {@link useControlDefinitionForm}.
  */
 import { CalendarClock, Mail, Plus, SlidersHorizontal, Trash2, Users } from 'lucide-vue-next';
@@ -242,7 +242,6 @@ function onSubmit(): void {
                             ]"
                         >
                             {{ recipient.name }} · {{ recipient.email }}
-                            <span v-if="recipient.isAlwaysNotify" class="text-slate-400">· prévenu par défaut</span>
                         </span>
                     </button>
                 </div>

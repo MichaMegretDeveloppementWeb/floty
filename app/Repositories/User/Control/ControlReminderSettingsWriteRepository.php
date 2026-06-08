@@ -24,10 +24,6 @@ final class ControlReminderSettingsWriteRepository implements ControlReminderSet
                 'days_before' => $data->daysBefore,
                 'remind_on_due_day' => $data->remindOnDueDay,
                 'repeat_every_days' => $data->repeatEveryDays,
-                'always_notify_name' => $data->alwaysNotifyName,
-                'always_notify_email' => $data->alwaysNotifyEmail === null
-                    ? null
-                    : RecipientEmail::normalize($data->alwaysNotifyEmail),
             ]);
             $settings->save();
 

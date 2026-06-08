@@ -207,15 +207,18 @@ final class ControlDefinitionControllerTest extends TestCase
     }
 
     #[Test]
-    public function le_destinataire_toujours_prevenu_peut_etre_exclu_d_un_controle(): void
+    public function un_destinataire_par_defaut_peut_etre_exclu_d_un_controle(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
 
-        $settings = ControlReminderSettings::singleton();
-        $settings->always_notify_email = 'flotte@exemple.fr';
-        $settings->always_notify_name = 'Gestion flotte';
-        $settings->save();
+        ControlReminderSettings::singleton();
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'flotte@exemple.fr',
+            'name' => 'Gestion flotte',
+        ]);
 
         $this->actingAs($user)
             ->post('/app/controls', $this->validPayload([
@@ -232,7 +235,7 @@ final class ControlDefinitionControllerTest extends TestCase
             'email' => 'flotte@exemple.fr',
         ]);
 
-        // Le destinataire « toujours prévenu » exclu ne figure plus dans les
+        // Le destinataire par défaut exclu ne figure plus dans les
         // destinataires effectifs résolus pour un véhicule.
         $controls = app(EffectiveControlResolver::class)->resolve($vehicle->fresh(), CarbonImmutable::parse('2026-06-05'));
         $control = collect($controls)->firstWhere('definitionId', $definition->id);

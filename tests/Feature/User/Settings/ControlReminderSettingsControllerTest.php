@@ -34,8 +34,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
                     ->where('daysBefore', 15)
                     ->where('remindOnDueDay', true)
                     ->where('repeatEveryDays', 5)
-                    ->where('alwaysNotifyName', null)
-                    ->where('alwaysNotifyEmail', null)
                     ->where('defaultRecipients', [])
                     ->etc()));
 
@@ -52,8 +50,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
                 'days_before' => 30,
                 'remind_on_due_day' => false,
                 'repeat_every_days' => 10,
-                'always_notify_name' => 'Gestion flotte',
-                'always_notify_email' => 'Flotte@Exemple.FR',
                 'default_recipients' => [
                     ['name' => 'Atelier', 'email' => 'Atelier@Exemple.FR'],
                     ['name' => 'Direction', 'email' => 'direction@exemple.fr'],
@@ -66,11 +62,9 @@ final class ControlReminderSettingsControllerTest extends TestCase
         self::assertSame(30, $settings->days_before);
         self::assertFalse($settings->remind_on_due_day);
         self::assertSame(10, $settings->repeat_every_days);
-        // Email "toujours prévenir" normalisé en minuscules.
-        self::assertSame('flotte@exemple.fr', $settings->always_notify_email);
 
         // Deux destinataires niveau 0 persistés en deltas settings/include,
-        // emails normalisés.
+        // emails normalisés (la casse d'entrée est ramenée en minuscules).
         $this->assertDatabaseHas('control_recipient_deltas', [
             'level' => 'settings',
             'operation' => 'include',
@@ -94,8 +88,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
             'days_before' => 15,
             'remind_on_due_day' => true,
             'repeat_every_days' => 5,
-            'always_notify_name' => null,
-            'always_notify_email' => null,
             'default_recipients' => [
                 ['name' => 'A', 'email' => 'a@exemple.fr'],
                 ['name' => 'B', 'email' => 'b@exemple.fr'],
@@ -124,8 +116,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
                 'days_before' => 15,
                 'remind_on_due_day' => true,
                 'repeat_every_days' => 5,
-                'always_notify_name' => null,
-                'always_notify_email' => null,
                 'default_recipients' => [
                     ['name' => 'Doublon 1', 'email' => 'dup@exemple.fr'],
                     ['name' => 'Doublon 2', 'email' => 'DUP@exemple.fr'],
@@ -146,8 +136,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
                 'days_before' => 15,
                 'remind_on_due_day' => true,
                 'repeat_every_days' => 0,
-                'always_notify_name' => null,
-                'always_notify_email' => null,
                 'default_recipients' => [],
             ])
             ->assertSessionHasErrors(['repeat_every_days']);
@@ -163,8 +151,6 @@ final class ControlReminderSettingsControllerTest extends TestCase
                 'days_before' => 15,
                 'remind_on_due_day' => true,
                 'repeat_every_days' => 5,
-                'always_notify_name' => null,
-                'always_notify_email' => null,
                 'default_recipients' => [
                     ['name' => 'Sans email', 'email' => 'pas-un-email'],
                 ],

@@ -23,8 +23,6 @@ final class ControlReminderSettingsFactory extends Factory
             'days_before' => 15,
             'remind_on_due_day' => true,
             'repeat_every_days' => 5,
-            'always_notify_name' => null,
-            'always_notify_email' => null,
         ];
     }
 }

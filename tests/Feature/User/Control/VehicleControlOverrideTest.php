@@ -276,15 +276,18 @@ final class VehicleControlOverrideTest extends TestCase
     {
         // Exemple client (memo Chantier B §7) : Sabrina = destinataire global ;
         // le contrôle global enlève Sabrina + ajoute Hugo ; le véhicule enlève
-        // Hugo + ajoute Vanessa. L'email « toujours prévenu » reste partout.
+        // Hugo + ajoute Vanessa. Patron (destinataire par défaut) reste partout.
         $vehicle = Vehicle::factory()->create();
         $definition = $this->definition();
 
-        // Niveau 0 : email toujours prévenu + destinataire global Sabrina.
-        $settings = ControlReminderSettings::singleton();
-        $settings->always_notify_name = 'Patron';
-        $settings->always_notify_email = 'patron@floty.fr';
-        $settings->save();
+        // Niveau 0 : deux destinataires par défaut, Patron + Sabrina.
+        ControlReminderSettings::singleton();
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'patron@floty.fr',
+            'name' => 'Patron',
+        ]);
         ControlRecipientDelta::query()->create([
             'level' => 'settings',
             'operation' => 'include',

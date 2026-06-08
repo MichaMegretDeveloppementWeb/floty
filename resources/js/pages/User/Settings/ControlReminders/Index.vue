@@ -2,9 +2,9 @@
 /**
  * Domaine A · "Paramètres des rappels" (Chantier B / B1). Réglages généraux
  * appliqués par défaut à tous les contrôles réglementaires : cycle de rappel
- * par défaut, destinataire « toujours prévenu », et liste des destinataires
- * universels (niveau 0). Un contrôle global peut surcharger ces réglages
- * (domaine « Contrôles réglementaires »). Logique en composable.
+ * par défaut et liste des destinataires universels (niveau 0). Un contrôle
+ * global peut surcharger ces réglages (domaine « Contrôles réglementaires »).
+ * Logique en composable.
  */
 import { Head } from '@inertiajs/vue3';
 import { BellRing, Plus, Trash2 } from 'lucide-vue-next';
@@ -83,36 +83,6 @@ const { form, addRecipient, removeRecipient, fieldError, submit } = useControlRe
                         >
                             <template #unit>jours</template>
                         </NumberInput>
-                    </div>
-                </Card>
-
-                <Card>
-                    <template #header>
-                        <h2 class="text-base font-semibold text-slate-900">
-                            Destinataire toujours prévenu
-                        </h2>
-                    </template>
-
-                    <div class="flex flex-col gap-4">
-                        <p class="text-sm text-slate-500">
-                            Ce destinataire reçoit tous les rappels, sauf retrait explicite au niveau d'un contrôle.
-                            Laisser vide pour ne pas en définir.
-                        </p>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <TextInput
-                                v-model="form.always_notify_name"
-                                label="Nom"
-                                placeholder="Gestion de flotte"
-                                :error="fieldError('always_notify_name')"
-                            />
-                            <TextInput
-                                v-model="form.always_notify_email"
-                                type="email"
-                                label="Email"
-                                placeholder="flotte@exemple.fr"
-                                :error="fieldError('always_notify_email')"
-                            />
-                        </div>
                     </div>
                 </Card>
 

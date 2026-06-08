@@ -61,7 +61,7 @@ final readonly class EffectiveControlResolver
         return new ControlResolutionContext(
             settings: $settings,
             defaultRecipients: $defaultRecipients,
-            baseRecipients: $this->baseRecipientMap($settings, $defaultRecipients),
+            baseRecipients: $this->baseRecipientMap($defaultRecipients),
             definitions: $this->definitions->listActiveForResolution(),
         );
     }
@@ -273,14 +273,9 @@ final readonly class EffectiveControlResolver
      * @param  array<int, ControlRecipientData>  $level0Recipients
      * @return array<string, string>
      */
-    private function baseRecipientMap(ControlReminderSettings $settings, array $level0Recipients): array
+    private function baseRecipientMap(array $level0Recipients): array
     {
         $map = [];
-
-        if ($settings->always_notify_email !== null && $settings->always_notify_email !== '') {
-            $email = RecipientEmail::normalize($settings->always_notify_email);
-            $map[$email] = $settings->always_notify_name ?? $email;
-        }
 
         foreach ($level0Recipients as $recipient) {
             $map[RecipientEmail::normalize($recipient->email)] = $recipient->name;

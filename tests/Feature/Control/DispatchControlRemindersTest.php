@@ -38,10 +38,15 @@ final class DispatchControlRemindersTest extends TestCase
         parent::setUp();
         Notification::fake();
 
-        $settings = ControlReminderSettings::singleton();
-        $settings->always_notify_email = 'flotte@test.fr';
-        $settings->always_notify_name = 'Gestion flotte';
-        $settings->save();
+        ControlReminderSettings::singleton();
+
+        // Destinataire par défaut niveau 0 reçu par tous les contrôles.
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'flotte@test.fr',
+            'name' => 'Gestion flotte',
+        ]);
     }
 
     private function vehicleDueSoon(): Vehicle

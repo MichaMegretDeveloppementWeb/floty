@@ -15,17 +15,14 @@ use Illuminate\Support\Carbon;
  * Application singleton (always `id=1`), auto-created with defaults on first access,
  * mirroring {@see FiscalRiskSettings::singleton()}.
  *
- * Holds the default reminder cycle (a control definition may override it) plus the
- * "always notify" recipient scalar, always kept in the resolved recipient list unless
- * an explicit exclude delta removes it. The default recipients themselves (level 0)
- * live in `control_recipient_deltas` (level = settings), not on this row.
+ * Holds the default reminder cycle (a control definition may override it). The
+ * default recipients (level 0) live in `control_recipient_deltas`
+ * (level = settings), not on this row.
  *
  * @property int $id
  * @property int $days_before
  * @property bool $remind_on_due_day
  * @property int $repeat_every_days
- * @property string|null $always_notify_name
- * @property string|null $always_notify_email
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -33,8 +30,6 @@ use Illuminate\Support\Carbon;
     'days_before',
     'remind_on_due_day',
     'repeat_every_days',
-    'always_notify_name',
-    'always_notify_email',
 ])]
 final class ControlReminderSettings extends Model
 {
@@ -55,8 +50,6 @@ final class ControlReminderSettings extends Model
             'days_before' => 15,
             'remind_on_due_day' => true,
             'repeat_every_days' => 5,
-            'always_notify_name' => null,
-            'always_notify_email' => null,
         ]));
     }
 

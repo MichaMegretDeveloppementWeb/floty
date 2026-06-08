@@ -1,0 +1,1 @@
+function e(e){return e.defaultRecipients.map(e=>({name:e.name,email:e.email}))}export{e as t};

@@ -8,8 +8,6 @@ type RemindersFormShape = {
     days_before: number;
     remind_on_due_day: boolean;
     repeat_every_days: number;
-    always_notify_name: string;
-    always_notify_email: string;
     default_recipients: { name: string; email: string }[];
 };
 
@@ -17,7 +15,7 @@ type RemindersFormShape = {
  * Form state + recipient-list mutations for the global control reminder
  * settings page (Chantier B / B1, domaine A). Snake_case `useForm` keys match
  * the Spatie `SnakeCaseMapper` server-side so validation errors map straight to
- * the fields; the "always notify" pair is emptied to null on submit.
+ * the fields.
  */
 export function useControlRemindersForm(settings: ControlReminderSettings): {
     form: InertiaForm<RemindersFormShape>;
@@ -30,8 +28,6 @@ export function useControlRemindersForm(settings: ControlReminderSettings): {
         days_before: settings.daysBefore,
         remind_on_due_day: settings.remindOnDueDay,
         repeat_every_days: settings.repeatEveryDays,
-        always_notify_name: settings.alwaysNotifyName ?? '',
-        always_notify_email: settings.alwaysNotifyEmail ?? '',
         default_recipients: settings.defaultRecipients.map((recipient) => ({
             name: recipient.name,
             email: recipient.email,
@@ -51,13 +47,7 @@ export function useControlRemindersForm(settings: ControlReminderSettings): {
     }
 
     function submit(): void {
-        form
-            .transform((data) => ({
-                ...data,
-                always_notify_name: data.always_notify_name.trim() === '' ? null : data.always_notify_name.trim(),
-                always_notify_email: data.always_notify_email.trim() === '' ? null : data.always_notify_email.trim(),
-            }))
-            .post(updateRoute.url(), { preserveScroll: true });
+        form.post(updateRoute.url(), { preserveScroll: true });
     }
 
     return { form, addRecipient, removeRecipient, fieldError, submit };

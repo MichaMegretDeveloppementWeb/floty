@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\User\Control;
 
 use App\Models\ControlDefinition;
+use App\Models\ControlRecipientDelta;
 use App\Models\ControlReminderSettings;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -107,16 +108,19 @@ final class VehicleControlsTabTest extends TestCase
     }
 
     #[Test]
-    public function l_email_toujours_prevenu_est_inclus_dans_les_destinataires_effectifs(): void
+    public function un_destinataire_par_defaut_est_inclus_dans_les_destinataires_effectifs(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         ControlDefinition::factory()->create();
 
-        $settings = ControlReminderSettings::singleton();
-        $settings->always_notify_name = 'Gestion flotte';
-        $settings->always_notify_email = 'flotte@exemple.fr';
-        $settings->save();
+        ControlReminderSettings::singleton();
+        ControlRecipientDelta::query()->create([
+            'level' => 'settings',
+            'operation' => 'include',
+            'email' => 'flotte@exemple.fr',
+            'name' => 'Gestion flotte',
+        ]);
 
         $this->actingAs($user)
             ->get("/app/vehicles/{$vehicle->id}?tab=controls")

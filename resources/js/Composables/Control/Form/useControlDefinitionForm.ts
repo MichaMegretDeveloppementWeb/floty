@@ -52,10 +52,10 @@ function blankForm(): ControlFormShape {
  * Editor form for a global control definition (Chantier B, domaine B).
  * Snake_case `useForm` keys match the server `SnakeCaseMapper`. Recipients are
  * split into the control's own additions (includes) and the inherited defaults
- * it removes (excludes). The inherited list is the "always notify" recipient
- * (flagged) followed by the level-0 defaults: all are included by default but
- * removable (unified with the per-vehicle editor). `seed()` re-fills the form
- * when the editor opens, for a control (edit) or blank (create).
+ * it removes (excludes). The inherited list is the level-0 default recipients:
+ * all are included by default but removable (unified with the per-vehicle
+ * editor). `seed()` re-fills the form when the editor opens, for a control
+ * (edit) or blank (create).
  */
 export function useControlDefinitionForm(
     getEditing: MaybeRefOrGetter<ControlDefinition | null>,
