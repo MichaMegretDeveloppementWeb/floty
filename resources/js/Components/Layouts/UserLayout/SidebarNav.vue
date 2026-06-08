@@ -57,6 +57,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                             "
                             :class="[
                                 'relative flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
+                                'md:justify-center md:group-hover/sidebar:justify-start wide:justify-start',
                                 isActive(item.href)
                                     ? 'bg-slate-50 font-medium text-slate-900'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
@@ -68,13 +69,17 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                                 aria-hidden="true"
                                 class="absolute top-0 bottom-0 left-0 w-0.5 bg-slate-900"
                             />
-                            <component
-                                :is="item.icon"
-                                :size="16"
-                                :stroke-width="1.75"
-                                class="shrink-0 text-[#4f46e5]"
+                            <span
+                                class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5]/12"
                                 aria-hidden="true"
-                            />
+                            >
+                                <component
+                                    :is="item.icon"
+                                    :size="16"
+                                    :stroke-width="1.75"
+                                    class="text-[#4f46e5]"
+                                />
+                            </span>
                             <span :class="labelClass">{{ item.label }}</span>
                         </Link>
                     </li>
