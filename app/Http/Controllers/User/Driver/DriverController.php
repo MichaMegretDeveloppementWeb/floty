@@ -114,6 +114,7 @@ final class DriverController extends Controller
                 'id' => $driver->id,
                 'firstName' => $driver->first_name,
                 'lastName' => $driver->last_name,
+                'email' => $driver->email,
             ],
         ]);
     }

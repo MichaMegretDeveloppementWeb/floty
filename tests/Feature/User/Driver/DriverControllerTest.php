@@ -345,7 +345,7 @@ final class DriverControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
-        $driver = Driver::factory()->create();
+        $driver = Driver::factory()->create(['email' => 'jean.test@floty.fr']);
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
         $this->actingAs($user)
@@ -357,6 +357,7 @@ final class DriverControllerTest extends TestCase
                     ->where('id', $driver->id)
                     ->where('firstName', $driver->first_name)
                     ->where('lastName', $driver->last_name)
+                    ->where('email', 'jean.test@floty.fr')
                     ->has('memberships', 1, fn (AssertableInertia $m) => $m
                         ->where('companyId', $company->id)
                         ->where('isCurrentlyActive', true)
@@ -392,6 +393,22 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
+    public function edit_expose_l_email_du_driver_pour_preremplir_le_formulaire(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create(['email' => 'edit@floty.fr']);
+
+        $this->actingAs($user)
+            ->get('/app/drivers/'.$driver->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Drivers/Edit/Index')
+                ->where('driver.id', $driver->id)
+                ->where('driver.email', 'edit@floty.fr'),
+            );
+    }
+
+    #[Test]
     public function store_cree_le_driver_avec_membership_initiale(): void
     {
         $user = User::factory()->create();
@@ -400,6 +417,7 @@ final class DriverControllerTest extends TestCase
         $response = $this->actingAs($user)->post('/app/drivers', [
             'first_name' => 'Marie',
             'last_name' => 'Dupont',
+            'email' => 'marie.dupont@floty.fr',
             'initial_company_id' => $company->id,
             'initial_joined_at' => '2024-01-15',
         ]);
@@ -407,12 +425,51 @@ final class DriverControllerTest extends TestCase
         $response->assertRedirect();
 
         $driver = Driver::query()->where('first_name', 'Marie')->where('last_name', 'Dupont')->firstOrFail();
+        $this->assertSame('marie.dupont@floty.fr', $driver->email);
         $this->assertCount(1, $driver->companies);
         $this->assertSame($company->id, $driver->companies->first()->id);
         /** @var DriverCompany $pivot */
         $pivot = $driver->companies->first()->getAttribute('pivot');
         $this->assertSame('2024-01-15', $pivot->joined_at->toDateString());
         $this->assertNull($pivot->left_at);
+    }
+
+    #[Test]
+    public function store_accepte_un_driver_sans_email(): void
+    {
+        // L'email est facultatif : un conducteur peut être créé sans, auquel
+        // cas il ne recevra simplement pas les rappels de contrôles.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)->post('/app/drivers', [
+            'first_name' => 'Sans',
+            'last_name' => 'Email',
+            'initial_company_id' => $company->id,
+            'initial_joined_at' => '2024-01-15',
+        ])->assertRedirect();
+
+        $driver = Driver::query()->where('first_name', 'Sans')->where('last_name', 'Email')->firstOrFail();
+        $this->assertNull($driver->email);
+    }
+
+    #[Test]
+    public function store_refuse_un_email_invalide(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/drivers', [
+                'first_name' => 'Marie',
+                'last_name' => 'Dupont',
+                'email' => 'pas-un-email',
+                'initial_company_id' => $company->id,
+                'initial_joined_at' => '2024-01-15',
+            ])
+            ->assertSessionHasErrors(['email']);
+
+        $this->assertDatabaseEmpty('drivers');
     }
 
     #[Test]
@@ -431,20 +488,64 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_modifie_uniquement_first_name_et_last_name(): void
+    public function update_modifie_l_identite_first_name_last_name_et_email(): void
     {
         $user = User::factory()->create();
-        $driver = Driver::factory()->create(['first_name' => 'Old', 'last_name' => 'Name']);
+        $driver = Driver::factory()->create([
+            'first_name' => 'Old',
+            'last_name' => 'Name',
+            'email' => 'old@floty.fr',
+        ]);
 
         $this->actingAs($user)
             ->patch('/app/drivers/'.$driver->id, [
                 'first_name' => 'New',
                 'last_name' => 'Name',
+                'email' => 'new@floty.fr',
             ])
             ->assertRedirect();
 
         $driver->refresh();
         $this->assertSame('New', $driver->first_name);
+        $this->assertSame('new@floty.fr', $driver->email);
+    }
+
+    #[Test]
+    public function update_permet_de_vider_l_email(): void
+    {
+        // Le formulaire d'édition envoie `null` quand le champ est laissé vide
+        // (cf. `normalizeEmail`), ce qui retire l'adresse du conducteur.
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create(['email' => 'old@floty.fr']);
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id, [
+                'first_name' => $driver->first_name,
+                'last_name' => $driver->last_name,
+                'email' => null,
+            ])
+            ->assertRedirect();
+
+        $driver->refresh();
+        $this->assertNull($driver->email);
+    }
+
+    #[Test]
+    public function update_refuse_un_email_invalide(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create(['email' => 'old@floty.fr']);
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id, [
+                'first_name' => $driver->first_name,
+                'last_name' => $driver->last_name,
+                'email' => 'pas-un-email',
+            ])
+            ->assertSessionHasErrors(['email']);
+
+        $driver->refresh();
+        $this->assertSame('old@floty.fr', $driver->email);
     }
 
     #[Test]

@@ -8,7 +8,12 @@ import { useEditDriverForm } from '@/Composables/Driver/useDriverForm';
 import { show as showRoute } from '@/routes/user/drivers';
 
 const props = defineProps<{
-    driver: { id: number; firstName: string; lastName: string };
+    driver: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string | null;
+    };
 }>();
 
 const { form, submit } = useEditDriverForm(props.driver);
@@ -35,8 +40,9 @@ const { form, submit } = useEditDriverForm(props.driver);
                     Modifier le conducteur
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">
-                    Seuls le prénom et le nom peuvent être modifiés ici. Les
-                    rattachements aux entreprises se gèrent depuis la fiche.
+                    Le prénom, le nom et l'adresse email peuvent être modifiés
+                    ici. Les rattachements aux entreprises se gèrent depuis la
+                    fiche.
                 </p>
             </header>
 
@@ -77,6 +83,17 @@ const { form, submit } = useEditDriverForm(props.driver);
                             :error="form.errors.last_name"
                             required
                         />
+                        <div class="md:col-span-2">
+                            <TextInput
+                                v-model="form.email"
+                                type="email"
+                                label="Adresse email"
+                                placeholder="conducteur@exemple.fr"
+                                autocomplete="email"
+                                hint="Facultatif. Utilisée pour notifier le conducteur des rappels de contrôles réglementaires."
+                                :error="form.errors.email"
+                            />
+                        </div>
                     </div>
                 </section>
 

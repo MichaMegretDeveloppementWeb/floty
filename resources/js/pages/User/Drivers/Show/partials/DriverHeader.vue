@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ChevronLeft } from 'lucide-vue-next';
+import { ChevronLeft, Mail } from 'lucide-vue-next';
 import { computed } from 'vue';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
 import { index as indexRoute } from '@/routes/user/drivers';
@@ -41,6 +41,20 @@ const subTitle = computed<string>(() => {
                 size="lg"
             />
             <p class="ml-15 text-sm text-slate-500">{{ subTitle }}</p>
+            <p
+                class="ml-15 flex items-center gap-1.5 text-sm"
+                :class="props.driver.email ? 'text-slate-600' : 'text-slate-400'"
+            >
+                <Mail :size="14" :stroke-width="1.75" class="shrink-0" />
+                <a
+                    v-if="props.driver.email"
+                    :href="`mailto:${props.driver.email}`"
+                    class="transition-colors hover:text-slate-900"
+                >
+                    {{ props.driver.email }}
+                </a>
+                <span v-else>Aucune adresse email</span>
+            </p>
         </div>
     </div>
 </template>

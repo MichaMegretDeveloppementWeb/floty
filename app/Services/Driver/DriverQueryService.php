@@ -107,6 +107,7 @@ final class DriverQueryService
             lastName: $driver->last_name,
             fullName: $driver->full_name,
             initials: $driver->initials,
+            email: $driver->email,
             memberships: $memberships->all(),
             contractsCount: (int) ($driver->contracts_count ?? 0),
         );

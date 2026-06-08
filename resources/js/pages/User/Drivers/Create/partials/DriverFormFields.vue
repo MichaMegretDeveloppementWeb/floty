@@ -51,6 +51,17 @@ defineProps<{
                     :error="form.errors.last_name"
                     required
                 />
+                <div class="md:col-span-2">
+                    <TextInput
+                        v-model="form.email"
+                        type="email"
+                        label="Adresse email"
+                        placeholder="conducteur@exemple.fr"
+                        autocomplete="email"
+                        hint="Facultatif. Utilisée pour notifier le conducteur des rappels de contrôles réglementaires."
+                        :error="form.errors.email"
+                    />
+                </div>
             </div>
         </section>
 

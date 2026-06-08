@@ -22,6 +22,7 @@ final class UpdateDriverAction
         return $this->driverWriteRepo->update($driver, [
             'first_name' => $data->firstName,
             'last_name' => $data->lastName,
+            'email' => $data->email,
         ]);
     }
 }

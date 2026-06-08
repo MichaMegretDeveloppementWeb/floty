@@ -23,6 +23,7 @@ final class DriverData extends Data
         public string $lastName,
         public string $fullName,
         public string $initials,
+        public ?string $email,
         #[DataCollectionOf(DriverCompanyMembershipData::class)]
         public array $memberships,
         public int $contractsCount,

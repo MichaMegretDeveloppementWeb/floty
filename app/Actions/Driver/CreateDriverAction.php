@@ -27,6 +27,7 @@ final class CreateDriverAction
             $driver = $this->driverWriteRepo->create([
                 'first_name' => $data->firstName,
                 'last_name' => $data->lastName,
+                'email' => $data->email,
             ]);
 
             $this->driverWriteRepo->attachCompany(

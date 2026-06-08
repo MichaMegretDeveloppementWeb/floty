@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Data\User\Driver;
 
 use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -25,6 +27,9 @@ final class UpdateDriverData extends Data
 
         #[Required, Max(100)]
         public string $lastName,
+
+        #[Nullable, Email, Max(255)]
+        public ?string $email = null,
     ) {}
 
     /**
@@ -35,6 +40,7 @@ final class UpdateDriverData extends Data
         return [
             'first_name.required' => 'Le prénom est obligatoire.',
             'last_name.required' => 'Le nom est obligatoire.',
+            'email.email' => 'L\'adresse email n\'est pas valide.',
         ];
     }
 }
