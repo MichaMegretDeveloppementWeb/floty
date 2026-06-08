@@ -32,7 +32,7 @@ const ctaLabel = computed<string>(() => {
         case 'regeneration_in_progress':
             return 'Finaliser';
         case 'deferred_regeneration':
-            return 'Poursuivre la régénération';
+            return 'Poursuivre';
         case 'generated_active':
             // Safety net: a generated_active should never appear here.
             return 'Ouvrir';
