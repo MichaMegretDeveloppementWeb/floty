@@ -1,12 +1,12 @@
 import {
     Building2,
     CalendarDays,
-    Car,
     FileText,
     Receipt,
     Users,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { index as driversIndexRoute } from '@/routes/user/drivers';
@@ -45,7 +45,7 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
             description:
                 'Véhicules enregistrés, caractéristiques fiscales et taxes annuelles.',
             href: vehiclesIndexRoute.url(),
-            icon: Car,
+            icon: CarIcon,
         },
         {
             label: 'Entreprises',
