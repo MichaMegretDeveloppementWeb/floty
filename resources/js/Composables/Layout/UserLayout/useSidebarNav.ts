@@ -5,6 +5,7 @@ import {
     Building2,
     CalendarClock,
     CalendarDays,
+    Car,
     ClipboardCheck,
     FileCheck2,
     FileText,
@@ -17,7 +18,6 @@ import {
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component, ComputedRef, Ref } from 'vue';
-import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
@@ -87,7 +87,7 @@ export function useSidebarNav(open: Ref<boolean>): {
         {
             title: 'Données',
             items: [
-                { label: 'Flotte', icon: CarIcon, href: vehiclesIndexRoute.url() },
+                { label: 'Flotte', icon: Car, href: vehiclesIndexRoute.url() },
                 {
                     label: 'Entreprises',
                     icon: Building2,

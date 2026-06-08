@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ArrowRight, ChevronRight, Download, FileText, ImageIcon } from 'lucide-vue-next';
-import CarIcon from '@/Components/Icons/CarIcon.vue';
+import { ArrowRight, Car, ChevronRight, Download, FileText, ImageIcon } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import type { VehicleEventStatus } from '@/Composables/VehicleEvent/Show/useVehicleEventShow';
@@ -49,7 +48,7 @@ const vehiclePageUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id });
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"
                             aria-hidden="true"
                         >
-                            <CarIcon :size="18" />
+                            <Car :size="18" :stroke-width="1.75" />
                         </span>
                         <div class="min-w-0">
                             <p class="text-base leading-tight font-semibold text-balance text-slate-900">
