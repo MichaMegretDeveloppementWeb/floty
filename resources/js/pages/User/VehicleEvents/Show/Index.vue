@@ -49,6 +49,7 @@ const pageTitle = computed<string>(() => vehicleEventDisplayTitle(props.vehicleE
             />
 
             <VehicleEventShowBody
+                :vehicle="props.vehicle"
                 :vehicle-event="props.vehicleEvent"
                 :is-ongoing="isOngoing"
                 :start-label="startLabel"
