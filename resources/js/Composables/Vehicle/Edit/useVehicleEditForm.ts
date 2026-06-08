@@ -225,6 +225,17 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         },
     );
 
+    // One-way propagation: acquisition_date overwrites first_economic_use_date.
+    // The reverse is not propagated. Mirrors the create form so editing the
+    // acquisition date keeps the economic-use date in sync; a pre-existing
+    // divergent value is preserved until the acquisition date is touched.
+    watch(
+        () => form.acquisition_date,
+        (date) => {
+            form.first_economic_use_date = date;
+        },
+    );
+
     const submit = (): void => {
         const sendMetadata = requiresVersionMetadata.value;
 
