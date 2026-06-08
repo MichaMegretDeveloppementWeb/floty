@@ -39,8 +39,11 @@ final class UpdateDriverData extends Data
     {
         return [
             'first_name.required' => 'Le prénom est obligatoire.',
+            'first_name.max' => 'Le prénom ne doit pas dépasser :max caractères.',
             'last_name.required' => 'Le nom est obligatoire.',
+            'last_name.max' => 'Le nom ne doit pas dépasser :max caractères.',
             'email.email' => 'L\'adresse email n\'est pas valide.',
+            'email.max' => "L'adresse email ne doit pas dépasser :max caractères.",
         ];
     }
 }

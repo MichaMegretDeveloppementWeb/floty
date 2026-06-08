@@ -48,7 +48,11 @@ final class ExitVehicleData extends Data
             'exit_date.date' => 'La date de sortie doit être une date valide.',
             'exit_date.before_or_equal' => 'La date de sortie ne peut pas être dans le futur.',
             'exit_reason.required' => 'Le motif de sortie est obligatoire.',
-            'note.max' => 'La note ne peut pas dépasser 2000 caractères.',
+            'exit_reason.enum' => 'Le motif de sortie sélectionné est invalide.',
+            'note.max' => 'La note ne peut pas dépasser :max caractères.',
+            'amount_cents.numeric' => 'Le coût de sortie doit être un nombre.',
+            'amount_cents.integer' => 'Le coût de sortie doit être un nombre entier.',
+            'amount_cents.min' => 'Le coût de sortie ne peut pas être négatif.',
         ];
     }
 }

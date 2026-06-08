@@ -35,4 +35,23 @@ final class PrepareDeclarationData extends Data
             'fiscal_year' => ['required', 'integer', 'between:2020,2099'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messages(): array
+    {
+        return [
+            'company_id.required' => "L'entreprise est obligatoire.",
+            'company_id.numeric' => 'Entreprise invalide.',
+            'company_id.integer' => 'Entreprise invalide.',
+            'company_id.exists' => 'Entreprise introuvable.',
+            'fiscal_year.required' => "L'année fiscale est obligatoire.",
+            'fiscal_year.numeric' => "L'année fiscale doit être un nombre.",
+            'fiscal_year.integer' => "L'année fiscale doit être un nombre entier.",
+            'fiscal_year.between' => "L'année fiscale doit être comprise entre :min et :max.",
+            'fiscal_year.min' => "L'année fiscale ne peut pas être antérieure à :min.",
+            'fiscal_year.max' => "L'année fiscale ne peut pas être postérieure à :max.",
+        ];
+    }
 }

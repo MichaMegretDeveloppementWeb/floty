@@ -43,4 +43,25 @@ final class PreviewTaxesInputData extends Data
             'dates.*' => ['required', new DateFormat('Y-m-d')],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messages(): array
+    {
+        return [
+            'vehicleId.required' => 'Le véhicule est obligatoire.',
+            'vehicleId.numeric' => 'Véhicule invalide.',
+            'vehicleId.integer' => 'Véhicule invalide.',
+            'vehicleId.exists' => 'Véhicule introuvable.',
+            'companyId.required' => "L'entreprise est obligatoire.",
+            'companyId.numeric' => 'Entreprise invalide.',
+            'companyId.integer' => 'Entreprise invalide.',
+            'companyId.exists' => 'Entreprise introuvable.',
+            'dates.required' => 'Au moins une date est obligatoire.',
+            'dates.min' => 'Au moins une date est obligatoire.',
+            'dates.*.required' => 'Chaque date est obligatoire.',
+            'dates.*.date_format' => 'Chaque date doit être au format attendu.',
+        ];
+    }
 }

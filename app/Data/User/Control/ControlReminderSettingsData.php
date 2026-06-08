@@ -57,10 +57,18 @@ final class ControlReminderSettingsData extends Data
     public static function messages(): array
     {
         return [
+            'days_before.required' => 'Le nombre de jours avant échéance est obligatoire.',
+            'days_before.numeric' => 'Le nombre de jours avant échéance doit être un nombre.',
+            'days_before.integer' => 'Le nombre de jours avant échéance doit être un nombre entier.',
             'days_before.min' => 'Le nombre de jours avant échéance ne peut pas être négatif.',
             'days_before.max' => 'Le nombre de jours avant échéance est trop élevé (365 maximum).',
+            'remind_on_due_day.required' => 'Précisez si un rappel est envoyé le jour J.',
+            'repeat_every_days.required' => 'La fréquence de répétition est obligatoire.',
+            'repeat_every_days.numeric' => 'La répétition doit être un nombre.',
+            'repeat_every_days.integer' => 'La répétition doit être un nombre entier.',
             'repeat_every_days.min' => 'La répétition doit être d\'au moins 1 jour.',
             'repeat_every_days.max' => 'La répétition est trop élevée (365 jours maximum).',
+            'default_recipients.present' => 'La liste des destinataires par défaut est obligatoire.',
         ];
     }
 }

@@ -68,12 +68,23 @@ final class UpdateCompanyData extends Data
     {
         return [
             'legal_name.required' => 'La raison sociale est obligatoire.',
+            'legal_name.max' => 'La raison sociale ne doit pas dépasser :max caractères.',
             'color.required' => 'La couleur est obligatoire.',
+            'color.enum' => 'La couleur sélectionnée est invalide.',
             'siren.size' => 'Le SIREN doit contenir exactement 9 chiffres.',
             'siren.regex' => 'Le SIREN doit contenir uniquement des chiffres.',
             'siret.size' => 'Le SIRET doit contenir exactement 14 chiffres.',
             'siret.regex' => 'Le SIRET doit contenir uniquement des chiffres.',
+            'address_line1.max' => "L'adresse ne doit pas dépasser :max caractères.",
+            'address_line2.max' => "Le complément d'adresse ne doit pas dépasser :max caractères.",
+            'postal_code.max' => 'Le code postal ne doit pas dépasser :max caractères.',
+            'city.max' => 'La ville ne doit pas dépasser :max caractères.',
+            'country.required' => 'Le pays est obligatoire.',
+            'country.size' => 'Le code pays doit comporter :size caractères.',
+            'contact_name.max' => 'Le nom du contact ne doit pas dépasser :max caractères.',
             'contact_email.email' => 'Le format de l\'adresse e-mail est invalide.',
+            'contact_email.max' => "L'adresse e-mail ne doit pas dépasser :max caractères.",
+            'contact_phone.max' => 'Le téléphone ne doit pas dépasser :max caractères.',
         ];
     }
 

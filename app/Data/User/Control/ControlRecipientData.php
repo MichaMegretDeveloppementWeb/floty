@@ -38,8 +38,10 @@ final class ControlRecipientData extends Data
     {
         return [
             'name.required' => 'Le nom du destinataire est obligatoire.',
+            'name.max' => 'Le nom du destinataire ne doit pas dépasser :max caractères.',
             'email.required' => "L'adresse email du destinataire est obligatoire.",
             'email.email' => "L'adresse email du destinataire n'est pas valide.",
+            'email.max' => "L'adresse email du destinataire ne doit pas dépasser :max caractères.",
         ];
     }
 }

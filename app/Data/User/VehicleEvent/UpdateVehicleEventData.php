@@ -83,14 +83,22 @@ final class UpdateVehicleEventData extends Data
     {
         return [
             'type.required' => "Le type d'événement est obligatoire.",
+            'type.enum' => "Le type d'événement sélectionné est invalide.",
             'title.required_if' => "Le nom de l'événement est obligatoire pour le type « Personnalisé ».",
+            'title.max' => "Le nom de l'événement ne doit pas dépasser :max caractères.",
             'start_date.required' => 'La date de début est obligatoire.',
+            'start_date.date' => 'La date de début doit être une date valide.',
+            'end_date.date' => 'La date de fin doit être une date valide.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
+            'description.max' => 'La description ne doit pas dépasser :max caractères.',
             'categories.required' => 'Au moins une catégorie est obligatoire.',
             'categories.min' => 'Au moins une catégorie est obligatoire.',
             'categories.max' => 'Vous ne pouvez pas dépasser 5 catégories.',
             'categories.*.distinct' => 'Cette catégorie est déjà présente.',
             'categories.*.max' => 'Une catégorie ne peut pas dépasser 60 caractères.',
+            'amount_cents.numeric' => 'Le montant doit être un nombre.',
+            'amount_cents.integer' => 'Le montant doit être un nombre entier.',
+            'amount_cents.min' => 'Le montant ne peut pas être négatif.',
         ];
     }
 }

@@ -64,12 +64,18 @@ final class UpdateRentalDiscountData extends Data
     {
         return [
             'start_date.required' => 'La date de début est obligatoire.',
+            'start_date.date' => 'La date de début doit être une date valide.',
             'end_date.required' => 'La date de fin est obligatoire.',
+            'end_date.date' => 'La date de fin doit être une date valide.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
             'discount_basis_points.required' => 'Le pourcentage est obligatoire.',
+            'discount_basis_points.numeric' => 'Le pourcentage doit être un nombre.',
+            'discount_basis_points.integer' => 'Le pourcentage doit être un nombre entier.',
             'discount_basis_points.between' => 'Le pourcentage doit être compris entre 0,01 % et 100 %.',
             'label.max' => 'Le libellé est limité à 120 caractères.',
             'notes.max' => 'Les notes internes sont limitées à 5 000 caractères.',
+            'vehicle_ids.*.integer' => 'Véhicule invalide.',
+            'vehicle_ids.*.exists' => 'Véhicule introuvable.',
         ];
     }
 

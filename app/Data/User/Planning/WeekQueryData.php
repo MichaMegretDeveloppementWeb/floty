@@ -40,9 +40,15 @@ final class WeekQueryData extends Data
     {
         return [
             'vehicleId.required' => 'Le véhicule est obligatoire.',
+            'vehicleId.numeric' => 'Véhicule invalide.',
+            'vehicleId.integer' => 'Véhicule invalide.',
             'vehicleId.exists' => 'Ce véhicule est introuvable.',
             'week.required' => 'Le numéro de semaine est obligatoire.',
+            'week.numeric' => 'Le numéro de semaine doit être un nombre.',
+            'week.integer' => 'Le numéro de semaine doit être un nombre entier.',
             'week.between' => 'Le numéro de semaine doit être compris entre 1 et 53.',
+            'companyId.numeric' => 'Entreprise invalide.',
+            'companyId.integer' => 'Entreprise invalide.',
             'companyId.exists' => 'Cette entreprise est introuvable.',
         ];
     }

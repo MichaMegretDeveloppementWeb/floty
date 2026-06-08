@@ -36,7 +36,14 @@ final class BulkGenerateInvoicesRequestData extends Data
     public static function messages(): array
     {
         return [
+            'company_id.required' => "L'entreprise est obligatoire.",
+            'company_id.numeric' => 'Entreprise invalide.',
+            'company_id.integer' => 'Entreprise invalide.',
             'company_id.exists' => 'Entreprise introuvable.',
+            'year.required' => "L'année est obligatoire.",
+            'year.numeric' => "L'année doit être un nombre.",
+            'year.integer' => "L'année doit être un nombre entier.",
+            'year.between' => "L'année doit être comprise entre :min et :max.",
         ];
     }
 }

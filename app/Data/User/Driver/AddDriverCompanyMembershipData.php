@@ -35,8 +35,11 @@ final class AddDriverCompanyMembershipData extends Data
     {
         return [
             'company_id.required' => 'L\'entreprise est obligatoire.',
+            'company_id.numeric' => 'Entreprise invalide.',
+            'company_id.integer' => 'Entreprise invalide.',
             'company_id.exists' => 'Entreprise introuvable.',
             'joined_at.required' => 'La date d\'entrée est obligatoire.',
+            'joined_at.date' => "La date d'entrée doit être une date valide.",
         ];
     }
 }

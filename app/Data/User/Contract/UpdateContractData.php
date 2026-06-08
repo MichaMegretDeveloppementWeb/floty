@@ -106,11 +106,24 @@ final class UpdateContractData extends Data
     public static function messages(): array
     {
         return [
+            'vehicle_id.required' => 'Le véhicule est obligatoire.',
+            'vehicle_id.numeric' => 'Véhicule invalide.',
+            'vehicle_id.integer' => 'Véhicule invalide.',
             'vehicle_id.exists' => 'Véhicule introuvable.',
+            'company_id.required' => "L'entreprise est obligatoire.",
+            'company_id.numeric' => 'Entreprise invalide.',
+            'company_id.integer' => 'Entreprise invalide.',
             'company_id.exists' => 'Entreprise introuvable.',
+            'start_date.required' => 'La date de début est obligatoire.',
+            'start_date.date' => 'La date de début doit être une date valide.',
+            'end_date.required' => 'La date de fin est obligatoire.',
+            'end_date.date' => 'La date de fin doit être une date valide.',
+            'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
+            'contract_reference.max' => 'La référence du contrat ne doit pas dépasser :max caractères.',
+            'notes.max' => 'Les notes ne doivent pas dépasser :max caractères.',
+            'driver_ids.*.integer' => 'Conducteur invalide.',
             'driver_ids.*.exists' => 'Conducteur introuvable.',
             'driver_ids.distinct' => "Un conducteur ne peut être ajouté qu'une seule fois sur la même location.",
-            'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
         ];
     }
 }

@@ -38,4 +38,23 @@ final class SetVehicleControlStatusData extends Data
             'vehicle_control_override_id' => ['nullable', 'integer', 'exists:vehicle_control_overrides,id', 'required_without:control_definition_id'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function messages(): array
+    {
+        return [
+            'status.required' => 'Le statut est obligatoire.',
+            'status.enum' => 'Le statut sélectionné est invalide.',
+            'control_definition_id.numeric' => 'Contrôle ciblé invalide.',
+            'control_definition_id.integer' => 'Contrôle ciblé invalide.',
+            'control_definition_id.exists' => 'Contrôle ciblé introuvable.',
+            'control_definition_id.required_without' => 'Le contrôle ciblé est obligatoire.',
+            'vehicle_control_override_id.numeric' => 'Contrôle ciblé invalide.',
+            'vehicle_control_override_id.integer' => 'Contrôle ciblé invalide.',
+            'vehicle_control_override_id.exists' => 'Contrôle ciblé introuvable.',
+            'vehicle_control_override_id.required_without' => 'Le contrôle ciblé est obligatoire.',
+        ];
+    }
 }

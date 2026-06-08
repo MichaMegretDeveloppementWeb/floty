@@ -49,11 +49,17 @@ final class StoreDriverData extends Data
     {
         return [
             'first_name.required' => 'Le prénom est obligatoire.',
+            'first_name.max' => 'Le prénom ne doit pas dépasser :max caractères.',
             'last_name.required' => 'Le nom est obligatoire.',
+            'last_name.max' => 'Le nom ne doit pas dépasser :max caractères.',
             'initial_company_id.required' => 'Une entreprise initiale est obligatoire.',
+            'initial_company_id.numeric' => 'Entreprise invalide.',
+            'initial_company_id.integer' => 'Entreprise invalide.',
             'initial_company_id.exists' => 'Entreprise introuvable.',
             'initial_joined_at.required' => 'La date d\'entrée dans l\'entreprise est obligatoire.',
+            'initial_joined_at.date' => "La date d'entrée doit être une date valide.",
             'email.email' => 'L\'adresse email n\'est pas valide.',
+            'email.max' => "L'adresse email ne doit pas dépasser :max caractères.",
         ];
     }
 }

@@ -96,19 +96,38 @@ final class VehicleControlOverrideFormData extends Data
     public static function messages(): array
     {
         return [
+            'control_definition_id.numeric' => 'Contrôle de référence invalide.',
+            'control_definition_id.integer' => 'Contrôle de référence invalide.',
+            'status.enum' => 'Le statut sélectionné est invalide.',
             'name.required' => 'Le nom du contrôle est obligatoire.',
+            'name.max' => 'Le nom du contrôle ne doit pas dépasser :max caractères.',
             'anchor.required' => 'La date de référence (ancre) est obligatoire.',
+            'anchor.enum' => 'La date de référence (ancre) sélectionnée est invalide.',
             'initial_duration_value.required' => 'La durée de validité initiale est obligatoire.',
+            'initial_duration_value.numeric' => 'La durée de validité initiale doit être un nombre.',
+            'initial_duration_value.integer' => 'La durée de validité initiale doit être un nombre entier.',
             'initial_duration_value.min' => 'La durée de validité initiale doit être positive.',
+            'initial_duration_value.max' => 'La durée de validité initiale ne peut pas dépasser :max.',
             'initial_duration_unit.required' => "L'unité de la validité initiale est obligatoire.",
+            'initial_duration_unit.enum' => "L'unité de la validité initiale sélectionnée est invalide.",
             'cycle_value.required' => 'La périodicité est obligatoire.',
+            'cycle_value.numeric' => 'La périodicité doit être un nombre.',
+            'cycle_value.integer' => 'La périodicité doit être un nombre entier.',
             'cycle_value.min' => 'La périodicité doit être positive.',
+            'cycle_value.max' => 'La périodicité ne peut pas dépasser :max.',
             'cycle_unit.required' => "L'unité de la périodicité est obligatoire.",
+            'cycle_unit.enum' => "L'unité de la périodicité sélectionnée est invalide.",
             'reminder_days_before.required' => 'Indiquez le nombre de jours avant échéance.',
+            'reminder_days_before.integer' => 'Le nombre de jours avant échéance doit être un nombre entier.',
+            'reminder_days_before.min' => 'Le nombre de jours avant échéance ne peut pas être négatif.',
+            'reminder_days_before.max' => 'Le nombre de jours avant échéance ne peut pas dépasser :max.',
             'reminder_on_due_day.required' => 'Précisez si un rappel est envoyé le jour J.',
             'reminder_repeat_every_days.required' => 'Indiquez la fréquence de répétition après échéance.',
+            'reminder_repeat_every_days.integer' => 'La fréquence de répétition doit être un nombre entier.',
             'reminder_repeat_every_days.min' => 'La répétition doit être d\'au moins 1 jour.',
+            'reminder_repeat_every_days.max' => 'La fréquence de répétition ne peut pas dépasser :max.',
             'excluded_default_emails.*.email' => "Une adresse de destinataire retiré n'est pas valide.",
+            'excluded_default_emails.*.max' => 'Une adresse de destinataire retiré ne doit pas dépasser :max caractères.',
         ];
     }
 }
