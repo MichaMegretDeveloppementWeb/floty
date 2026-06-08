@@ -81,8 +81,8 @@ return new class extends Migration
 
             // Retune the type enum CHECK (drop technical_inspection) and the
             // custom-fields CHECK (it referenced `category`, dropped below).
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_custom_fields`');
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_type_enum`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_custom_fields`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_type_enum`');
             DB::statement(<<<'SQL'
                 ALTER TABLE `vehicle_events`
                     ADD CONSTRAINT `chk_vehicle_events_type_enum`
@@ -137,8 +137,8 @@ return new class extends Migration
                 WHERE ve.`type` = 'other'
             SQL);
 
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_custom_fields`');
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_type_enum`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_custom_fields`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_type_enum`');
             DB::statement(<<<'SQL'
                 ALTER TABLE `vehicle_events`
                     ADD CONSTRAINT `chk_vehicle_events_type_enum`

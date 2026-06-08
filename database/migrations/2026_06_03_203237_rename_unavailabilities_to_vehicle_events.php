@@ -49,9 +49,9 @@ return new class extends Migration
         DB::statement('ALTER TABLE `vehicle_event_documents` ADD CONSTRAINT `vehicle_event_documents_uploaded_by_foreign` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`)');
 
         // CHECK constraints: identical logic, names re-prefixed.
-        DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_unavailabilities_dates_ordered`');
-        DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_unavailabilities_type_enum`');
-        DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_unavailabilities_fiscal_impact_consistent`');
+        DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_unavailabilities_dates_ordered`');
+        DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_unavailabilities_type_enum`');
+        DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_unavailabilities_fiscal_impact_consistent`');
 
         DB::statement(<<<'SQL'
             ALTER TABLE `vehicle_events`
@@ -91,9 +91,9 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE `vehicle_events` RENAME INDEX `vehicle_events_deleted_at_idx` TO `unavailabilities_deleted_at_idx`');
 
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_fiscal_impact_consistent`');
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_type_enum`');
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_dates_ordered`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_fiscal_impact_consistent`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_type_enum`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_dates_ordered`');
 
             DB::statement(<<<'SQL'
                 ALTER TABLE `vehicle_events`

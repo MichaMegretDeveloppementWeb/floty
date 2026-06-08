@@ -60,8 +60,8 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_custom_fields`');
-            DB::statement('ALTER TABLE `vehicle_events` DROP CHECK `chk_vehicle_events_implies_consistency`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_custom_fields`');
+            DB::statement('ALTER TABLE `vehicle_events` DROP CONSTRAINT `chk_vehicle_events_implies_consistency`');
         }
 
         Schema::table('vehicle_events', function (Blueprint $table): void {
