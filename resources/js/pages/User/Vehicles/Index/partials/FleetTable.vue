@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ShieldAlert } from 'lucide-vue-next';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
@@ -14,6 +15,8 @@ type VehicleCostEntry = {
     rentalPriceFullYear: number | null;
 };
 type VehicleCosts = Record<number, VehicleCostEntry>;
+type ControlsBadge = App.Data.User.Control.Vehicle.VehicleControlsBadgeData;
+type ControlsBadges = Record<number, ControlsBadge>;
 
 // Server-side sortable columns (mirror of VehicleIndexQueryData::allowedSortKeys()).
 // `fullYearTax` and `rentalPriceFullYear` are intentionally excluded
@@ -27,6 +30,7 @@ const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
 const props = defineProps<{
     vehicles: VehicleRow[];
     costs?: VehicleCosts;
+    controlsBadges?: ControlsBadges;
     columns: readonly DataTableColumn<VehicleRow>[];
     activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
@@ -41,6 +45,22 @@ const emit = defineEmits<{
 // `v-if="props.costs && props.costs[row.id]"` cells: the entry is
 // guaranteed present there, so the assertions are safe.
 const costsFor = (row: VehicleRow): VehicleCostEntry => props.costs![row.id]!;
+
+// Sparse control badge for a row (only vehicles with a control needing
+// attention are present in the deferred map; absent while it loads).
+const badgeFor = (row: VehicleRow): ControlsBadge | undefined => props.controlsBadges?.[row.id];
+
+function badgeTitle(badge: ControlsBadge): string {
+    if (badge.overdueCount > 0) {
+        const overdue = `${badge.overdueCount} contrôle${badge.overdueCount > 1 ? 's' : ''} en retard`;
+
+        return badge.dueCount > badge.overdueCount
+            ? `${badge.dueCount} contrôles à traiter, dont ${overdue}`
+            : overdue;
+    }
+
+    return `${badge.dueCount} contrôle${badge.dueCount > 1 ? 's' : ''} à échéance`;
+}
 
 function statusPalette(
     status: App.Enums.Vehicle.VehicleStatus,
@@ -101,6 +121,19 @@ function statusPalette(
                         :aria-label="statusPalette(row.currentStatus).label"
                     />
                     <Plate :value="row.licensePlate" />
+                    <span
+                        v-if="badgeFor(row)"
+                        :class="[
+                            'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums',
+                            badgeFor(row)!.overdueCount > 0
+                                ? 'bg-rose-50 text-rose-700'
+                                : 'bg-amber-50 text-amber-700',
+                        ]"
+                        :title="badgeTitle(badgeFor(row)!)"
+                    >
+                        <ShieldAlert :size="11" :stroke-width="2" aria-hidden="true" />
+                        {{ badgeFor(row)!.dueCount }}
+                    </span>
                 </div>
                 <span
                     v-if="row.isExited && row.exitDate"

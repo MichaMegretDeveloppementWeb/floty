@@ -54,6 +54,25 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ]);
     }
 
+    public function findScheduleColumnsByIds(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return Vehicle::query()
+            ->whereIn('id', $ids)
+            ->get([
+                'id',
+                'license_plate',
+                'exit_date',
+                'first_origin_registration_date',
+                'first_french_registration_date',
+                'acquisition_date',
+                'first_economic_use_date',
+            ]);
+    }
+
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

@@ -24,8 +24,8 @@ parameters:
             identifier: nullsafe.neverNull
             paths:
                 - app/Services/Control/EffectiveControlResolver.php
+                - app/Services/Control/FleetControlScheduleScanner.php
                 - app/Actions/Control/Vehicle/RecordControlExecutionAction.php
-                - app/Services/Dashboard/DashboardControlsDueAggregator.php
         # `collect($recipients)` recoit la valeur de prop Inertia (Collection au
         # runtime) typee `mixed` par AssertableInertia ; collect() ne peut alors
         # resoudre ses generiques. Caster en `(array)` casserait le test (cast

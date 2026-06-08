@@ -26,9 +26,16 @@ type VehicleCosts = Record<
     { fullYearTax: number; dailyTaxRate: number; rentalPriceFullYear: number | null }
 >;
 
+/**
+ * Per-vehicle regulatory-control badge served via Inertia::defer. SPARSE: only
+ * vehicles with at least one control needing attention appear in the map.
+ */
+type ControlsBadges = Record<number, App.Data.User.Control.Vehicle.VehicleControlsBadgeData>;
+
 const props = defineProps<{
     vehicles: App.Data.User.Vehicle.PaginatedVehicleListData;
     vehiclesCosts?: VehicleCosts;
+    controlsBadges?: ControlsBadges;
     options: {
         firstRegistrationYearBounds: { min: number; max: number } | null;
     };
@@ -70,6 +77,26 @@ watch(
     () => {
         localVehiclesCosts.value = undefined;
         router.reload({ only: ['vehiclesCosts'] });
+    },
+);
+
+// Same deferred-prop dance for the control badges. They are today-based (not
+// year-scoped), so they only re-fetch when the visible vehicle IDs change
+// (page / filter / sort), not on a financial-year switch.
+const localControlsBadges = ref<ControlsBadges | undefined>(props.controlsBadges);
+
+watch(
+    () => props.controlsBadges,
+    (next) => {
+        localControlsBadges.value = next;
+    },
+);
+
+watch(
+    () => props.vehicles.data.map((v) => v.id).join(','),
+    () => {
+        localControlsBadges.value = undefined;
+        router.reload({ only: ['controlsBadges'] });
     },
 );
 
@@ -194,6 +221,7 @@ const {
                 <FleetTable
                     :vehicles="vehicles.data"
                     :costs="localVehiclesCosts"
+                    :controls-badges="localControlsBadges"
                     :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value

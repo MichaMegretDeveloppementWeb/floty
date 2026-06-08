@@ -138,6 +138,17 @@ interface VehicleReadRepositoryInterface
     public function findActiveForReminderScan(CarbonImmutable $today): Collection;
 
     /**
+     * Vehicles (active OR exited) by id, with only the columns the control
+     * échéance scan needs (the four anchor dates + plate + exit_date). For the
+     * fleet-list control badges, which must badge any displayed row (an exited
+     * vehicle simply resolves to no due control). One query.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Vehicle>
+     */
+    public function findScheduleColumnsByIds(array $ids): Collection;
+
+    /**
      * Min/max bounds of first French registration years across all
      * vehicles. Used by the Index filter to bound the year selector.
      * Returns `null` when the table is empty.
