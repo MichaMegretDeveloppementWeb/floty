@@ -36,6 +36,35 @@ final class ControlExecutionReadRepository implements ControlExecutionReadReposi
     }
 
     /**
+     * @param  list<int>  $vehicleIds
+     * @return array<int, array<string, CarbonImmutable>>
+     */
+    public function latestForVehicles(array $vehicleIds): array
+    {
+        if ($vehicleIds === []) {
+            return [];
+        }
+
+        $rows = ControlExecution::query()
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->selectRaw('vehicle_id, control_definition_id, vehicle_control_override_id, MAX(executed_on) as last_executed')
+            ->groupBy('vehicle_id', 'control_definition_id', 'vehicle_control_override_id')
+            ->get();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $key = $row->control_definition_id !== null
+                ? 'def:'.$row->control_definition_id
+                : 'ovr:'.$row->vehicle_control_override_id;
+
+            $map[(int) $row->vehicle_id][$key] = CarbonImmutable::parse((string) $row->getAttribute('last_executed'));
+        }
+
+        return $map;
+    }
+
+    /**
      * @return Collection<int, ControlExecution>
      */
     public function historyForControl(int $vehicleId, ?int $definitionId, ?int $overrideId): Collection

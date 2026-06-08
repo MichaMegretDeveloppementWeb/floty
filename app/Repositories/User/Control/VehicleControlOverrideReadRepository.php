@@ -23,6 +23,23 @@ final class VehicleControlOverrideReadRepository implements VehicleControlOverri
             ->get();
     }
 
+    /**
+     * @param  list<int>  $vehicleIds
+     * @return Collection<int, VehicleControlOverride>
+     */
+    public function findForVehicles(array $vehicleIds): Collection
+    {
+        if ($vehicleIds === []) {
+            return new Collection;
+        }
+
+        return VehicleControlOverride::query()
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->orderBy('display_order')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function findById(int $id): ?VehicleControlOverride
     {
         return VehicleControlOverride::query()->find($id);

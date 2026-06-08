@@ -6,6 +6,7 @@ namespace App\Services\Dashboard;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
+use App\Data\User\Dashboard\DashboardControlsDueData;
 use App\Data\User\Dashboard\DashboardHistoryPointData;
 use App\Data\User\Dashboard\DashboardKpiData;
 use App\Data\User\Dashboard\DashboardKpiRecettesData;
@@ -56,6 +57,7 @@ final class DashboardStatsService
         private readonly FiscalRuleRegistry $fiscalRules,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly DashboardPendingTasksAggregator $pendingTasksAggregator,
+        private readonly DashboardControlsDueAggregator $controlsDueAggregator,
     ) {}
 
     /**
@@ -315,6 +317,17 @@ final class DashboardStatsService
     public function computePendingTasks(): DashboardPendingTasksData
     {
         return $this->pendingTasksAggregator->aggregate();
+    }
+
+    /**
+     * Regulatory controls reaching échéance across the active fleet.
+     * Delegates to {@see DashboardControlsDueAggregator}, which computes the
+     * échéances with the shared engine (consistent with the vehicle tab and the
+     * reminder cron) over a fixed, bounded set of batched queries.
+     */
+    public function computeControlsDue(): DashboardControlsDueData
+    {
+        return $this->controlsDueAggregator->aggregate(CarbonImmutable::today());
     }
 
     /**

@@ -19,5 +19,16 @@ interface VehicleControlOverrideReadRepositoryInterface
      */
     public function findForVehicle(int $vehicleId): Collection;
 
+    /**
+     * All non-deleted override rows for many vehicles at once (batch variant of
+     * {@see findForVehicle()} for fleet-wide scans), WITHOUT recipient deltas:
+     * the schedule scan only needs the échéance recipe, not the recipient
+     * cascade. One query total.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return Collection<int, VehicleControlOverride>
+     */
+    public function findForVehicles(array $vehicleIds): Collection;
+
     public function findById(int $id): ?VehicleControlOverride;
 }

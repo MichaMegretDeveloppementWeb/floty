@@ -2,6 +2,7 @@
 import { Deferred, Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
+import ControlsDuePanel from './partials/ControlsDuePanel.vue';
 import DashboardEvolutionChart from './partials/DashboardEvolutionChart.vue';
 import DashboardEvolutionChartSkeleton from './partials/DashboardEvolutionChartSkeleton.vue';
 import DashboardKpiCardSkeleton from './partials/DashboardKpiCardSkeleton.vue';
@@ -18,6 +19,8 @@ const props = defineProps<{
     kpisRecettes?: App.Data.User.Dashboard.DashboardKpiRecettesData;
     /** Pending tasks (Inertia::defer). */
     pendingTasks?: App.Data.User.Dashboard.DashboardPendingTasksData;
+    /** Regulatory controls reaching échéance across the fleet (Inertia::defer). */
+    controlsDue?: App.Data.User.Dashboard.DashboardControlsDueData;
     /** Default chart tab (Inertia::defer); siblings load lazily per-tab. */
     historyJoursVehicule?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     historyContracts?: App.Data.User.Dashboard.DashboardHistoryPointData[];
@@ -64,6 +67,31 @@ void props;
                     :history-taxes="historyTaxes"
                     :history-recettes="historyRecettes"
                 />
+            </Deferred>
+
+            <Deferred data="controlsDue">
+                <template #fallback>
+                    <article
+                        class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5"
+                        aria-busy="true"
+                    >
+                        <header class="flex items-center gap-3">
+                            <Skeleton class="h-9 w-9 shrink-0 rounded-lg" />
+                            <div class="flex flex-1 flex-col gap-1.5">
+                                <Skeleton class="h-3 w-56 rounded" />
+                                <Skeleton class="h-4 w-32 rounded" />
+                            </div>
+                        </header>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <Skeleton
+                                v-for="rowIdx in 4"
+                                :key="rowIdx"
+                                class="h-12 rounded"
+                            />
+                        </div>
+                    </article>
+                </template>
+                <ControlsDuePanel :count="controlsDue!.count" :items="controlsDue!.items" />
             </Deferred>
 
             <Deferred data="pendingTasks">

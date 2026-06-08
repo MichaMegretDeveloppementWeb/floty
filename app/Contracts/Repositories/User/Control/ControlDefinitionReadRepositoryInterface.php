@@ -30,5 +30,15 @@ interface ControlDefinitionReadRepositoryInterface
      */
     public function listActiveForResolution(): Collection;
 
+    /**
+     * Active (non-deleted) global definitions WITHOUT recipient deltas, for the
+     * fleet-wide échéance scan (dashboard / fleet badges) that only needs the
+     * schedule recipe, not the recipient cascade. Lighter than
+     * {@see listActiveForResolution()}.
+     *
+     * @return Collection<int, ControlDefinition>
+     */
+    public function listActiveForSchedule(): Collection;
+
     public function findById(int $id): ?ControlDefinition;
 }

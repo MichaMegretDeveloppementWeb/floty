@@ -38,6 +38,18 @@ final class ControlDefinitionReadRepository implements ControlDefinitionReadRepo
             ->get();
     }
 
+    /**
+     * @return Collection<int, ControlDefinition>
+     */
+    public function listActiveForSchedule(): Collection
+    {
+        return ControlDefinition::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function findById(int $id): ?ControlDefinition
     {
         return ControlDefinition::query()->find($id);

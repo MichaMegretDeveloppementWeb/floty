@@ -49,6 +49,7 @@ final class DashboardController extends Controller
             'kpis' => Inertia::defer(fn () => $this->stats->computeKpisFiscal($currentYear), 'kpis'),
             'kpisRecettes' => Inertia::defer(fn () => $this->stats->computeKpisRecettes($currentYear), 'kpisRecettes'),
             'pendingTasks' => Inertia::defer(fn () => $this->stats->computePendingTasks(), 'pendingTasks'),
+            'controlsDue' => Inertia::defer(fn () => $this->stats->computeControlsDue(), 'controlsDue'),
             'historyJoursVehicule' => Inertia::defer(fn () => $this->stats->computeHistoryJoursVehicule(), 'historyJoursVehicule'),
             'historyContracts' => Inertia::optional(fn () => $this->stats->computeHistoryContracts()),
             'historyTaxes' => Inertia::optional(fn () => $this->stats->computeHistoryTaxes()),
