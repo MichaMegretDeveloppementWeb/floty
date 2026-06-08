@@ -31,5 +31,15 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+        User::updateOrCreate(
+            ['email' => 'renaud.nicolas@sogema.net'],
+            [
+                'password' => Hash::make('password'),
+                'first_name' => 'Renaud',
+                'last_name' => 'Nicolas',
+                'email_verified_at' => now(),
+            ],
+        );
     }
 }
