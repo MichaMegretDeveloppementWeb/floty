@@ -42,10 +42,11 @@ final readonly class RecordControlExecutionAction
         return DB::transaction(function () use ($data, $userId): ControlExecution {
             [$name, $impliesUnavailability] = $this->resolveTarget($data);
 
-            // A control execution is always categorised « Contrôle » +
-            // « Entretien » (fixed), plus up to 3 custom categories from the
-            // modal. CreateVehicleEventAction recomposes (dedup + cap 5).
-            $categories = EventCategoryList::compose(['Contrôle', 'Entretien'], $data->categories);
+            // A control execution is always categorised « Contrôle réglementaire »
+            // (its specific axis) + « Suivi véhicule » (the shared upkeep family,
+            // same as the maintenance type), plus up to 3 custom categories from
+            // the modal. CreateVehicleEventAction recomposes (dedup + cap 5).
+            $categories = EventCategoryList::compose(['Contrôle réglementaire', 'Suivi véhicule'], $data->categories);
 
             $event = $this->createEvent->execute(new StoreVehicleEventData(
                 vehicleId: $data->vehicleId,

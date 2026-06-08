@@ -1,35 +1,22 @@
 /**
  * French label maps for the VehicleEvent domain enums.
  *
- * Labels embed the regulatory precision in plain text (ADR-0016 § 9
- * rev. 1.1) so the user does not need an extra disambiguation step
- * ("public" vs "private", "ban" vs "simple repair", etc.).
+ * `vehicleEventTypeLabel` is the SINGLE source of truth for the displayed type
+ * label: the same wording is shown in the form select, the timeline, the global
+ * list and the detail page (titre = type). Labels are concise but explicit; the
+ * enum values (code) and the fiscal rules are untouched, only the display
+ * changes. A custom `other` event shows its free title instead.
  */
 
 export const vehicleEventTypeLabel: Record<App.Enums.VehicleEvent.VehicleEventType, string> = {
-    accident_no_circulation: 'Sinistre - interdiction de circuler prononcée par les autorités',
-    pound_public: 'Fourrière à la demande des pouvoirs publics',
+    accident_no_circulation: 'Sinistre avec interdiction de circuler',
+    pound_public: 'Fourrière demande publique',
     ci_suspension: 'Suspension du certificat d\'immatriculation',
     maintenance: 'Maintenance / entretien',
-    accident_repair: 'Sinistre - réparation simple (sans interdiction de circuler)',
-    pound_private: 'Fourrière à la demande d\'un privé (réquisition, autre)',
-    theft: 'Vol (sans certificat de destruction délivré)',
-    other: 'Événement personnalisé',
-};
-
-/**
- * Short label for dense contexts (timeline, heatmap cell legend) where
- * the long version would not fit.
- */
-export const vehicleEventTypeShortLabel: Record<App.Enums.VehicleEvent.VehicleEventType, string> = {
-    accident_no_circulation: 'Interdiction de circuler',
-    pound_public: 'Fourrière publique',
-    ci_suspension: 'Suspension CI',
-    maintenance: 'Maintenance',
-    accident_repair: 'Sinistre / réparation',
-    pound_private: 'Fourrière privée',
+    accident_repair: 'Sinistre avec réparation simple',
+    pound_private: 'Fourrière demande privée',
     theft: 'Vol',
-    other: 'Personnalisé',
+    other: 'Événement personnalisé',
 };
 
 /**
@@ -51,18 +38,20 @@ export function isVehicleEventFiscallyReductive(
 
 /**
  * Default category prepended to a known-type event (mirror of the PHP
- * `VehicleEventType::defaultCategory()`). Used ONLY by the form to show the
- * locked default chip; the stored categories live on the event itself.
- * `other` has no default (the user supplies all its categories).
+ * `VehicleEventType::defaultCategory()`). The category is a real classification
+ * family, NEVER a copy of the type title: « Sinistre » groups the accidents and
+ * the theft, « Administratif » the pounds and the registration suspension,
+ * « Suivi véhicule » the maintenance / cleaning (and the regulatory controls,
+ * which add « Contrôle réglementaire » on top). `other` has no default.
  */
 const vehicleEventTypeDefaultCategory: Partial<Record<App.Enums.VehicleEvent.VehicleEventType, string>> = {
-    accident_no_circulation: 'Accident',
-    accident_repair: 'Accident',
-    pound_public: 'Fourrière',
-    pound_private: 'Fourrière',
+    accident_no_circulation: 'Sinistre',
+    accident_repair: 'Sinistre',
+    theft: 'Sinistre',
+    pound_public: 'Administratif',
+    pound_private: 'Administratif',
     ci_suspension: 'Administratif',
-    maintenance: 'Entretien',
-    theft: 'Vol',
+    maintenance: 'Suivi véhicule',
 };
 
 /**
@@ -79,12 +68,11 @@ export function vehicleEventDefaultCategories(
 
 /** Seed suggestions for the category autocomplete (merged with already-used ones). */
 export const vehicleEventCategorySuggestions: ReadonlyArray<string> = [
-    'Accident',
-    'Fourrière',
+    'Sinistre',
     'Administratif',
-    'Entretien',
-    'Contrôle',
-    'Vol',
+    'Suivi véhicule',
+    'Contrôle réglementaire',
+    'Cycle de vie',
 ];
 
 type VehicleEventIdentity = {
@@ -93,11 +81,11 @@ type VehicleEventIdentity = {
 };
 
 /**
- * Display name for compact contexts (events list, timeline): the free title
- * for a custom event, the short enum label otherwise.
+ * Display name for an event (list, timeline, detail): the free title for a
+ * custom event, the canonical type label otherwise (type = titre).
  */
 export function vehicleEventDisplayTitle(event: VehicleEventIdentity): string {
     return event.type === 'other' && event.title !== null && event.title !== ''
         ? event.title
-        : vehicleEventTypeShortLabel[event.type];
+        : vehicleEventTypeLabel[event.type];
 }

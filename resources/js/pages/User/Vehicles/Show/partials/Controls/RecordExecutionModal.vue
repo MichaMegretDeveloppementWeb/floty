@@ -26,9 +26,9 @@ const open = defineModel<boolean>('open', { required: true });
 
 const { form, fieldError, addDocuments, removeDocument, seed, submit } = useRecordExecutionForm(props.vehicleId);
 
-// « Contrôle » + « Entretien » sont ajoutés d'office par le backend ; l'utilisateur
-// peut ajouter jusqu'à 3 catégories de plus (plafond de 5).
-const lockedControlCategories = ['Contrôle', 'Entretien'];
+// « Contrôle réglementaire » + « Suivi véhicule » sont ajoutés d'office par le
+// backend ; l'utilisateur peut ajouter jusqu'à 3 catégories de plus (plafond de 5).
+const lockedControlCategories = ['Contrôle réglementaire', 'Suivi véhicule'];
 const categorySuggestions = [...vehicleEventCategorySuggestions];
 
 watch(open, (isOpen) => {

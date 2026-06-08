@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Ban, ChevronLeft, Lock, Pencil, Trash2, TrendingDown } from 'lucide-vue-next';
+import { Ban, Car, ChevronLeft, Lock, Pencil, Trash2, TrendingDown } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { edit as editRoute } from '@/routes/user/vehicles/events';
-import {
-    vehicleEventDisplayTitle,
-    vehicleEventTypeLabel,
-} from '@/Utils/labels/vehicleEventEnumLabels';
+import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleHeader = {
     id: number;
@@ -28,6 +25,7 @@ defineEmits<{
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });
+const vehiclePageUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id });
 </script>
 
 <template>
@@ -42,15 +40,18 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
 
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
             <div class="flex flex-col gap-2">
+                <Link
+                    :href="vehiclePageUrl"
+                    class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+                >
+                    <Car :size="15" :stroke-width="1.75" class="text-slate-400" />
+                    {{ vehicle.brand }} {{ vehicle.model }}
+                    <span class="font-mono text-slate-400">·</span>
+                    <span class="font-mono">{{ vehicle.licensePlate }}</span>
+                </Link>
                 <h1 class="text-[34px] font-semibold leading-tight tracking-tight text-slate-900">
                     {{ vehicleEventDisplayTitle(vehicleEvent) }}
                 </h1>
-                <p
-                    v-if="vehicleEvent.type !== 'other'"
-                    class="text-sm text-slate-500"
-                >
-                    {{ vehicleEventTypeLabel[vehicleEvent.type] }}
-                </p>
                 <div class="mt-1 flex flex-wrap items-center gap-2">
                     <Badge
                         v-for="cat in vehicleEvent.categories"

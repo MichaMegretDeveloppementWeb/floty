@@ -1,7 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref, WritableComputedRef } from 'vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
-import { vehicleEventTypeShortLabel } from '@/Utils/labels/vehicleEventEnumLabels';
+import { vehicleEventTypeLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
@@ -145,7 +145,7 @@ export function useVehicleEventsTimelineFilter(
 
         const knownOptions = [...knownTypes].sort().map((value) => ({
             value,
-            label: vehicleEventTypeShortLabel[value as VehicleEventType] ?? value,
+            label: vehicleEventTypeLabel[value as VehicleEventType] ?? value,
         }));
         const customOptions = [...customTitles]
             .sort((a, b) => a.localeCompare(b, 'fr'))
@@ -304,7 +304,7 @@ export function useVehicleEventsTimelineFilter(
         for (const type of selectedTypes.value) {
             chips.push({
                 key: `type:${type}`,
-                label: `Type : ${vehicleEventTypeShortLabel[type as VehicleEventType] ?? type}`,
+                label: `Type : ${vehicleEventTypeLabel[type as VehicleEventType] ?? type}`,
             });
         }
 

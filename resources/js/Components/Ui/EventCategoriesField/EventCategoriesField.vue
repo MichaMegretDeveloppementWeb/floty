@@ -8,7 +8,8 @@
  * the CUSTOM categories only · the backend prepends the defaults.
  */
 import { Lock, Plus, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { duplicateCustomIndices, normalizeCategory } from '@/Utils/vehicleEventCategories';
@@ -36,6 +37,13 @@ const emit = defineEmits<{ 'update:modelValue': [string[]] }>();
 
 /** Index of the row whose suggestion dropdown is open (null = none). */
 const openIndex = ref<number | null>(null);
+
+/** Live refs to the custom-category inputs, to focus the freshly added one. */
+const inputEls = ref<(HTMLInputElement | null)[]>([]);
+
+function registerInput(el: Element | ComponentPublicInstance | null, index: number): void {
+    inputEls.value[index] = el instanceof HTMLInputElement ? el : null;
+}
 
 const maxCustom = computed<number>(() => Math.max(0, props.max - props.lockedDefaults.length));
 
@@ -100,7 +108,14 @@ function add(): void {
         return;
     }
 
+    const newIndex = props.modelValue.length;
     emit('update:modelValue', [...props.modelValue, '']);
+
+    // Focus the new input once rendered; its @focus opens the suggestion list,
+    // so the user lands directly in a ready-to-type field with suggestions.
+    void nextTick(() => {
+        inputEls.value[newIndex]?.focus();
+    });
 }
 </script>
 
@@ -147,6 +162,7 @@ function add(): void {
                 <div class="flex items-start gap-2">
                     <div class="relative flex-1">
                         <input
+                            :ref="(el) => registerInput(el, index)"
                             :value="modelValue[index]"
                             maxlength="60"
                             autocomplete="off"

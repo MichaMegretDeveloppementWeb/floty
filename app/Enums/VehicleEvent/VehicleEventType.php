@@ -63,21 +63,24 @@ enum VehicleEventType: string
 
     /**
      * Default category automatically attached to a known-type event (stored as
-     * a vehicle_event_categories row, then editable like any other). `null` for
-     * the custom `other` type, which carries only the user-supplied categories.
-     * Authoritative server-side source (the front keeps a mirror only to
-     * pre-fill the form).
+     * a vehicle_event_categories row, then editable like any other). The
+     * category is a real classification family, never a copy of the type label:
+     * « Sinistre » groups the accidents and the theft, « Administratif » the
+     * pounds and the registration suspension, « Suivi véhicule » the
+     * maintenance / cleaning. `null` for the custom `other` type, which carries
+     * only the user-supplied categories. Authoritative server-side source (the
+     * front keeps a mirror only to pre-fill the form).
      */
     public function defaultCategory(): ?string
     {
         return match ($this) {
             self::AccidentNoCirculation,
-            self::AccidentRepair => 'Accident',
+            self::AccidentRepair,
+            self::Theft => 'Sinistre',
             self::PoundPublic,
-            self::PoundPrivate => 'Fourrière',
+            self::PoundPrivate,
             self::CiSuspension => 'Administratif',
-            self::Maintenance => 'Entretien',
-            self::Theft => 'Vol',
+            self::Maintenance => 'Suivi véhicule',
             self::Other => null,
         };
     }

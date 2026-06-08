@@ -104,7 +104,7 @@ describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', 
         // système (lecture seule) sont exclus de l'axe type.
         expect(f.typeOptions.value.map((o) => o.value).sort()).toEqual(['Lavage', 'maintenance', 'theft']);
         expect(f.typeOptions.value.find((o) => o.value === 'Lavage')?.label).toBe('Lavage');
-        expect(f.typeOptions.value.find((o) => o.value === 'maintenance')?.label).toBe('Maintenance');
+        expect(f.typeOptions.value.find((o) => o.value === 'maintenance')?.label).toBe('Maintenance / entretien');
         expect(f.typeOptions.value.some((o) => o.value === 'other')).toBe(false);
         expect(f.typeOptions.value.some((o) => o.value === 'Sortie de flotte')).toBe(false);
         expect(f.categoryOptions.value.map((o) => o.value)).toEqual(['Contrôle', 'Cycle de vie', 'Entretien', 'Vol']);

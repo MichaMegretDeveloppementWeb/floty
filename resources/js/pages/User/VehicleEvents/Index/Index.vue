@@ -22,7 +22,7 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 import {
     vehicleEventDisplayTitle,
-    vehicleEventTypeShortLabel,
+    vehicleEventTypeLabel,
 } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
@@ -46,7 +46,7 @@ const filtersOpen = ref<boolean>(false);
 const typeOptions = computed(() =>
     props.options.typeValues.map((value) => ({
         value,
-        label: vehicleEventTypeShortLabel[value as VehicleEventType] ?? value,
+        label: vehicleEventTypeLabel[value as VehicleEventType] ?? value,
     })),
 );
 
@@ -85,6 +85,12 @@ const totalLabel = computed<string>(() => formatEur(props.totalAmountCents / 100
 
 function amountLabel(row: VehicleEventRow): string | null {
     return row.amountCents !== null ? formatEur(row.amountCents / 100, 2) : null;
+}
+
+function durationLabel(row: VehicleEventRow): string {
+    return row.endDate === null
+        ? 'En cours'
+        : `${row.daysCount} jour${row.daysCount > 1 ? 's' : ''}`;
 }
 </script>
 
@@ -222,6 +228,11 @@ function amountLabel(row: VehicleEventRow): string | null {
 
                     <template #cell-startDate="{ row }">
                         {{ formatDateFr(row.startDate) }}
+                    </template>
+                    <template #cell-duration="{ row }">
+                        <span :class="row.endDate === null ? 'text-slate-400 italic' : 'text-slate-600'">
+                            {{ durationLabel(row) }}
+                        </span>
                     </template>
                     <template #cell-title="{ row }">
                         {{ vehicleEventDisplayTitle(row) }}

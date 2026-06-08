@@ -5,7 +5,7 @@ import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as vehicleEventShowRoute } from '@/routes/user/vehicles/events';
 import type { DataTableColumn } from '@/types/ui/data-table';
-import { vehicleEventTypeShortLabel } from '@/Utils/labels/vehicleEventEnumLabels';
+import { vehicleEventTypeLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEventRow = App.Data.User.VehicleEvent.VehicleEventListItemData;
 type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
@@ -44,6 +44,7 @@ export function useVehicleEventsTable(opts: { query: Query }): {
     const columns: readonly DataTableColumn<VehicleEventRow>[] = [
         { key: 'vehicleLicensePlate', label: 'Véhicule', mono: true },
         { key: 'startDate', label: 'Date', mono: true },
+        { key: 'duration', label: 'Durée' },
         { key: 'title', label: 'Intitulé' },
         { key: 'categories', label: 'Catégories' },
         { key: 'amount', label: 'Montant', align: 'right', mono: true },
@@ -88,7 +89,7 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         for (const type of f.types) {
             chips.push({
                 key: `type:${type}`,
-                label: `Type : ${vehicleEventTypeShortLabel[type as VehicleEventType] ?? type}`,
+                label: `Type : ${vehicleEventTypeLabel[type as VehicleEventType] ?? type}`,
             });
         }
 

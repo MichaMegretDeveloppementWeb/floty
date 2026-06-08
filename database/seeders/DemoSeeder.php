@@ -1222,7 +1222,8 @@ final class DemoSeeder extends Seeder
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
             title: 'Contrôle technique',
-            categories: ['Contrôle'],
+            categories: ['Contrôle réglementaire', 'Suivi véhicule'],
+            amountCents: 8500,
         );
 
         // Réparation accident simple (NON réductrice)
@@ -1352,7 +1353,59 @@ final class DemoSeeder extends Seeder
             endDate: '2026-09-16',
             description: 'CT 2026.',
             title: 'Contrôle technique',
-            categories: ['Contrôle'],
+            categories: ['Contrôle réglementaire', 'Suivi véhicule'],
+            amountCents: 8500,
+        );
+
+        // ----------------------------------------------------------------
+        // Carnet de dépenses · échantillon de coûts cohérents avec la
+        // nouvelle taxonomie (titre = type, catégorie = vraie famille).
+        // ----------------------------------------------------------------
+
+        // Entretien courant avec coût + catégorie métier ajoutée (Suivi véhicule auto).
+        $this->createVehicleEvent(
+            vehicle: $vehicles['EH-008-HH'],
+            type: VehicleEventType::Maintenance,
+            startDate: '2026-03-04',
+            endDate: '2026-03-04',
+            description: 'Révision + remplacement pneus hiver.',
+            categories: ['Pneus'],
+            amountCents: 74000,
+        );
+
+        // Nettoyage complet · type Maintenance/entretien (un lavage y a sa place).
+        $this->createVehicleEvent(
+            vehicle: $vehicles['EV-022-VV'],
+            type: VehicleEventType::Other,
+            startDate: '2026-05-20',
+            endDate: '2026-05-20',
+            description: 'Nettoyage intérieur + extérieur avant remise en location.',
+            title: 'Nettoyage complet',
+            categories: ['Suivi véhicule'],
+            amountCents: 9000,
+        );
+
+        // Événement personnalisé porteur de coût · catégorie réellement distincte.
+        $this->createVehicleEvent(
+            vehicle: $vehicles['EF-006-FF'],
+            type: VehicleEventType::Other,
+            startDate: '2026-02-10',
+            endDate: '2026-02-13',
+            description: 'Pose covering publicitaire partenaire.',
+            title: 'Pose covering publicitaire',
+            categories: ['Marketing'],
+            amountCents: 156000,
+        );
+
+        // Réparation après sinistre avec coût · catégorie Sinistre (auto) + Carrosserie.
+        $this->createVehicleEvent(
+            vehicle: $vehicles['EL-012-LL'],
+            type: VehicleEventType::AccidentRepair,
+            startDate: '2026-06-02',
+            endDate: '2026-06-09',
+            description: 'Réparation carrosserie aile avant droite.',
+            categories: ['Carrosserie'],
+            amountCents: 210000,
         );
 
         // Accident réparation sur véhicule E85 (vérifier que abat applique sans interférence)
@@ -1390,6 +1443,7 @@ final class DemoSeeder extends Seeder
         ?string $description = null,
         ?string $title = null,
         array $categories = [],
+        ?int $amountCents = null,
     ): void {
         $isCustom = $type === VehicleEventType::Other;
 
@@ -1401,6 +1455,7 @@ final class DemoSeeder extends Seeder
             'start_date' => $startDate,
             'end_date' => $endDate,
             'description' => $description,
+            'amount_cents' => $amountCents,
         ]);
 
         $default = $type->defaultCategory();

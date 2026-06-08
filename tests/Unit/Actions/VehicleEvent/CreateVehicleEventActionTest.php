@@ -150,7 +150,7 @@ final class CreateVehicleEventActionTest extends TestCase
             categories: null,
         ));
 
-        $this->assertSame(['Entretien'], $vehicleEvent->categories()->pluck('category')->all());
+        $this->assertSame(['Suivi véhicule'], $vehicleEvent->categories()->pluck('category')->all());
     }
 
     #[Test]
@@ -170,7 +170,7 @@ final class CreateVehicleEventActionTest extends TestCase
         ));
 
         $this->assertSame(
-            ['Entretien', 'Pneus hiver', 'Révision'],
+            ['Suivi véhicule', 'Pneus hiver', 'Révision'],
             $vehicleEvent->categories()->pluck('category')->all(),
         );
     }
@@ -267,6 +267,6 @@ final class CreateVehicleEventActionTest extends TestCase
 
         $this->assertNull($vehicleEvent->title);
         $this->assertTrue($vehicleEvent->implies_unavailability);
-        $this->assertSame(['Entretien', 'Pneus'], $vehicleEvent->categories()->pluck('category')->all());
+        $this->assertSame(['Suivi véhicule', 'Pneus'], $vehicleEvent->categories()->pluck('category')->all());
     }
 }

@@ -28,6 +28,9 @@ final class VehicleEventListItemData extends Data
         public int $vehicleId,
         public string $vehicleLicensePlate,
         public string $startDate,
+        public ?string $endDate,
+        /** Inclusive day count, or 0 when ongoing (end_date null). */
+        public int $daysCount,
         public VehicleEventType $type,
         public ?string $title,
         public array $categories,
@@ -38,11 +41,17 @@ final class VehicleEventListItemData extends Data
 
     public static function fromModel(VehicleEvent $event): self
     {
+        $daysCount = $event->end_date === null
+            ? 0
+            : ((int) $event->start_date->diffInDays($event->end_date)) + 1;
+
         return new self(
             id: $event->id,
             vehicleId: $event->vehicle_id,
             vehicleLicensePlate: $event->vehicle->license_plate,
             startDate: $event->start_date->toDateString(),
+            endDate: $event->end_date?->toDateString(),
+            daysCount: $daysCount,
             type: $event->type,
             title: $event->title,
             categories: $event->categories->pluck('category')->values()->all(),
