@@ -70,14 +70,14 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                                 class="absolute top-0 bottom-0 left-0 w-0.5 bg-slate-900"
                             />
                             <span
-                                class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5]/12"
+                                class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-slate-500/8"
                                 aria-hidden="true"
                             >
                                 <component
                                     :is="item.icon"
                                     :size="16"
                                     :stroke-width="1.75"
-                                    class="text-[#4f46e5]"
+                                    class="text-slate-500"
                                 />
                             </span>
                             <span :class="labelClass">{{ item.label }}</span>
