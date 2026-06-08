@@ -169,4 +169,37 @@ final class ControlScheduleServiceTest extends TestCase
 
         self::assertSame(ControlScheduleStatus::NotApplicable, $status);
     }
+
+    #[Test]
+    public function statut_non_applicable_pour_un_vehicule_deja_sorti_meme_si_echeance_anterieure_a_la_sortie(): void
+    {
+        // Véhicule sorti il y a un an, échéance encore antérieure (donc en retard
+        // PENDANT qu'il était en flotte) : il n'est plus la responsabilité de la
+        // flotte -> « Non applicable », pas « en retard ».
+        $status = $this->service->deriveStatus(
+            CarbonImmutable::parse('2023-01-01'),
+            null,
+            CarbonImmutable::parse('2026-06-08'),
+            15,
+            CarbonImmutable::parse('2025-06-08'),
+        );
+
+        self::assertSame(ControlScheduleStatus::NotApplicable, $status);
+    }
+
+    #[Test]
+    public function statut_en_retard_conserve_pour_une_echeance_avant_une_sortie_future(): void
+    {
+        // Sortie PLANIFIÉE (future), échéance déjà dépassée avant cette sortie :
+        // le véhicule est encore en flotte, le contrôle reste à faire.
+        $status = $this->service->deriveStatus(
+            CarbonImmutable::parse('2026-01-01'),
+            null,
+            CarbonImmutable::parse('2026-06-08'),
+            15,
+            CarbonImmutable::parse('2026-12-31'),
+        );
+
+        self::assertSame(ControlScheduleStatus::Overdue, $status);
+    }
 }

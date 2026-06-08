@@ -50,10 +50,17 @@ final class ControlScheduleService
         int $daysBefore,
         ?CarbonImmutable $vehicleExitDate,
     ): ControlScheduleStatus {
-        // ADR-0018: once the vehicle has left the fleet, an échéance on or after
-        // the exit no longer applies (the exit day itself belongs to the new
-        // owner, so a control due that day is not the fleet's to do).
-        if ($vehicleExitDate !== null && $nextDue->greaterThanOrEqualTo($vehicleExitDate)) {
+        // ADR-0018: a control is not the fleet's responsibility once the vehicle
+        // has left it. Two cases collapse here:
+        //   - the vehicle is ALREADY out of the fleet (exit on or before today):
+        //     none of its controls apply, whatever their échéance;
+        //   - a future exit is planned: only échéances falling on or after that
+        //     exit drop off (the exit day itself belongs to the new owner), while
+        //     controls still due before then remain the fleet's to do.
+        if (
+            $vehicleExitDate !== null
+            && ($vehicleExitDate->lessThanOrEqualTo($today) || $nextDue->greaterThanOrEqualTo($vehicleExitDate))
+        ) {
             return ControlScheduleStatus::NotApplicable;
         }
 

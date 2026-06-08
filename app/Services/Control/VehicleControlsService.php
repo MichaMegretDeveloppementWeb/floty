@@ -87,10 +87,9 @@ final readonly class VehicleControlsService
      * badge's counting (Overdue feeds both counters; DueToday/DueSoon feed only
      * dueCount), pinned by an équivalence test.
      *
-     * Currently-exited vehicles are skipped: the fleet badge is an active-fleet
-     * attention indicator (like the dashboard panel, which scans active vehicles
-     * only), so a vehicle out of the fleet carries no badge even when a control
-     * was overdue before it left.
+     * Exited vehicles naturally carry no badge: the schedule engine marks every
+     * control of a vehicle already out of the fleet as Non applicable, so none
+     * count here (consistent with the dashboard panel and the per-vehicle tab).
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, VehicleControlsBadgeData>
@@ -101,10 +100,7 @@ final readonly class VehicleControlsService
             return [];
         }
 
-        $vehicles = $this->vehicles->findScheduleColumnsByIds($vehicleIds)->filter(
-            static fn (Vehicle $vehicle): bool => $vehicle->exit_date === null
-                || $vehicle->exit_date->toImmutable()->greaterThan($today),
-        );
+        $vehicles = $this->vehicles->findScheduleColumnsByIds($vehicleIds);
         $resultsByVehicle = $this->scanner->scanForVehicles($vehicles, $today);
 
         $badges = [];
