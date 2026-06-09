@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\ControlDefinition;
 use App\Models\ControlReminderSettings;
+use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -724,6 +725,91 @@ final class VehicleControllerTest extends TestCase
                 ->has('vehicleOverview.history')
                 ->missing('vehicle.history')
                 ->missing('history'),
+            );
+    }
+
+    #[Test]
+    public function show_overview_etat_actuel_expose_location_et_evenement_en_cours(): void
+    {
+        // Carte « État actuel » : la location active aujourd'hui (entreprise +
+        // conducteurs) et l'événement chevauchant aujourd'hui sont exposés.
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create(['legal_name' => 'Transports Durand']);
+        $driver = Driver::factory()->create(['first_name' => 'Julie', 'last_name' => 'Martin']);
+
+        Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->withDrivers([$driver])
+            ->create(['start_date' => '2026-06-01', 'end_date' => '2026-06-30']);
+
+        VehicleEvent::factory()->maintenance()->create([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2026-06-05',
+            'end_date' => '2026-06-15',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicleOverview.currentStatus.rentals', 1)
+                ->where('vehicleOverview.currentStatus.rentals.0.companyLegalName', 'Transports Durand')
+                ->has('vehicleOverview.currentStatus.rentals.0.drivers', 1)
+                ->where('vehicleOverview.currentStatus.rentals.0.drivers.0.fullName', 'Julie Martin')
+                ->has('vehicleOverview.currentStatus.events', 1)
+                ->where('vehicleOverview.currentStatus.events.0.type', 'maintenance'),
+            );
+    }
+
+    #[Test]
+    public function show_overview_etat_actuel_vide_quand_rien_en_cours(): void
+    {
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicleOverview.currentStatus.rentals', 0)
+                ->has('vehicleOverview.currentStatus.events', 0),
+            );
+    }
+
+    #[Test]
+    public function show_overview_etat_actuel_vide_pour_un_vehicule_sorti(): void
+    {
+        // Un véhicule sorti n'a pas d'état « en cours », même si un contrat
+        // chevauche encore aujourd'hui : l'entête affiche déjà la sortie.
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'exit_date' => '2026-06-01',
+            'exit_reason' => 'sold',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-05-01',
+            'end_date' => '2026-06-30',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicleOverview.currentStatus.rentals', 0)
+                ->has('vehicleOverview.currentStatus.events', 0),
             );
     }
 
@@ -1496,13 +1582,16 @@ final class VehicleControllerTest extends TestCase
         $queryCount = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        // Cap resserré (Lot 3 D04) · baseline réelle mesurée 8 queries pour
-        // 10 véhicules (auth + load Vehicles + load VFC eager + queries
-        // collatérales Inertia · ~0.8 query par véhicule). Cap à 12 ·
-        // marge confortable +4 queries pour évolutions Inertia/middleware
-        // sans masquer une régression N+1 (qui ferait sauter ≥5 queries).
+        // La requête initiale charge la liste paginée (VFC eager, pas de N+1
+        // sur la VFC courante) ET, en eager, le badge de contrôles via le
+        // scanner batché (FleetControlScheduleScanner). Ce scan ajoute un
+        // nombre BORNÉ de queries (settings, définitions, exécutions,
+        // overrides) INDÉPENDANT du nombre de véhicules. Baseline mesurée
+        // ~14 queries pour 10 véhicules. Cap à 18 · marge pour évolutions
+        // Inertia/middleware sans masquer une vraie régression N+1 (qui
+        // ajouterait ~1 query par véhicule, soit +10 ici → bien au-delà de 18).
         self::assertLessThan(
-            12,
+            18,
             $queryCount,
             "Trop de queries SQL ({$queryCount}) sur l'Index Flotte avec 10 véhicules - possible régression N+1.",
         );

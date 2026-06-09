@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
+use App\Data\User\Vehicle\CurrentRentalData;
+use App\Data\User\Vehicle\CurrentVehicleStatusData;
 use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleOverviewData;
 use App\Data\User\Vehicle\VehicleYearStatsData;
 use App\Data\User\VehicleEvent\VehicleEventData;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -46,6 +51,7 @@ final class VehicleDetailService
     public function __construct(
         private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly ContractQueryService $contracts,
+        private readonly ContractReadRepositoryInterface $contractsRead,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
@@ -103,12 +109,49 @@ final class VehicleDetailService
         $kpiYear = $this->availableYears->currentYear();
 
         return new VehicleOverviewData(
+            currentStatus: $this->buildCurrentStatus($vehicle, $vehicleEventModels, CarbonImmutable::today()),
             usageStats: $this->aggregates->buildUsageStats($vehicle, $kpiYear, $vehicleEventModels),
             kpiStats: $this->computeVehicleYearStats($vehicle, $kpiYear, $vehicleEventModels),
             kpiFiscalAvailable: in_array($kpiYear, $this->fiscalRules->registeredYears(), true),
             busyDates: $this->buildBusyDates($vehicle->id, $kpiYear),
             history: $this->historyForVehicleWithEvents($vehicle, $vehicleEventModels),
         );
+    }
+
+    /**
+     * Current operational state as of `$today`: the event(s) spanning today
+     * and the rental(s) active today (with drivers). The events are filtered
+     * in PHP from the already-loaded Collection (no extra query); only the
+     * active-rental lookup adds one bounded query (company + drivers
+     * eager-loaded).
+     *
+     * A vehicle already out of the fleet (`exit_date <= today`) has no current
+     * operational state: returns empty (the overview header surfaces the exit).
+     *
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
+     */
+    public function buildCurrentStatus(
+        Vehicle $vehicle,
+        Collection $vehicleEventModels,
+        CarbonImmutable $today,
+    ): CurrentVehicleStatusData {
+        if ($vehicle->exit_date !== null && $vehicle->exit_date->toImmutable()->lessThanOrEqualTo($today)) {
+            return new CurrentVehicleStatusData(events: [], rentals: []);
+        }
+
+        $ongoingEvents = $vehicleEventModels
+            ->filter(static fn (VehicleEvent $event): bool => $event->start_date->toImmutable()->lessThanOrEqualTo($today)
+                && ($event->end_date === null || $event->end_date->toImmutable()->greaterThanOrEqualTo($today)))
+            ->map(static fn (VehicleEvent $event): VehicleEventData => VehicleEventData::fromModel($event))
+            ->values()
+            ->all();
+
+        $rentals = $this->contractsRead->findActiveForVehicleOnDate($vehicle->id, $today)
+            ->map(static fn (Contract $contract): CurrentRentalData => CurrentRentalData::fromModel($contract))
+            ->values()
+            ->all();
+
+        return new CurrentVehicleStatusData(events: $ongoingEvents, rentals: $rentals);
     }
 
     /**

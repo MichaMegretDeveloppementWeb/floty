@@ -12,6 +12,7 @@
  */
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
+import VehicleCurrentStatusCard from './VehicleCurrentStatusCard.vue';
 import VehicleKpiCards from './VehicleKpiCards.vue';
 import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
 
@@ -24,6 +25,13 @@ const props = defineProps<{
 
 <template>
     <div class="flex flex-col gap-6">
+        <VehicleCurrentStatusCard
+            :status="props.overview.currentStatus"
+            :vehicle-id="props.vehicle.id"
+            :is-exited="props.vehicle.isExited"
+            :exit-date="props.vehicle.exitDate"
+        />
+
         <VehicleKpiCards
             :kpi-stats="props.overview.kpiStats"
             :kpi-year="props.vehicle.kpiYear"

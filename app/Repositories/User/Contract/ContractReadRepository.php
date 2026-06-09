@@ -174,6 +174,21 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->all();
     }
 
+    public function findActiveForVehicleOnDate(int $vehicleId, CarbonImmutable $date): Collection
+    {
+        return Contract::query()
+            ->with([
+                'company:id,short_code,legal_name,color',
+                'drivers:id,first_name,last_name',
+            ])
+            ->where('vehicle_id', $vehicleId)
+            ->where('start_date', '<=', $date->toDateString())
+            ->where('end_date', '>=', $date->toDateString())
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function findWindowContractsForVehicle(
         int $vehicleId,
         CarbonInterface $start,

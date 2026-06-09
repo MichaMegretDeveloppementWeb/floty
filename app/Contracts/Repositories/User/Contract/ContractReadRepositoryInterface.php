@@ -37,6 +37,17 @@ interface ContractReadRepositoryInterface
     public function driversForVehicleOnDate(int $vehicleId, CarbonImmutable $date): array;
 
     /**
+     * Contracts active on `$date` for a vehicle (`start_date <= date <=
+     * end_date`), with the renting company and the listed drivers
+     * eager-loaded. Feeds the "current status" card on the vehicle overview
+     * tab. At most one row in practice (no-overlap trigger), returned as a
+     * Collection for safety.
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findActiveForVehicleOnDate(int $vehicleId, CarbonImmutable $date): Collection;
+
+    /**
      * Batch variant of {@see findByIdWithRelations} · loads in one query
      * the contracts (with their vehicle, vehicle.fiscalCharacteristics,
      * company, drivers relations) for a list of IDs.
