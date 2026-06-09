@@ -6,8 +6,10 @@ namespace App\Models;
 
 use App\Enums\Control\ControlAnchor;
 use App\Enums\Control\DurationUnit;
+use App\Observers\ControlDefinitionObserver;
 use Database\Factories\ControlDefinitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,6 +58,7 @@ use Illuminate\Support\Carbon;
     'is_active',
     'display_order',
 ])]
+#[ObservedBy([ControlDefinitionObserver::class])]
 final class ControlDefinition extends Model
 {
     /** @use HasFactory<ControlDefinitionFactory> */

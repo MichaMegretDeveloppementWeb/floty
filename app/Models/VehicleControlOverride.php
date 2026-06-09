@@ -7,8 +7,10 @@ namespace App\Models;
 use App\Enums\Control\ControlAnchor;
 use App\Enums\Control\DurationUnit;
 use App\Enums\Control\VehicleControlStatus;
+use App\Observers\VehicleControlOverrideObserver;
 use Database\Factories\VehicleControlOverrideFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -60,6 +62,7 @@ use Illuminate\Support\Carbon;
     'reminder_repeat_every_days',
     'display_order',
 ])]
+#[ObservedBy([VehicleControlOverrideObserver::class])]
 final class VehicleControlOverride extends Model
 {
     /** @use HasFactory<VehicleControlOverrideFactory> */

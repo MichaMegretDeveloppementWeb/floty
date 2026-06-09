@@ -149,6 +149,16 @@ interface VehicleReadRepositoryInterface
     public function findScheduleColumnsByIds(array $ids): Collection;
 
     /**
+     * Stored materialised `controls_due_from` for a set of vehicles, keyed by
+     * id (value: `Y-m-d` string or null). Used by the control due-date drift
+     * detector to compare the cache against a fresh recomputation.
+     *
+     * @param  list<int>  $ids
+     * @return array<int, string|null>
+     */
+    public function findControlsDueFromByIds(array $ids): array;
+
+    /**
      * Min/max bounds of first French registration years across all
      * vehicles. Used by the Index filter to bound the year selector.
      * Returns `null` when the table is empty.

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Observers\ControlReminderSettingsObserver;
 use Database\Factories\ControlReminderSettingsFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -31,6 +33,7 @@ use Illuminate\Support\Carbon;
     'remind_on_due_day',
     'repeat_every_days',
 ])]
+#[ObservedBy([ControlReminderSettingsObserver::class])]
 final class ControlReminderSettings extends Model
 {
     /** @use HasFactory<ControlReminderSettingsFactory> */

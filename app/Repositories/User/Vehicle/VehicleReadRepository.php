@@ -73,6 +73,19 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ]);
     }
 
+    public function findControlsDueFromByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return Vehicle::query()
+            ->whereIn('id', $ids)
+            ->pluck('controls_due_from', 'id')
+            ->map(static fn ($date): ?string => $date?->toDateString())
+            ->all();
+    }
+
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

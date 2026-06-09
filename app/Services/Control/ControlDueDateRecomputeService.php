@@ -70,8 +70,64 @@ final readonly class ControlDueDateRecomputeService
      */
     public function forVehicles(Collection $vehicles): void
     {
+        $dueFromByVehicleId = $this->computeForVehicles($vehicles);
+
+        foreach (array_chunk($dueFromByVehicleId, self::WRITE_CHUNK, true) as $chunk) {
+            $this->vehicleWrite->updateControlsDueFrom($chunk);
+        }
+    }
+
+    /**
+     * Computes the expected `controls_due_from` for the whole in-fleet scope
+     * WITHOUT writing, keyed by vehicle id. Drift detector: compared against the
+     * stored column to surface any divergence (see VerifyControlDueDatesCommand).
+     *
+     * @return array<int, string|null>
+     */
+    public function computeForFleet(): array
+    {
+        return $this->computeForVehicles($this->vehicleRead->findActiveForReminderScan(CarbonImmutable::today()));
+    }
+
+    /**
+     * Compares the stored cache against a fresh recomputation over the in-fleet
+     * scope and returns the divergences, keyed by vehicle id (expected vs stored
+     * `Y-m-d`|null). Empty = fully consistent. Read-only: surfaces drift so a
+     * missed write channel never stays silent; the recompute command is what
+     * fixes it.
+     *
+     * @return array<int, array{expected: string|null, stored: string|null}>
+     */
+    public function detectDrift(): array
+    {
+        $expected = $this->computeForFleet();
+        $stored = $this->vehicleRead->findControlsDueFromByIds(array_keys($expected));
+
+        $drift = [];
+        foreach ($expected as $vehicleId => $expectedDueFrom) {
+            if (($stored[$vehicleId] ?? null) !== $expectedDueFrom) {
+                $drift[$vehicleId] = [
+                    'expected' => $expectedDueFrom,
+                    'stored' => $stored[$vehicleId] ?? null,
+                ];
+            }
+        }
+
+        return $drift;
+    }
+
+    /**
+     * Pure computation (no write) of the materialised value per vehicle: the
+     * single source feeding both {@see forVehicles()} (persist) and the drift
+     * detector (compare). Keyed by vehicle id, value `Y-m-d` string or null.
+     *
+     * @param  Collection<int, Vehicle>  $vehicles
+     * @return array<int, string|null>
+     */
+    public function computeForVehicles(Collection $vehicles): array
+    {
         if ($vehicles->isEmpty()) {
-            return;
+            return [];
         }
 
         $resultsByVehicle = $this->scanner->scanForVehicles($vehicles, CarbonImmutable::today());
@@ -84,9 +140,7 @@ final readonly class ControlDueDateRecomputeService
             )?->toDateString();
         }
 
-        foreach (array_chunk($dueFromByVehicleId, self::WRITE_CHUNK, true) as $chunk) {
-            $this->vehicleWrite->updateControlsDueFrom($chunk);
-        }
+        return $dueFromByVehicleId;
     }
 
     /**
