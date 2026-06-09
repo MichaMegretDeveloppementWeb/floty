@@ -30,7 +30,7 @@ watch(isMobile, (mobile) => {
     <div class="min-h-screen bg-slate-50">
         <SidebarNav v-model:open="sidebarOpen" :active-path="activePath" />
 
-        <div class="flex min-h-screen min-w-0 flex-col md:pl-16 wide:pl-60">
+        <div class="flex min-h-screen min-w-0 flex-col md:pl-16 wide:pl-72">
             <TopBar @toggle-sidebar="sidebarOpen = !sidebarOpen" />
             <main class="flex-1">
                 <div class="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">

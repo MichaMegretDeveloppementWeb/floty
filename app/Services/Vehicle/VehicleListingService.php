@@ -227,14 +227,28 @@ final class VehicleListingService
     }
 
     /**
-     * Min/max first-registration year across the fleet. Feeds the
-     * year-range filter on the Index. Returns `null` when the fleet
-     * is empty (the frontend hides the filter).
+     * Year range for the Index "first registration year" filter: always
+     * the last 30 years up to the current year, so the picker offers a
+     * stable, predictable span independent of the fleet's actual spread.
+     * The floor is pushed further back when an older vehicle exists, so no
+     * registered vehicle is ever left outside the range. Returns `null`
+     * when the fleet is empty (the frontend then hides the filter).
      *
      * @return array{min: int, max: int}|null
      */
     public function firstRegistrationYearBounds(): ?array
     {
-        return $this->vehicles->findFirstRegistrationYearBounds();
+        $bounds = $this->vehicles->findFirstRegistrationYearBounds();
+
+        if ($bounds === null) {
+            return null;
+        }
+
+        $currentYear = $this->availableYears->currentYear();
+
+        return [
+            'min' => min($currentYear - 29, $bounds['min']),
+            'max' => $currentYear,
+        ];
     }
 }

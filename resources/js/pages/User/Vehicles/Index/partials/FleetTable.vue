@@ -157,7 +157,7 @@ function statusPalette(
         <template #cell-fullYearTax="{ row }">
             <div
                 v-if="props.costs && props.costs[row.id]"
-                class="flex flex-col items-end leading-tight"
+                class="flex min-h-[31px] flex-col items-end leading-tight"
             >
                 <span class="font-mono font-normal whitespace-nowrap text-slate-900">
                     {{ formatEur(costsFor(row).fullYearTax) }}
@@ -166,9 +166,13 @@ function statusPalette(
                     {{ formatEur(costsFor(row).dailyTaxRate, 2) }} / jour
                 </span>
             </div>
-            <div v-else class="flex flex-col items-end gap-1 leading-tight">
-                <Skeleton class="h-4 w-20 rounded" />
-                <Skeleton class="h-3 w-16 rounded" />
+            <div v-else class="flex min-h-[31px] flex-col items-end leading-tight">
+                <span class="leading-tight">
+                    <Skeleton class="inline-block h-[1em] w-20 rounded align-middle" />
+                </span>
+                <span class="text-xs leading-tight">
+                    <Skeleton class="inline-block h-[1em] w-16 rounded align-middle" />
+                </span>
             </div>
         </template>
         <template #cell-rentalPriceFullYear="{ row }">
@@ -183,7 +187,9 @@ function statusPalette(
                     ·
                 </span>
             </template>
-            <Skeleton v-else class="ml-auto h-4 w-20 rounded" />
+            <span v-else class="leading-tight">
+                <Skeleton class="inline-block h-[1em] w-20 rounded align-middle" />
+            </span>
         </template>
 
         <template #empty>

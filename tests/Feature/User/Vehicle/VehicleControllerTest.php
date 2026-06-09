@@ -331,8 +331,12 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_renvoie_first_registration_year_bounds(): void
+    public function index_renvoie_first_registration_year_bounds_fenetre_de_30_ans(): void
     {
+        // La plage proposée est toujours les 30 dernières années jusqu'à
+        // l'année courante, indépendamment des années réellement présentes.
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
         $user = User::factory()->create();
         $v1 = Vehicle::factory()->create([
             'first_french_registration_date' => '2018-06-15',
@@ -353,8 +357,33 @@ final class VehicleControllerTest extends TestCase
             ->get('/app/vehicles')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('options.firstRegistrationYearBounds.min', 2018)
-                ->where('options.firstRegistrationYearBounds.max', 2023),
+                ->where('options.firstRegistrationYearBounds.min', 1997)
+                ->where('options.firstRegistrationYearBounds.max', 2026),
+            );
+    }
+
+    #[Test]
+    public function index_first_registration_year_bounds_etend_le_plancher_pour_un_vehicule_plus_ancien(): void
+    {
+        // Un véhicule immatriculé il y a plus de 30 ans repousse le plancher
+        // pour rester filtrable (jamais hors de la plage proposée).
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        $user = User::factory()->create();
+        $old = Vehicle::factory()->create([
+            'first_french_registration_date' => '1990-04-01',
+            'first_origin_registration_date' => '1990-04-01',
+            'first_economic_use_date' => '1990-04-01',
+            'acquisition_date' => '1990-04-01',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $old->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('options.firstRegistrationYearBounds.min', 1990)
+                ->where('options.firstRegistrationYearBounds.max', 2026),
             );
     }
 

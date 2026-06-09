@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-    /** Lower bound (oldest year available in the database). */
+    /** Lower bound of the selectable range (window floor). */
     min: number;
-    /** Upper bound (most recent year available in the database). */
+    /** Upper bound of the selectable range (the current year). */
     max: number;
 }>();
 

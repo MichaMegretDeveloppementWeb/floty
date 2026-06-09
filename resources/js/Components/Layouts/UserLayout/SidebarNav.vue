@@ -24,10 +24,10 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
         :class="[
             'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-x-hidden overflow-y-auto border-r border-slate-200 bg-white',
             'transition-[transform,width] duration-200 ease-out',
-            'w-60',
+            'w-72',
             open ? 'translate-x-0' : '-translate-x-full',
-            'md:w-16 md:translate-x-0 md:hover:w-60',
-            'wide:w-60',
+            'md:w-16 md:translate-x-0 md:hover:w-72',
+            'wide:w-72',
         ]"
     >
         <div

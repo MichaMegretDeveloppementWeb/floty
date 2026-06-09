@@ -207,7 +207,7 @@ export function useSidebarNav(open: Ref<boolean>): {
     };
 
     const labelClass =
-        'whitespace-nowrap overflow-hidden opacity-100 max-w-[160px] md:opacity-0 md:max-w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:max-w-[160px] wide:opacity-100 wide:max-w-[160px] transition-[opacity,max-width] duration-200 ease-out';
+        'whitespace-nowrap overflow-hidden opacity-100 max-w-[200px] md:opacity-0 md:max-w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:max-w-[200px] wide:opacity-100 wide:max-w-[200px] transition-[opacity,max-width] duration-200 ease-out';
 
     return { sections, currentPath, isActive, closeDrawer, labelClass };
 }
