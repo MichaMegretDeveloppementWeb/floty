@@ -64,7 +64,9 @@ export function useFleetTable(opts: {
     onRowClick: (row: VehicleRow) => void;
 } {
     const state = useServerTableState<FleetFilters>({
-        only: ['vehicles', 'query', 'selectedYear'],
+        // controlsBadges is eager and keyed by the visible vehicles, so it
+        // reloads with them.
+        only: ['vehicles', 'query', 'selectedYear', 'controlsBadges'],
         initialPage: opts.query.page,
         initialPerPage: opts.query.perPage,
         initialSearch: opts.query.search ?? '',
