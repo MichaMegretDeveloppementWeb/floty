@@ -1,1 +1,0 @@
-var e={lcd:`LCD`,lld:`LLD`,mise_a_disposition_assimilee:`MAD`},t={lcd:`amber`,lld:`blue`,mise_a_disposition_assimilee:`slate`};export{e as n,t};
