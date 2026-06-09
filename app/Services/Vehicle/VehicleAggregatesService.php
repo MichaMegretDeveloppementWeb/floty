@@ -133,9 +133,22 @@ final class VehicleAggregatesService
         $companyIds = $this->collectCompanyIds($breakdown, $weeklyMap);
         $companiesById = $this->companies->findByIdsIndexed($companyIds);
 
+        // Operational days actually rented per company, distinct from the
+        // taxable days that drive the tax columns: an exonerated rental (LCD)
+        // shows its real days with 0 tax.
+        $operationalDaysByCompany = [];
+        foreach ($contractsByPair->pairsForVehicle($vehicle->id) as $companyId => $pairContracts) {
+            $days = 0;
+            foreach ($pairContracts as $contract) {
+                $days += $contract->countDaysInYear($year);
+            }
+            $operationalDaysByCompany[$companyId] = $days;
+        }
+
         usort(
             $breakdown,
-            static fn (array $a, array $b): int => $b['days'] <=> $a['days'],
+            static fn (array $a, array $b): int => ($operationalDaysByCompany[$b['companyId']] ?? 0)
+                <=> ($operationalDaysByCompany[$a['companyId']] ?? 0),
         );
 
         $companies = [];
@@ -146,8 +159,9 @@ final class VehicleAggregatesService
             if ($company === null) {
                 continue;
             }
+            $daysUsed = $operationalDaysByCompany[$row['companyId']] ?? 0;
             $proratoPercent = $daysInYear > 0
-                ? round($row['days'] / $daysInYear * 100, 1)
+                ? round($daysUsed / $daysInYear * 100, 1)
                 : 0.0;
 
             $companies[] = new VehicleCompanyUsageData(
@@ -155,13 +169,13 @@ final class VehicleAggregatesService
                 shortCode: $company->short_code,
                 legalName: $company->legal_name,
                 color: $company->color,
-                daysUsed: $row['days'],
+                daysUsed: $daysUsed,
                 proratoPercent: $proratoPercent,
                 taxCo2: $row['taxCo2'],
                 taxPollutants: $row['taxPollutants'],
                 taxTotal: $row['taxTotal'],
             );
-            $totalDays += $row['days'];
+            $totalDays += $daysUsed;
             $totalTax += $row['taxTotal'];
         }
 

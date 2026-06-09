@@ -659,6 +659,35 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function breakdown_compte_les_jours_utilises_meme_pour_une_location_exoneree(): void
+    {
+        // Un LCD court est exonéré (R-2024-021) : 0 € de taxe, mais la colonne
+        // JOURS doit montrer les jours réellement utilisés (pas 0).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create(['short_code' => 'BTP']);
+
+        // 10 jours (<= 30) -> location de courte durée, exonérée.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-06-09',
+            'end_date' => '2026-06-18',
+        ]);
+
+        $payload = $this->actingAs($user)
+            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2026")
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(1, $payload['companies']);
+        $this->assertSame('BTP', $payload['companies'][0]['shortCode']);
+        $this->assertSame(10, $payload['companies'][0]['daysUsed']);
+        $this->assertGreaterThan(0, $payload['companies'][0]['proratoPercent']);
+        $this->assertEquals(0, $payload['companies'][0]['taxTotal']);
+        $this->assertSame(10, $payload['daysUsedThisYear']);
+    }
+
+    #[Test]
     public function show_inclut_l_historique_complet_des_periodes_fiscales(): void
     {
         $user = User::factory()->create();
