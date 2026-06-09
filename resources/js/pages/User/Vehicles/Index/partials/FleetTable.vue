@@ -30,7 +30,7 @@ const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
 const props = defineProps<{
     vehicles: VehicleRow[];
     costs?: VehicleCosts;
-    controlsBadges?: ControlsBadges;
+    controlsBadges: ControlsBadges;
     columns: readonly DataTableColumn<VehicleRow>[];
     activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
@@ -46,9 +46,9 @@ const emit = defineEmits<{
 // guaranteed present there, so the assertions are safe.
 const costsFor = (row: VehicleRow): VehicleCostEntry => props.costs![row.id]!;
 
-// Sparse control badge for a row (only vehicles with a control needing
-// attention are present in the deferred map; absent while it loads).
-const badgeFor = (row: VehicleRow): ControlsBadge | undefined => props.controlsBadges?.[row.id];
+// Sparse control badge for a row: only vehicles with a control needing
+// attention are present in the (eager) map, so most rows carry none.
+const badgeFor = (row: VehicleRow): ControlsBadge | undefined => props.controlsBadges[row.id];
 
 function badgeTitle(badge: ControlsBadge): string {
     if (badge.overdueCount > 0) {

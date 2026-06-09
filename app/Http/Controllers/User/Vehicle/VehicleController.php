@@ -80,11 +80,12 @@ final class VehicleController extends Controller
                 fn () => $this->vehicleListing->costsForVehicleIds($vehicleIds, $year),
             ),
             // Per-row regulatory-control badge (overdue / due controls), resolved
-            // batched for the page. Deferred like the costs: the table paints
-            // first, badges land on the follow-up. Today-based, not year-scoped.
-            'controlsBadges' => Inertia::defer(
-                fn () => $this->vehicleControls->badgesForVehicleIds($vehicleIds, CarbonImmutable::today()),
-            ),
+            // batched for the page (bounded queries, no N+1). Eager, unlike the
+            // costs: a due/overdue control is visible on first paint with no
+            // follow-up round-trip nor skeleton, and the bounded scan is cheap
+            // enough not to delay the response. Today-based (not year-scoped),
+            // so it rides every list visit (sort / filter / page) automatically.
+            'controlsBadges' => $this->vehicleControls->badgesForVehicleIds($vehicleIds, CarbonImmutable::today()),
             'options' => [
                 'firstRegistrationYearBounds' => $this->vehicleListing->firstRegistrationYearBounds(),
             ],

@@ -7,6 +7,8 @@ namespace Tests\Feature\User\Vehicle;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\ControlDefinition;
+use App\Models\ControlReminderSettings;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -359,6 +361,44 @@ final class VehicleControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('options.firstRegistrationYearBounds.min', 1997)
                 ->where('options.firstRegistrationYearBounds.max', 2026),
+            );
+    }
+
+    #[Test]
+    public function index_expose_les_badges_de_controle_en_eager(): void
+    {
+        // Le badge de contrôle est servi en direct (eager) : présent dès le
+        // rendu initial (un prop différé serait absent à ce stade), pas de
+        // skeleton ni d'aller-retour de suivi.
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        ControlReminderSettings::singleton();
+        ControlDefinition::factory()->create([
+            'name' => 'Contrôle technique',
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+            'cycle_value' => 2,
+            'cycle_unit' => 'years',
+        ]);
+
+        $user = User::factory()->create();
+        // Immatriculé en 2018 : échéance initiale (4 ans) au 2022, donc en
+        // retard en 2026 -> le véhicule porte un badge « 1 » rouge.
+        $vehicle = Vehicle::factory()->create([
+            'first_french_registration_date' => '2018-01-01',
+            'first_origin_registration_date' => '2018-01-01',
+            'first_economic_use_date' => '2018-01-01',
+            'acquisition_date' => '2018-01-01',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('controlsBadges')
+                ->where('controlsBadges.'.$vehicle->id.'.dueCount', 1)
+                ->where('controlsBadges.'.$vehicle->id.'.overdueCount', 1),
             );
     }
 
