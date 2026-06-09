@@ -124,6 +124,23 @@ interface VehicleReadRepositoryInterface
     public function findAllForHeatmap(int $year, string $direction = 'asc'): Collection;
 
     /**
+     * Vehicles for the planning PDF export, scoped to an explicit id set.
+     *
+     * Mirrors {@see findAllForHeatmap()} (active at start of year +
+     * eager-loaded active fiscal characteristics, sorted by license plate)
+     * but bounded to the selected ids. The `$year` guards against stale
+     * ids · a vehicle not active that year is silently dropped.
+     *
+     * NE PAS réutiliser pour l'écran heatmap, qui charge toute la flotte
+     * active de l'année · cette méthode sert le sous-ensemble choisi dans
+     * la modale d'export.
+     *
+     * @param  array<int, int>  $ids
+     * @return Collection<int, Vehicle>
+     */
+    public function findByIdsForHeatmap(array $ids, int $year): Collection;
+
+    /**
      * Counts active vehicles (those with no `exit_date`).
      */
     public function countActive(): int;

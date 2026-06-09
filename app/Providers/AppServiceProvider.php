@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
+use App\Contracts\Pdf\PlanningPdfRendererInterface;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
+use App\Services\Pdf\BladeDomPdfPlanningRenderer;
 use App\Services\Pdf\DeclarationPdfStorage;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(BillingBreakdownService::class);
 
         $this->app->bind(DeclarationPdfRendererInterface::class, BladeDomPdfDeclarationRenderer::class);
+        $this->app->bind(PlanningPdfRendererInterface::class, BladeDomPdfPlanningRenderer::class);
 
         $this->app->bind(
             DeclarationPdfStorage::class,

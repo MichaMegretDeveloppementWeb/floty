@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Planning;
 
 use App\Actions\Contract\BulkCreateContractsAction;
+use App\Actions\Planning\ExportPlanningAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Contract\BulkStoreContractsData;
+use App\Data\User\Planning\PlanningExportRequestData;
 use App\Data\User\Planning\PreviewRentalsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
@@ -22,6 +24,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -183,6 +186,31 @@ final class PlanningController extends Controller
         $createdIds = $this->bulkCreateContracts->execute($input);
 
         return response()->json(['createdIds' => $createdIds]);
+    }
+
+    /**
+     * Stream an on-demand planning PDF for the selected vehicles.
+     *
+     * The payload carries only the ids of the currently filtered list,
+     * the year, the mode and the (optional) company scope · all figures
+     * are recomputed server-side. The document is ephemeral (streamed,
+     * never persisted), so the response is a raw binary attachment rather
+     * than an Inertia visit.
+     */
+    public function export(PlanningExportRequestData $input, ExportPlanningAction $action): HttpResponse
+    {
+        Gate::authorize('view-planning');
+
+        $result = $action->execute($input);
+
+        return new HttpResponse(
+            $result['binary'],
+            HttpResponse::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf('attachment; filename="%s"', $result['filename']),
+            ],
+        );
     }
 
     /**

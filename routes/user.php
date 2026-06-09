@@ -333,6 +333,9 @@ Route::middleware('auth')
         Route::post('/planning/contracts', [PlanningController::class, 'storeBulk'])
             ->middleware('throttle:300,1')
             ->name('planning.contracts.store-bulk');
+        Route::post('/planning/export', [PlanningController::class, 'export'])
+            ->middleware('throttle:30,1')
+            ->name('planning.export');
 
         // Planning · company-scoped heatmap variant.
         // The root path (no param) redirects to the first existing company,

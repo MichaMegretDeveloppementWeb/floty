@@ -230,6 +230,22 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->get();
     }
 
+    public function findByIdsForHeatmap(array $ids, int $year): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        $startOfYear = CarbonImmutable::create($year, 1, 1);
+
+        return Vehicle::query()
+            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
+            ->whereIn('id', $ids)
+            ->activeAt($startOfYear)
+            ->orderBy('license_plate')
+            ->get();
+    }
+
     public function countActive(): int
     {
         return Vehicle::query()->whereNull('exit_date')->count();
