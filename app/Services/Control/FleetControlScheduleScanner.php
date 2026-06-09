@@ -174,6 +174,7 @@ final readonly class FleetControlScheduleScanner
         return new VehicleControlScheduleResult(
             controlName: $override?->name ?? $definition->name,
             nextDue: $nextDue,
+            dueFrom: $nextDue->subDays($daysBefore),
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $daysBefore, $exitDate),
         );
     }
@@ -208,6 +209,7 @@ final readonly class FleetControlScheduleScanner
         return new VehicleControlScheduleResult(
             controlName: (string) $override->name,
             nextDue: $nextDue,
+            dueFrom: $nextDue->subDays($daysBefore),
             scheduleStatus: $this->schedule->deriveStatus($nextDue, $lastExecution, $today, $daysBefore, $exitDate),
         );
     }

@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $exit_date
  * @property VehicleExitReason|null $exit_reason
  * @property VehicleStatus $current_status
+ * @property Carbon|null $controls_due_from Materialised cache (derived, not fillable): earliest date a control needs attention. See ControlDueDateRecomputeService.
  * @property int|null $mileage_current
  * @property string|null $notes
  * @property Carbon|null $created_at
@@ -96,6 +97,7 @@ final class Vehicle extends Model
             'exit_date' => 'date',
             'exit_reason' => VehicleExitReason::class,
             'current_status' => VehicleStatus::class,
+            'controls_due_from' => 'date',
         ];
     }
 

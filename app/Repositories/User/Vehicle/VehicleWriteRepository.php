@@ -12,6 +12,7 @@ use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Eloquent implementation of Vehicle writes.
@@ -85,6 +86,39 @@ final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
         ]);
 
         return $vehicle->fresh();
+    }
+
+    public function updateControlsDueFrom(array $dueFromByVehicleId): void
+    {
+        if ($dueFromByVehicleId === []) {
+            return;
+        }
+
+        $ids = array_keys($dueFromByVehicleId);
+
+        $caseFragments = [];
+        $bindings = [];
+        foreach ($dueFromByVehicleId as $vehicleId => $dueFrom) {
+            $caseFragments[] = 'when ? then ?';
+            $bindings[] = $vehicleId;
+            $bindings[] = $dueFrom;
+        }
+        foreach ($ids as $vehicleId) {
+            $bindings[] = $vehicleId;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+
+        // Query-builder update (no model events) so the recompute observers
+        // do not recurse; only the derived column is written.
+        DB::update(
+            sprintf(
+                'update vehicles set controls_due_from = case id %s end where id in (%s)',
+                implode(' ', $caseFragments),
+                $placeholders,
+            ),
+            $bindings,
+        );
     }
 
     /**
