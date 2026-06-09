@@ -9,6 +9,7 @@ use App\DTO\Planning\PlanningExportData;
 use App\DTO\Planning\PlanningExportRowData;
 use App\Enums\Planning\PlanningExportMode;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 /**
  * HTML → PDF renderer for the planning export.
@@ -72,9 +73,15 @@ final readonly class BladeDomPdfPlanningRenderer implements PlanningPdfRendererI
      */
     private function mapRow(PlanningExportRowData $row): array
     {
+        $vehicleLabel = trim($row->brand.' '.$row->model);
+
         return [
             'licensePlate' => $row->licensePlate,
-            'vehicleLabel' => trim($row->brand.' '.$row->model),
+            'vehicleLabel' => $vehicleLabel,
+            // Bounded variant for the dense weekly grid · the identity
+            // column is nowrap, so an over-long name would steal width from
+            // the week columns. The full label stays in the vehicle sheet.
+            'vehicleLabelShort' => Str::limit($vehicleLabel, 24),
             'userType' => $row->userType->label(),
             'userTypeShort' => $row->userType->value,
             'energy' => $row->energy->label(),
