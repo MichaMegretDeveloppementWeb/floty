@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /** Dashboard panel listing regulatory controls reaching échéance across the fleet. */
-import { ShieldCheck } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { ChevronRight, ShieldCheck } from 'lucide-vue-next';
+import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 import ControlDueRow from './ControlDueRow.vue';
 
 type ControlsDue = App.Data.User.Dashboard.DashboardControlsDueData;
@@ -36,6 +38,14 @@ defineProps<{
                     </template>
                 </p>
             </div>
+            <Link
+                v-if="count > 0"
+                :href="vehiclesIndexRoute.url({ query: { controlsDue: 1 } })"
+                class="ml-auto inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-blue-600 transition-colors duration-[120ms] ease-out hover:text-blue-700"
+            >
+                Voir tout
+                <ChevronRight :size="15" :stroke-width="2" aria-hidden="true" />
+            </Link>
         </header>
 
         <ul v-if="items.length > 0" class="grid grid-cols-1 gap-2 sm:grid-cols-2">

@@ -366,6 +366,63 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_filtre_controles_a_echeance(): void
+    {
+        // `?controlsDue=1` ne garde que les véhicules ayant au moins un contrôle
+        // à traiter aujourd'hui, via le cache materialisé controls_due_from.
+        $this->travelTo(Carbon::create(2026, 6, 9));
+
+        ControlReminderSettings::singleton();
+        ControlDefinition::factory()->create([
+            'name' => 'Contrôle technique',
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => 'years',
+            'cycle_value' => 2,
+            'cycle_unit' => 'years',
+        ]);
+
+        $user = User::factory()->create();
+
+        // En retard (immat 2018 -> échéance 2022).
+        $due = Vehicle::factory()->create([
+            'first_french_registration_date' => '2018-01-01',
+            'first_origin_registration_date' => '2018-01-01',
+            'first_economic_use_date' => '2018-01-01',
+            'acquisition_date' => '2018-01-01',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $due->id]);
+
+        // À venir (immat 2025 -> échéance 2029, loin de la fenêtre).
+        $notDue = Vehicle::factory()->create([
+            'first_french_registration_date' => '2025-06-01',
+            'first_origin_registration_date' => '2025-06-01',
+            'first_economic_use_date' => '2025-06-01',
+            'acquisition_date' => '2025-06-01',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $notDue->id]);
+
+        // Sorti (contrôle en retard mais hors flotte) -> exclu malgré sa colonne.
+        $exited = Vehicle::factory()->create([
+            'first_french_registration_date' => '2018-01-01',
+            'first_origin_registration_date' => '2018-01-01',
+            'first_economic_use_date' => '2018-01-01',
+            'acquisition_date' => '2018-01-01',
+            'exit_date' => '2025-01-01',
+            'exit_reason' => 'sold',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $exited->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?controlsDue=1')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 1)
+                ->where('vehicles.data.0.id', $due->id)
+                ->where('query.controlsDue', true),
+            );
+    }
+
+    #[Test]
     public function index_expose_les_badges_de_controle_en_eager(): void
     {
         // Le badge de contrôle est servi en direct (eager) : présent dès le

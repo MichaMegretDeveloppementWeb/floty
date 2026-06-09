@@ -30,6 +30,7 @@ final class VehicleIndexQueryData extends IndexQueryData
         public ?bool $handicapAccess = null,
         public ?int $firstRegistrationYearMin = null,
         public ?int $firstRegistrationYearMax = null,
+        public ?bool $controlsDue = null,
         public ?int $year = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
@@ -74,6 +75,7 @@ final class VehicleIndexQueryData extends IndexQueryData
             'handicapAccess' => ['nullable', 'boolean'],
             'firstRegistrationYearMin' => ['nullable', 'integer', 'min:1900', 'max:2100'],
             'firstRegistrationYearMax' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'controlsDue' => ['nullable', 'boolean'],
             'year' => $yearRule,
         ]);
     }

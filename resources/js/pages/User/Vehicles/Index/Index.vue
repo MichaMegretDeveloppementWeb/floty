@@ -90,6 +90,7 @@ const {
     energySourceModel,
     pollutantCategoryModel,
     handicapAccessModel,
+    controlsDueModel,
     firstRegistrationYearMinModel,
     firstRegistrationYearMaxModel,
     includeExitedModel,
@@ -179,6 +180,12 @@ const {
                                 <CheckboxInput
                                     v-model="handicapAccessModel"
                                     label="Accès handicapé uniquement"
+                                />
+                            </div>
+                            <div>
+                                <CheckboxInput
+                                    v-model="controlsDueModel"
+                                    label="Contrôle à échéance uniquement"
                                 />
                             </div>
                             <div>

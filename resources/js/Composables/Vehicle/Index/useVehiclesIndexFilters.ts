@@ -34,6 +34,7 @@ export type UseVehiclesIndexFiltersReturn = {
     energySourceModel: ComputedRef<string | number>;
     pollutantCategoryModel: ComputedRef<string | number>;
     handicapAccessModel: ComputedRef<boolean>;
+    controlsDueModel: ComputedRef<boolean>;
     firstRegistrationYearMinModel: ComputedRef<number | null>;
     firstRegistrationYearMaxModel: ComputedRef<number | null>;
     includeExitedModel: ComputedRef<boolean>;
@@ -150,6 +151,13 @@ export function useVehiclesIndexFilters(
         },
     });
 
+    const controlsDueModel = computed<boolean>({
+        get: () => tableState.filters.value.controlsDue === true,
+        set: (value: boolean) => {
+            tableState.setFilter('controlsDue', value === true ? true : null);
+        },
+    });
+
     const firstRegistrationYearMinModel = computed<number | null>({
         get: () => tableState.filters.value.firstRegistrationYearMin,
         set: (value: number | null) => {
@@ -198,6 +206,10 @@ export function useVehiclesIndexFilters(
             n += 1;
         }
 
+        if (f.controlsDue === true) {
+            n += 1;
+        }
+
         if (
             f.firstRegistrationYearMin !== null ||
             f.firstRegistrationYearMax !== null
@@ -215,6 +227,7 @@ export function useVehiclesIndexFilters(
         energySourceModel,
         pollutantCategoryModel,
         handicapAccessModel,
+        controlsDueModel,
         firstRegistrationYearMinModel,
         firstRegistrationYearMaxModel,
         includeExitedModel,

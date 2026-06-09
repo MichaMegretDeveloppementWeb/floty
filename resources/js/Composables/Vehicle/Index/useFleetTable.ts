@@ -44,6 +44,8 @@ export type FleetFilters = {
     handicapAccess: boolean | null;
     firstRegistrationYearMin: number | null;
     firstRegistrationYearMax: number | null;
+    /** Keep only vehicles with at least one control needing attention today. */
+    controlsDue: boolean | null;
     /** Year for the financial columns (Taxe pleine, Montant loyer). */
     year: number;
 };
@@ -77,6 +79,7 @@ export function useFleetTable(opts: {
             handicapAccess: null,
             firstRegistrationYearMin: null,
             firstRegistrationYearMax: null,
+            controlsDue: null,
             year: opts.currentRealYear,
         },
         initialFilters: {
@@ -87,6 +90,7 @@ export function useFleetTable(opts: {
             handicapAccess: opts.query.handicapAccess,
             firstRegistrationYearMin: opts.query.firstRegistrationYearMin,
             firstRegistrationYearMax: opts.query.firstRegistrationYearMax,
+            controlsDue: opts.query.controlsDue,
             year: opts.selectedYear,
         },
         serializeFilters: (f) => ({
@@ -98,6 +102,7 @@ export function useFleetTable(opts: {
             handicapAccess: f.handicapAccess === true ? 1 : null,
             firstRegistrationYearMin: f.firstRegistrationYearMin,
             firstRegistrationYearMax: f.firstRegistrationYearMax,
+            controlsDue: f.controlsDue === true ? 1 : null,
             // Real year stays implicit (clean URL); serialise only non-trivial values.
             year: f.year === opts.currentRealYear ? null : f.year,
         }),
