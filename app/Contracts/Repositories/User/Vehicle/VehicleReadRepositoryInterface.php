@@ -149,9 +149,8 @@ interface VehicleReadRepositoryInterface
     public function findScheduleColumnsByIds(array $ids): Collection;
 
     /**
-     * Stored materialised `controls_due_from` for a set of vehicles, keyed by
-     * id (value: `Y-m-d` string or null). Used by the control due-date drift
-     * detector to compare the cache against a fresh recomputation.
+     * Stored `controls_due_from` for the given vehicles, keyed by id
+     * (`Y-m-d`|null). Used by the drift detector.
      *
      * @param  list<int>  $ids
      * @return array<int, string|null>

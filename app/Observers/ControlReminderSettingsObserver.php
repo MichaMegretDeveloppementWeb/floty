@@ -8,11 +8,8 @@ use App\Models\ControlReminderSettings;
 use App\Services\Control\ControlDueDateRecomputeService;
 
 /**
- * Keeps the materialised `vehicles.controls_due_from` fresh when the GLOBAL
- * default reminder window changes: `days_before` is baked into `dueFrom`
- * (= next_due - window) for every control that inherits the default, so the
- * whole fleet is recomputed. The other settings fields (repeat, remind-on-due)
- * do not affect the due-from date. Wired via `#[ObservedBy]` on the model.
+ * Recomputes the `controls_due_from` cache fleet-wide when the default reminder
+ * window (`days_before`) changes; the other settings fields do not affect it.
  */
 final readonly class ControlReminderSettingsObserver
 {

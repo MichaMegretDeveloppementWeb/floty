@@ -109,8 +109,8 @@ final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
 
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
 
-        // Query-builder update (no model events) so the recompute observers
-        // do not recurse; only the derived column is written.
+        // Query-builder update (no model events) to avoid recursing into the
+        // recompute observers.
         DB::update(
             sprintf(
                 'update vehicles set controls_due_from = case id %s end where id in (%s)',

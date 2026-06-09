@@ -11,32 +11,15 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Recomputes and persists the materialised `vehicles.controls_due_from` cache:
- * the earliest date from which a vehicle has at least one active control
- * needing attention. This is a DERIVED value: the live computation
- * ({@see FleetControlScheduleScanner}, itself backed by
- * {@see ControlScheduleService}) stays the single source of truth, and this
- * service merely projects its result into a column so the fleet list can
- * filter "controls due" in plain SQL.
- *
- * The column equals, per vehicle, the MIN over its ACTIVE controls of
- * `dueFrom` (= next due minus the effective reminder window), restricted to
- * controls that do NOT fall on or after a planned exit (mirroring
- * {@see ControlScheduleService::deriveStatus()} `nextDue >= exitDate →
- * NotApplicable`). The "exit already happened" case (`exit_date <= today`) is
- * today-relative and is handled by the index filter's `WHERE`, not baked here.
- * NULL = no active control / never due.
- *
- * Recompute is event-driven (observers on the control + vehicle models) for
- * freshness, fully replayed nightly for self-healing, and drift-checked. See
- * the recompute / verify Artisan commands.
+ * Recomputes the materialised `vehicles.controls_due_from` cache: per vehicle,
+ * the earliest `dueFrom` of its active controls (from
+ * {@see FleetControlScheduleScanner}), excluding controls due on or after a
+ * planned exit; NULL when none. The live scanner stays the source of truth;
+ * this only projects it into a column for SQL filtering.
  */
 final readonly class ControlDueDateRecomputeService
 {
-    /**
-     * Batch size for the materialisation write, keeping each `CASE` update
-     * statement bounded regardless of fleet size.
-     */
+    /** Caps each `CASE` write statement regardless of fleet size. */
     private const int WRITE_CHUNK = 500;
 
     public function __construct(
@@ -45,26 +28,20 @@ final readonly class ControlDueDateRecomputeService
         private VehicleWriteRepositoryInterface $vehicleWrite,
     ) {}
 
-    /**
-     * Recompute the whole in-fleet scope (active + planned-future-exit
-     * vehicles). Used for the one-off backfill and the nightly self-heal.
-     */
+    /** Recomputes every in-fleet vehicle (backfill / nightly self-heal). */
     public function forFleet(): void
     {
         $this->forVehicles($this->vehicleRead->findActiveForReminderScan(CarbonImmutable::today()));
     }
 
-    /**
-     * Recompute a single vehicle (observer path). No-op if it no longer exists.
-     */
+    /** Recomputes one vehicle; no-op if it no longer exists. */
     public function forVehicleId(int $vehicleId): void
     {
         $this->forVehicles($this->vehicleRead->findScheduleColumnsByIds([$vehicleId]));
     }
 
     /**
-     * Recompute the cache for a set of vehicles already carrying their anchor +
-     * exit_date columns, persisting in bounded batches.
+     * Recomputes and persists the cache for the given vehicles, in bounded batches.
      *
      * @param  Collection<int, Vehicle>  $vehicles
      */
@@ -78,9 +55,7 @@ final readonly class ControlDueDateRecomputeService
     }
 
     /**
-     * Computes the expected `controls_due_from` for the whole in-fleet scope
-     * WITHOUT writing, keyed by vehicle id. Drift detector: compared against the
-     * stored column to surface any divergence (see VerifyControlDueDatesCommand).
+     * Expected cache for the in-fleet scope, computed without writing.
      *
      * @return array<int, string|null>
      */
@@ -90,11 +65,8 @@ final readonly class ControlDueDateRecomputeService
     }
 
     /**
-     * Compares the stored cache against a fresh recomputation over the in-fleet
-     * scope and returns the divergences, keyed by vehicle id (expected vs stored
-     * `Y-m-d`|null). Empty = fully consistent. Read-only: surfaces drift so a
-     * missed write channel never stays silent; the recompute command is what
-     * fixes it.
+     * Vehicles whose stored cache differs from a fresh recompute, keyed by id
+     * (expected vs stored). Empty when consistent. Read-only.
      *
      * @return array<int, array{expected: string|null, stored: string|null}>
      */
@@ -117,9 +89,7 @@ final readonly class ControlDueDateRecomputeService
     }
 
     /**
-     * Pure computation (no write) of the materialised value per vehicle: the
-     * single source feeding both {@see forVehicles()} (persist) and the drift
-     * detector (compare). Keyed by vehicle id, value `Y-m-d` string or null.
+     * Computes the cache value per vehicle (no write), keyed by id (`Y-m-d`|null).
      *
      * @param  Collection<int, Vehicle>  $vehicles
      * @return array<int, string|null>
@@ -144,9 +114,8 @@ final readonly class ControlDueDateRecomputeService
     }
 
     /**
-     * Earliest `dueFrom` among a vehicle's active control results, excluding
-     * controls falling on or after a planned exit (those are NotApplicable).
-     * Null when no qualifying control remains.
+     * Earliest `dueFrom` among the active controls, excluding any due on or
+     * after a planned exit. Null when none qualify.
      *
      * @param  list<VehicleControlScheduleResult>  $results
      */

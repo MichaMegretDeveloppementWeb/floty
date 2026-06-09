@@ -8,9 +8,7 @@ use App\Models\VehicleControlOverride;
 use App\Services\Control\ControlDueDateRecomputeService;
 
 /**
- * Keeps the materialised `vehicles.controls_due_from` fresh when a per-vehicle
- * control override changes (anchor, durations, status, reminder window). Scoped
- * to the single affected vehicle. Wired via `#[ObservedBy]` on the model.
+ * Recomputes the `controls_due_from` cache for the override's vehicle.
  */
 final readonly class VehicleControlOverrideObserver
 {

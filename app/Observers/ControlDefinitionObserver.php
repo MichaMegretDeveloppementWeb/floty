@@ -8,11 +8,8 @@ use App\Models\ControlDefinition;
 use App\Services\Control\ControlDueDateRecomputeService;
 
 /**
- * Keeps the materialised `vehicles.controls_due_from` fresh when a GLOBAL
- * control definition changes. A definition applies to the whole fleet (anchor,
- * durations, active status, reminder window), so any change recomputes every
- * in-fleet vehicle. Rare admin action; the nightly recompute is the self-heal
- * net should any channel be missed. Wired via `#[ObservedBy]` on the model.
+ * Recomputes the `controls_due_from` cache fleet-wide when a global control
+ * definition changes (it applies to every vehicle).
  */
 final readonly class ControlDefinitionObserver
 {

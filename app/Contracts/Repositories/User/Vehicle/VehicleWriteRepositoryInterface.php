@@ -55,11 +55,9 @@ interface VehicleWriteRepositoryInterface
     public function markAsActive(int $vehicleId): Vehicle;
 
     /**
-     * Persists the materialised `controls_due_from` cache for a batch of
-     * vehicles in a SINGLE query, keyed by vehicle id (value: `Y-m-d` string
-     * or null). Written via the query builder ON PURPOSE: it must NOT fire
-     * model events (it IS the recompute output, so re-triggering the
-     * recompute observers would recurse). Only the derived column is touched.
+     * Persists the materialised `controls_due_from` for a batch of vehicles in
+     * one query (id => `Y-m-d`|null). Bypasses model events on purpose (it is
+     * the recompute output).
      *
      * @param  array<int, string|null>  $dueFromByVehicleId
      */

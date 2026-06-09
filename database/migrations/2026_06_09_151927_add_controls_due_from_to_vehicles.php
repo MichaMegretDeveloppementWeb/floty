@@ -9,13 +9,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Materialised cache column for the fleet "control due" filter: earliest
-     * date from which the vehicle has at least one active regulatory control
-     * needing attention (= MIN of `next_due - reminder_window` over its active
-     * controls, excluding controls falling on or after a planned exit). NULL =
-     * no active control / never due. Derived value: the live computation
-     * (ControlScheduleService via FleetControlScheduleScanner) stays the source
-     * of truth; this column is recomputed on writes + nightly + drift-checked.
+     * Adds `controls_due_from`: materialised cache for the "control due" fleet
+     * filter (earliest date a vehicle's active control needs attention; NULL if
+     * none). Maintained by ControlDueDateRecomputeService.
      */
     public function up(): void
     {

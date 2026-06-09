@@ -9,11 +9,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Drift detector for the materialised `vehicles.controls_due_from` cache:
- * recomputes the value live and compares it to what is stored, without writing.
- * Any divergence is logged at warning level (the alert) so a missed write
- * channel can never stay silent. Scheduled daily right after the recompute;
- * also safe to run manually. The recompute command is what corrects drift.
+ * Detects drift in the `controls_due_from` cache (live recompute vs stored) and
+ * logs a warning on any divergence. Read-only; the recompute command fixes it.
  */
 final class VerifyControlDueDatesCommand extends Command
 {

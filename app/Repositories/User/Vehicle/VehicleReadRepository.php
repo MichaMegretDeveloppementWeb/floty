@@ -139,11 +139,9 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             $eloquentQuery->whereYear('first_french_registration_date', '<=', $query->firstRegistrationYearMax);
         }
 
-        // "Control due" filter (point 4): at least one active control needs
-        // attention today. Reads the materialised cache so it stays a single,
-        // index-friendly SQL WHERE (no join, no PHP scan). The exit condition
-        // mirrors deriveStatus (`exit_date <= today` → NotApplicable), so an
-        // exited vehicle never matches even with includeExited = true.
+        // Keep vehicles with at least one control due today, from the
+        // materialised cache. The exit clause excludes exited vehicles even
+        // when includeExited is true.
         if ($query->controlsDue === true) {
             $today = CarbonImmutable::today()->toDateString();
             $eloquentQuery

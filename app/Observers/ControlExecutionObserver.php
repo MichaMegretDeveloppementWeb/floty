@@ -8,10 +8,8 @@ use App\Models\ControlExecution;
 use App\Services\Control\ControlDueDateRecomputeService;
 
 /**
- * Keeps the materialised `vehicles.controls_due_from` fresh when an execution is
- * recorded or removed: the latest execution date shifts the next due date
- * forward (or back, on deletion). Scoped to the affected vehicle. Wired via
- * `#[ObservedBy]` on the model.
+ * Recomputes the `controls_due_from` cache for the execution's vehicle (a
+ * recorded or removed execution shifts the next due date).
  */
 final readonly class ControlExecutionObserver
 {

@@ -9,11 +9,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Fully recomputes the materialised `vehicles.controls_due_from` cache for the
- * whole in-fleet scope. Serves two purposes: the one-off backfill after the
- * column is added, and the nightly self-heal that corrects any drift the
- * write-time observers could have missed (bulk write, future channel, etc.).
- * Idempotent and safe to run manually.
+ * Recomputes the `controls_due_from` cache for the whole fleet (backfill and
+ * nightly self-heal). Idempotent.
  */
 final class RecomputeControlDueDatesCommand extends Command
 {

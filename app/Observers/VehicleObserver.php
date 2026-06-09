@@ -13,23 +13,14 @@ use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Reacts to {@see Vehicle} mutations:
- *   - `exit_date` changes flag the dependent invoices (usage clipped by
- *     {@see BillingCalculator}) and fiscal declarations (taxable scope) ;
- *   - changes to a control anchor date or `exit_date`, and vehicle creation,
- *     recompute the materialised `controls_due_from` cache (anchors feed the
- *     next due date, exit gates which controls count). The recompute writes
- *     the derived column via the query builder (no model event) so it does not
- *     recurse here.
- *
- * Wired through `#[ObservedBy]` on the model.
+ * Reacts to {@see Vehicle} mutations: an `exit_date` change flags the dependent
+ * invoices ({@see BillingCalculator}) and fiscal declarations; a change to a
+ * control anchor or `exit_date`, and vehicle creation, recompute the
+ * `controls_due_from` cache.
  */
 final class VehicleObserver
 {
-    /**
-     * Vehicle date columns that feed a control's next due date. A change to any
-     * of them (or to `exit_date`) invalidates the materialised due-from cache.
-     */
+    /** Vehicle date columns feeding a control's next due date. */
     private const array CONTROL_ANCHOR_COLUMNS = [
         'first_french_registration_date',
         'first_origin_registration_date',
