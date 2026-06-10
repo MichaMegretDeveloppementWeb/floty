@@ -30,7 +30,7 @@ final class RecordControlExecutionData extends Data
      * @param  list<string>  $categories  Extra natures added on the "Fait"
      *                                    modal; the Action prepends the auto
      *                                    natures « Contrôle réglementaire » +
-     *                                    « Maintenance / entretien ». Unlimited.
+     *                                    « Maintenance préventive ». Unlimited.
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
@@ -57,7 +57,7 @@ final class RecordControlExecutionData extends Data
             'vehicle_control_override_id' => ['nullable', 'integer', 'exists:vehicle_control_overrides,id', 'required_without:control_definition_id'],
             'note' => ['nullable', 'string', 'max:500'],
             'amount_cents' => ['nullable', 'integer', 'min:0'],
-            // « Contrôle réglementaire » + « Maintenance / entretien » sont
+            // « Contrôle réglementaire » + « Maintenance préventive » sont
             // ajoutés d'office par l'Action ; les ajouts utilisateur sont illimités.
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],

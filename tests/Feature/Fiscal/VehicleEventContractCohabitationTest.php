@@ -133,7 +133,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
             startDate: '2024-04-10',
             endDate: '2024-04-14',
             description: null,
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);

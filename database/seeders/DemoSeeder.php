@@ -1112,7 +1112,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
             title: 'Entretien courant',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             startDate: '2024-12-09',
             endDate: '2024-12-12',
             description: 'Révision constructeur + remplacement pneus AV.',
@@ -1154,7 +1154,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
             title: 'Entretien courant',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             startDate: '2024-02-12',
             endDate: '2024-02-15',
             description: 'Cohabitation contrat BTP : entretien courant (NE doit PAS réduire la taxe).',
@@ -1206,7 +1206,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
             title: 'Entretien courant',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             startDate: '2025-06-10',
             endDate: '2025-06-15',
             description: 'Maintenance 5j 2025 · NON réductrice (garde-fou).',
@@ -1240,7 +1240,7 @@ final class DemoSeeder extends Seeder
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire', 'Maintenance / entretien'],
+            categories: ['Contrôle réglementaire', 'Maintenance préventive'],
             amountCents: 8500,
         );
 
@@ -1266,7 +1266,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EQ-017-QQ'],
             title: 'Entretien courant',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             startDate: '2025-05-10',
             endDate: '2025-05-25',
             description: 'NON réductrice 16j · 2/2 cumul EQ-017-QQ',
@@ -1340,7 +1340,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EV-022-VV'],
             title: 'Entretien courant',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             startDate: '2026-07-10',
             endDate: '2026-07-14',
             description: 'Maintenance 5j · NON réductrice.',
@@ -1383,7 +1383,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-09-16',
             description: 'CT 2026.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire', 'Maintenance / entretien'],
+            categories: ['Contrôle réglementaire', 'Maintenance préventive'],
             amountCents: 8500,
         );
 
@@ -1399,7 +1399,7 @@ final class DemoSeeder extends Seeder
             startDate: '2026-03-04',
             endDate: '2026-03-04',
             description: 'Révision + remplacement pneus hiver.',
-            categories: ['Maintenance / entretien', 'Pneus'],
+            categories: ['Entretien', 'Pneus'],
             amountCents: 74000,
         );
 
@@ -1410,7 +1410,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-05-20',
             description: 'Nettoyage intérieur + extérieur avant remise en location.',
             title: 'Nettoyage complet',
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             amountCents: 9000,
         );
 

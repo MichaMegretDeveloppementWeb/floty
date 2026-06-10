@@ -45,7 +45,7 @@ final class EventNatureFiscalResolverTest extends TestCase
     public function une_seule_nature_reductrice_suffit_parmi_plusieurs(): void
     {
         $this->assertTrue($this->resolver->hasReductiveNature([
-            'Maintenance / entretien',
+            'Entretien',
             EventNatureCatalog::REDUCTIVE[1],
             'Saisie libre quelconque',
         ]));

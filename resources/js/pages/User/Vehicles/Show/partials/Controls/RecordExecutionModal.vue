@@ -28,9 +28,9 @@ const open = defineModel<boolean>('open', { required: true });
 
 const { form, fieldError, addDocuments, removeDocument, seed, submit } = useRecordExecutionForm(props.vehicleId);
 
-// « Contrôle réglementaire » + « Maintenance / entretien » sont ajoutées
+// « Contrôle réglementaire » + « Maintenance préventive » sont ajoutées
 // d'office par le backend ; l'utilisateur peut ajouter d'autres natures librement.
-const lockedControlCategories = ['Contrôle réglementaire', 'Maintenance / entretien'];
+const lockedControlCategories = ['Contrôle réglementaire', 'Maintenance préventive'];
 
 watch(open, (isOpen) => {
     if (isOpen && props.control !== null) {

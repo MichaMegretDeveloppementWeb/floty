@@ -73,7 +73,7 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-04-01',
             endDate: '2024-04-03',
             description: null,
-            categories: ['Maintenance / entretien', 'Saisie libre'],
+            categories: ['Entretien', 'Saisie libre'],
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);
@@ -130,7 +130,7 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-04-01',
             endDate: '2024-04-03',
             description: null,
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
             amountCents: 123_456,
         ));
 
@@ -148,7 +148,7 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-04-01',
             endDate: '2024-04-03',
             description: null,
-            categories: ['Maintenance / entretien'],
+            categories: ['Entretien'],
         ));
 
         $this->assertNull($vehicleEvent->fresh()->amount_cents);

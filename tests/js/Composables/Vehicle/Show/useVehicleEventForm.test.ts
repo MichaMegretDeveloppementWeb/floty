@@ -17,7 +17,7 @@ describe('hasReductiveNature', () => {
     });
 
     it('retourne false pour des natures libres ou non réductrices', () => {
-        expect(hasReductiveNature(['Maintenance / entretien', 'Pneus'], REDUCTIVE)).toBe(false);
+        expect(hasReductiveNature(['Entretien', 'Pneus'], REDUCTIVE)).toBe(false);
     });
 
     it('retourne false pour une liste vide ou des entrées vides', () => {

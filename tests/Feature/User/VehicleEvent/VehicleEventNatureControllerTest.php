@@ -53,7 +53,7 @@ final class VehicleEventNatureControllerTest extends TestCase
         $before = VehicleEventNature::query()->count();
 
         $this->actingAs($this->user)
-            ->post('/app/vehicle-event-natures', ['label' => 'maintenance / ENTRETIEN'])
+            ->post('/app/vehicle-event-natures', ['label' => 'ENTRETIEN'])
             ->assertRedirect();
 
         $this->assertSame($before, VehicleEventNature::query()->count());

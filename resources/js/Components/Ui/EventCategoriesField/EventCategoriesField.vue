@@ -262,7 +262,7 @@ function add(): void {
                             :value="modelValue[index]"
                             maxlength="60"
                             autocomplete="off"
-                            placeholder="Ex. Maintenance / entretien, Vol..."
+                            placeholder="Ex. Maintenance préventive, Vol..."
                             :class="[
                                 'w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none',
                                 duplicateIndices.has(index)

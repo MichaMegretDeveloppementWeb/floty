@@ -64,7 +64,7 @@ final class VehicleEventControllerTest extends TestCase
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-04-01',
                 'end_date' => '2024-04-03',
             ])
@@ -91,7 +91,7 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$u->id}", [
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-05-01',
                 'end_date' => '2024-05-20',
                 'description' => 'Prolongée',
@@ -166,7 +166,7 @@ final class VehicleEventControllerTest extends TestCase
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-07-10',
                 'end_date' => '2024-07-15',
             ])
@@ -230,7 +230,7 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$vehicleEvent->id}", [
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-08-01',
                 'end_date' => '2024-08-20',
             ])
@@ -362,7 +362,7 @@ final class VehicleEventControllerTest extends TestCase
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-10-01',
                 'end_date' => '2024-10-03',
                 'documents' => [
@@ -471,7 +471,7 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$event->id}", [
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-05-01',
                 'end_date' => '2024-05-12',
             ])
@@ -492,7 +492,7 @@ final class VehicleEventControllerTest extends TestCase
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
                 'title' => 'Entretien courant',
-                'categories' => ['Maintenance / entretien'],
+                'categories' => ['Entretien'],
                 'start_date' => '2024-10-01',
                 'end_date' => '2024-10-03',
                 'documents' => [
