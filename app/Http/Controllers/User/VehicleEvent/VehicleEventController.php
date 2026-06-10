@@ -9,6 +9,7 @@ use App\Actions\VehicleEvent\DeleteVehicleEventAction;
 use App\Actions\VehicleEvent\UpdateVehicleEventAction;
 use App\Actions\VehicleEvent\UploadVehicleEventDocumentAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventDetailSuggestionReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
@@ -34,6 +35,7 @@ final class VehicleEventController extends Controller
     public function __construct(
         private readonly VehicleEventReadRepositoryInterface $events,
         private readonly VehicleEventNatureReadRepositoryInterface $natures,
+        private readonly VehicleEventDetailSuggestionReadRepositoryInterface $detailSuggestions,
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
         private readonly VehicleEventQueryService $eventQuery,
@@ -80,6 +82,7 @@ final class VehicleEventController extends Controller
             'busyDates' => $this->busyDatesForYear($vehicle, $year),
             'initialDate' => $initialDate,
             'natureSuggestions' => $this->natureSuggestions(),
+            'detailSuggestions' => $this->detailSuggestions->all(),
         ]);
     }
 
@@ -111,6 +114,7 @@ final class VehicleEventController extends Controller
             'vehicleEvent' => VehicleEventData::fromModel($event),
             'busyDates' => $this->busyDatesForYear($vehicle, $event->start_date->year),
             'natureSuggestions' => $this->natureSuggestions(),
+            'detailSuggestions' => $this->detailSuggestions->all(),
         ]);
     }
 

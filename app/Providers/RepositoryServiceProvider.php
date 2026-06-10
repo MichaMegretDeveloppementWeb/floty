@@ -45,6 +45,8 @@ use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventDetailSuggestionReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventDetailSuggestionWriteRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureWriteRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
@@ -92,6 +94,8 @@ use App\Repositories\User\Vehicle\VehicleReadRepository;
 use App\Repositories\User\Vehicle\VehicleWriteRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingReadRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepository;
+use App\Repositories\User\VehicleEvent\VehicleEventDetailSuggestionReadRepository;
+use App\Repositories\User\VehicleEvent\VehicleEventDetailSuggestionWriteRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventNatureReadRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventNatureWriteRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventReadRepository;
@@ -177,6 +181,8 @@ final class RepositoryServiceProvider extends ServiceProvider
         SchedulerHeartbeatWriteRepositoryInterface::class => SchedulerHeartbeatWriteRepository::class,
 
         // VehicleEvent
+        VehicleEventDetailSuggestionReadRepositoryInterface::class => VehicleEventDetailSuggestionReadRepository::class,
+        VehicleEventDetailSuggestionWriteRepositoryInterface::class => VehicleEventDetailSuggestionWriteRepository::class,
         VehicleEventNatureReadRepositoryInterface::class => VehicleEventNatureReadRepository::class,
         VehicleEventNatureWriteRepositoryInterface::class => VehicleEventNatureWriteRepository::class,
         VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,

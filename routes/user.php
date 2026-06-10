@@ -26,6 +26,7 @@ use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
 use App\Http\Controllers\User\Vehicle\VehicleRegistryLookupController;
 use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
 use App\Http\Controllers\User\VehicleEvent\VehicleEventController;
+use App\Http\Controllers\User\VehicleEvent\VehicleEventDetailSuggestionController;
 use App\Http\Controllers\User\VehicleEvent\VehicleEventDocumentController;
 use App\Http\Controllers\User\VehicleEvent\VehicleEventNatureController;
 use Illuminate\Support\Facades\Route;
@@ -316,6 +317,16 @@ Route::middleware('auth')
             ->whereNumber('vehicleEventNature')
             ->middleware('throttle:300,1')
             ->name('vehicle-event-natures.destroy');
+
+        // Catalogue des suggestions de la section « Détails » des événements
+        // (entièrement géré par l'utilisateur : ajout + retrait).
+        Route::post('/vehicle-event-detail-suggestions', [VehicleEventDetailSuggestionController::class, 'store'])
+            ->middleware('throttle:300,1')
+            ->name('vehicle-event-detail-suggestions.store');
+        Route::delete('/vehicle-event-detail-suggestions/{vehicleEventDetailSuggestion}', [VehicleEventDetailSuggestionController::class, 'destroy'])
+            ->whereNumber('vehicleEventDetailSuggestion')
+            ->middleware('throttle:300,1')
+            ->name('vehicle-event-detail-suggestions.destroy');
 
         // Vehicle event documents · image/PDF justifications (5 max, 5 MB).
         // Mirrors the contract documents pattern.

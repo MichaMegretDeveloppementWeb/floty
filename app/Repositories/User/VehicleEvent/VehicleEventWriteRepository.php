@@ -11,22 +11,24 @@ use Illuminate\Support\Facades\DB;
 
 final class VehicleEventWriteRepository implements VehicleEventWriteRepositoryInterface
 {
-    public function create(array $attributes, array $categories = []): VehicleEvent
+    public function create(array $attributes, array $categories = [], array $details = []): VehicleEvent
     {
-        return DB::transaction(function () use ($attributes, $categories): VehicleEvent {
+        return DB::transaction(function () use ($attributes, $categories, $details): VehicleEvent {
             $vehicleEvent = VehicleEvent::create($attributes);
             $this->replaceCategories($vehicleEvent, $categories);
+            $this->replaceDetails($vehicleEvent, $details);
 
             return $vehicleEvent;
         });
     }
 
-    public function update(int $id, array $attributes, array $categories = []): VehicleEvent
+    public function update(int $id, array $attributes, array $categories = [], array $details = []): VehicleEvent
     {
-        return DB::transaction(function () use ($id, $attributes, $categories): VehicleEvent {
+        return DB::transaction(function () use ($id, $attributes, $categories, $details): VehicleEvent {
             $vehicleEvent = VehicleEvent::query()->findOrFail($id);
             $vehicleEvent->update($attributes);
             $this->replaceCategories($vehicleEvent, $categories);
+            $this->replaceDetails($vehicleEvent, $details);
 
             return $vehicleEvent->fresh();
         });
@@ -57,6 +59,21 @@ final class VehicleEventWriteRepository implements VehicleEventWriteRepositoryIn
 
         foreach ($categories as $category) {
             $vehicleEvent->categories()->create(['category' => $category]);
+        }
+    }
+
+    /**
+     * Replace the event's detail lines with the given (already composed /
+     * deduped) list, in order.
+     *
+     * @param  list<string>  $details
+     */
+    private function replaceDetails(VehicleEvent $vehicleEvent, array $details): void
+    {
+        $vehicleEvent->details()->delete();
+
+        foreach ($details as $detail) {
+            $vehicleEvent->details()->create(['detail' => $detail]);
         }
     }
 }

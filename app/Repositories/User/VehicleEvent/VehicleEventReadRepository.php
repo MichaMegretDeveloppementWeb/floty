@@ -21,7 +21,7 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findForVehicle(int $vehicleId): Collection
     {
         return VehicleEvent::query()
-            ->with(['documents', 'categories'])
+            ->with(['documents', 'categories', 'details'])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
@@ -156,7 +156,7 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findForVehicleDetail(int $vehicleId, int $vehicleEventId): VehicleEvent
     {
         return VehicleEvent::query()
-            ->with(['documents', 'categories'])
+            ->with(['documents', 'categories', 'details'])
             ->where('vehicle_id', $vehicleId)
             ->findOrFail($vehicleEventId);
     }

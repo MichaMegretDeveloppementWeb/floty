@@ -15,6 +15,7 @@ function makeEvent(
         vehicleId: 1,
         title: 'Entretien courant',
         categories: [],
+        details: [],
         hasFiscalImpact: false,
         impliesUnavailability: true,
         endDate: overrides.startDate,

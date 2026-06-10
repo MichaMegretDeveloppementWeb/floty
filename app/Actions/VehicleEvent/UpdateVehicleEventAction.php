@@ -25,6 +25,7 @@ final readonly class UpdateVehicleEventAction
     public function execute(int $id, UpdateVehicleEventData $data): VehicleEvent
     {
         $categories = EventCategoryList::compose([], $data->categories ?? []);
+        $details = EventCategoryList::compose([], $data->details ?? []);
         $hasFiscalImpact = $this->fiscalResolver->hasReductiveNature($categories);
 
         return $this->repository->update($id, [
@@ -35,6 +36,6 @@ final readonly class UpdateVehicleEventAction
             'end_date' => $data->endDate,
             'description' => $data->description,
             'amount_cents' => $data->amountCents,
-        ], $categories);
+        ], $categories, $details);
     }
 }

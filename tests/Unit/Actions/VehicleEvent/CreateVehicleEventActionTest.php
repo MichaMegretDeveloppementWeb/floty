@@ -213,6 +213,44 @@ final class CreateVehicleEventActionTest extends TestCase
     }
 
     #[Test]
+    public function persiste_les_lignes_de_detail_dans_l_ordre_dedupliquees(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Entretien courant',
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            categories: ['Entretien'],
+            details: ['Vidange', '  vidange ', 'Changement courroie', ''],
+        ));
+
+        $this->assertSame(
+            ['Vidange', 'Changement courroie'],
+            $vehicleEvent->details()->pluck('detail')->all(),
+        );
+    }
+
+    #[Test]
+    public function les_details_sont_optionnels(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Entretien courant',
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            categories: ['Entretien'],
+        ));
+
+        $this->assertSame(0, $vehicleEvent->details()->count());
+    }
+
+    #[Test]
     public function natures_dedupliquees_insensible_casse_sans_plafond(): void
     {
         $vehicle = Vehicle::factory()->create();

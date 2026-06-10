@@ -166,10 +166,33 @@ const vehiclePageUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id });
             </div>
         </div>
 
+        <Card v-if="props.vehicleEvent.details.length > 0">
+            <template #header>
+                <div class="flex items-baseline justify-between gap-2">
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Détails
+                    </h2>
+                    <p class="text-xs text-slate-500">
+                        {{ props.vehicleEvent.details.length }}
+                    </p>
+                </div>
+            </template>
+            <ul class="flex flex-col gap-1.5">
+                <li
+                    v-for="detail in props.vehicleEvent.details"
+                    :key="detail"
+                    class="flex items-baseline gap-2 text-sm text-slate-700"
+                >
+                    <span class="text-slate-300" aria-hidden="true">·</span>
+                    {{ detail }}
+                </li>
+            </ul>
+        </Card>
+
         <Card v-if="props.vehicleEvent.description">
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Description
+                    Description / Remarques
                 </h2>
             </template>
             <p class="text-sm whitespace-pre-line text-slate-700">

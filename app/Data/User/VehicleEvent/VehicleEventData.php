@@ -28,6 +28,7 @@ final class VehicleEventData extends Data
 {
     /**
      * @param  list<string>  $categories
+     * @param  list<string>  $details
      * @param  list<VehicleEventDocumentData>  $documents
      */
     public function __construct(
@@ -35,6 +36,8 @@ final class VehicleEventData extends Data
         public int $vehicleId,
         public string $title,
         public array $categories,
+        /** Detail lines (section « Détails »); populated when eager-loaded. */
+        public array $details,
         public bool $hasFiscalImpact,
         public bool $impliesUnavailability,
         public string $startDate,
@@ -61,6 +64,10 @@ final class VehicleEventData extends Data
             ? $u->categories->pluck('category')->values()->all()
             : [];
 
+        $details = $u->relationLoaded('details')
+            ? $u->details->pluck('detail')->values()->all()
+            : [];
+
         $documents = $u->relationLoaded('documents')
             ? $u->documents
                 ->map(static fn ($d): VehicleEventDocumentData => VehicleEventDocumentData::fromModel($d))
@@ -72,6 +79,7 @@ final class VehicleEventData extends Data
             vehicleId: $u->vehicle_id,
             title: $u->title,
             categories: $categories,
+            details: $details,
             hasFiscalImpact: $u->has_fiscal_impact,
             impliesUnavailability: $u->implies_unavailability,
             startDate: $u->start_date->toDateString(),

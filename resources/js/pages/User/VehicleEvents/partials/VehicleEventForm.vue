@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Download, FileText, ImageIcon, Trash2 } from 'lucide-vue-next';
+import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
@@ -38,6 +39,8 @@ const props = defineProps<{
     initialDate?: string | null;
     /** Suggestions du catalogue de natures (bloc réducteur figé + autres). */
     natureSuggestions: NatureSuggestions;
+    /** Suggestions de la section « Détails » (catalogue entièrement géré par l'utilisateur). */
+    detailSuggestions: { id: number; label: string }[];
 }>();
 
 const toasts = useToasts();
@@ -77,6 +80,14 @@ const {
     removeSuggestionModalOpen,
     requestRemoveSuggestion,
     confirmRemoveSuggestion,
+    detailToAdd,
+    addDetailModalOpen,
+    requestAddDetail,
+    confirmAddDetail,
+    detailSuggestionToRemove,
+    removeDetailSuggestionModalOpen,
+    requestRemoveDetailSuggestion,
+    confirmRemoveDetailSuggestion,
     submit,
 } = useVehicleEventForm(
     {
@@ -84,8 +95,15 @@ const {
         editing: props.editing,
         busyDates: props.busyDates,
         natureSuggestions: props.natureSuggestions,
+        detailSuggestions: props.detailSuggestions,
     },
     { pendingDocuments: pendingFiles, initialDate: props.initialDate ?? undefined },
+);
+
+// Le catalogue des détails est entièrement géré par l'utilisateur : la même
+// liste sert de suggestions (labels) et de jeu supprimable (avec id).
+const detailSuggestionLabels = computed<string[]>(() =>
+    props.detailSuggestions.map((s) => s.label),
 );
 
 // Annuler / retour : l'onglet « Événements » du véhicule.
@@ -94,66 +112,6 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
 
 <template>
     <form class="flex flex-col gap-6" @submit.prevent="submit">
-        <Card>
-            <template #header>
-                <h2 class="text-base font-semibold text-slate-900">
-                    Nom et nature
-                </h2>
-            </template>
-            <div class="flex flex-col gap-4">
-                <TextInput
-                    v-model="form.title"
-                    label="Nom de l'événement"
-                    placeholder="Ex. Mise en fourrière, pose covering, vol..."
-                    :required="true"
-                    :error="form.errors.title"
-                />
-
-                <EventCategoriesField
-                    :model-value="form.categories"
-                    :reductive-suggestions="natureSuggestions.reductive"
-                    :other-suggestions="natureSuggestions.other"
-                    :deletable-suggestions="natureSuggestions.deletable"
-                    required
-                    manage-suggestions
-                    :error="form.errors.categories"
-                    @update:model-value="(value: string[]) => (form.categories = value)"
-                    @add-to-list="requestAddNature"
-                    @remove-suggestion="requestRemoveSuggestion"
-                />
-
-                <CheckboxInput
-                    v-model="form.implies_unavailability"
-                    label="Génère une indisponibilité du véhicule"
-                    :disabled="selectedIsReductive"
-                    :hint="selectedIsReductive
-                        ? 'Verrouillée : une nature fiscalement réductrice implique toujours une indisponibilité.'
-                        : 'Cochez si l\'événement rend le véhicule indisponible : il sera signalé par un badge et compté dans la heatmap et l\'utilisation.'"
-                />
-
-                <div
-                    :class="[
-                        'rounded-lg border px-3 py-2.5 text-xs leading-snug',
-                        selectedIsReductive
-                            ? 'border-emerald-200 bg-emerald-50/60 text-emerald-800'
-                            : 'border-slate-200 bg-slate-50/60 text-slate-600',
-                    ]"
-                    role="status"
-                    aria-live="polite"
-                >
-                    <p v-if="selectedIsReductive">
-                        Cet événement <strong>réduira</strong> le numérateur
-                        du prorata fiscal sur la période concernée.
-                    </p>
-                    <p v-else>
-                        Cet événement <strong>ne réduit pas</strong> le
-                        numérateur du prorata fiscal. Le véhicule reste considéré
-                        comme affecté à l'entreprise pendant la période.
-                    </p>
-                </div>
-            </div>
-        </Card>
-
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -222,6 +180,92 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
+                    Nom et nature
+                </h2>
+            </template>
+            <div class="flex flex-col gap-4">
+                <TextInput
+                    v-model="form.title"
+                    label="Nom de l'événement"
+                    placeholder="Ex. Mise en fourrière, pose covering, vol..."
+                    :required="true"
+                    :error="form.errors.title"
+                />
+
+                <EventCategoriesField
+                    :model-value="form.categories"
+                    :reductive-suggestions="natureSuggestions.reductive"
+                    :other-suggestions="natureSuggestions.other"
+                    :deletable-suggestions="natureSuggestions.deletable"
+                    required
+                    manage-suggestions
+                    :error="form.errors.categories"
+                    @update:model-value="(value: string[]) => (form.categories = value)"
+                    @add-to-list="requestAddNature"
+                    @remove-suggestion="requestRemoveSuggestion"
+                />
+
+                <CheckboxInput
+                    v-model="form.implies_unavailability"
+                    label="Génère une indisponibilité du véhicule"
+                    :disabled="selectedIsReductive"
+                    :hint="selectedIsReductive
+                        ? 'Verrouillée : une nature fiscalement réductrice implique toujours une indisponibilité.'
+                        : 'Cochez si l\'événement rend le véhicule indisponible : il sera signalé par un badge et compté dans la heatmap et l\'utilisation.'"
+                />
+
+                <div
+                    :class="[
+                        'rounded-lg border px-3 py-2.5 text-xs leading-snug',
+                        selectedIsReductive
+                            ? 'border-emerald-200 bg-emerald-50/60 text-emerald-800'
+                            : 'border-slate-200 bg-slate-50/60 text-slate-600',
+                    ]"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p v-if="selectedIsReductive">
+                        Cet événement <strong>réduira</strong> le numérateur
+                        du prorata fiscal sur la période concernée.
+                    </p>
+                    <p v-else>
+                        Cet événement <strong>ne réduit pas</strong> le
+                        numérateur du prorata fiscal. Le véhicule reste considéré
+                        comme affecté à l'entreprise pendant la période.
+                    </p>
+                </div>
+            </div>
+        </Card>
+
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Détails
+                </h2>
+            </template>
+            <EventCategoriesField
+                :model-value="form.details"
+                :other-suggestions="detailSuggestionLabels"
+                :deletable-suggestions="detailSuggestions"
+                manage-suggestions
+                field-label="Lignes de détail"
+                hint="Une ligne par détail de l'événement (ex. Vidange, Changement courroie). Texte libre, la liste propose les détails enregistrés."
+                placeholder="Ex. Vidange, changement courroie..."
+                add-row-label="Ajouter un détail"
+                other-block-label="Détails enregistrés"
+                empty-message="Aucun détail enregistré ne correspond."
+                duplicate-message="Ce détail est déjà présent."
+                :max-length="100"
+                :error="form.errors.details"
+                @update:model-value="(value: string[]) => (form.details = value)"
+                @add-to-list="requestAddDetail"
+                @remove-suggestion="requestRemoveDetailSuggestion"
+            />
+        </Card>
+
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
                     Montant
                 </h2>
             </template>
@@ -241,7 +285,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Description
+                    Description / Remarques
                 </h2>
             </template>
             <div class="flex flex-col gap-2">
@@ -421,5 +465,24 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
         cancel-label="Annuler"
         tone="danger"
         @confirm="confirmRemoveSuggestion"
+    />
+
+    <ConfirmModal
+        v-model:open="addDetailModalOpen"
+        title="Ajouter aux suggestions ?"
+        :message="`« ${detailToAdd ?? '' } » sera proposé dans les détails des prochains événements.`"
+        confirm-label="Ajouter"
+        cancel-label="Annuler"
+        @confirm="confirmAddDetail"
+    />
+
+    <ConfirmModal
+        v-model:open="removeDetailSuggestionModalOpen"
+        title="Retirer cette suggestion ?"
+        :message="`« ${detailSuggestionToRemove?.label ?? '' } » ne sera plus proposé. Les événements existants ne sont pas modifiés.`"
+        confirm-label="Retirer"
+        cancel-label="Annuler"
+        tone="danger"
+        @confirm="confirmRemoveDetailSuggestion"
     />
 </template>

@@ -29,6 +29,7 @@ final class UpdateVehicleEventData extends Data
      * validated as `sometimes`, which would skip the `required` rule.
      *
      * @param  list<string>|null  $categories
+     * @param  list<string>|null  $details
      */
     public function __construct(
         /** Free name of the event, always required. */
@@ -46,6 +47,9 @@ final class UpdateVehicleEventData extends Data
 
         /** Natures of the event (UI « Nature »), at least one. */
         public ?array $categories,
+
+        /** Detail lines (section « Détails »), optional, unlimited. */
+        public ?array $details = null,
 
         /** Unavailability flag; forced true server-side when reductive. */
         public bool $impliesUnavailability = true,
@@ -65,6 +69,8 @@ final class UpdateVehicleEventData extends Data
             'amount_cents' => ['nullable', 'integer', 'min:0'],
             'categories' => ['required', 'array', 'min:1'],
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
+            'details' => ['nullable', 'array'],
+            'details.*' => ['string', 'max:100', 'distinct:ignore_case'],
         ];
     }
 
@@ -85,6 +91,8 @@ final class UpdateVehicleEventData extends Data
             'categories.min' => 'Au moins une nature est obligatoire.',
             'categories.*.distinct' => 'Cette nature est déjà présente.',
             'categories.*.max' => 'Une nature ne peut pas dépasser 60 caractères.',
+            'details.*.distinct' => 'Ce détail est déjà présent.',
+            'details.*.max' => 'Un détail ne peut pas dépasser 100 caractères.',
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',

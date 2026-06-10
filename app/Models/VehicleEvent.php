@@ -131,4 +131,15 @@ final class VehicleEvent extends Model
     {
         return $this->hasMany(VehicleEventCategory::class)->orderBy('id');
     }
+
+    /**
+     * Attached detail lines (section « Détails », free text + suggestions,
+     * optional), ordered by insertion.
+     *
+     * @return HasMany<VehicleEventDetail, $this>
+     */
+    public function details(): HasMany
+    {
+        return $this->hasMany(VehicleEventDetail::class)->orderBy('id');
+    }
 }

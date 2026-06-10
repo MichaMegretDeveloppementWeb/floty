@@ -3,6 +3,10 @@ import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import {
+    destroy as detailSuggestionsDestroyRoute,
+    store as detailSuggestionsStoreRoute,
+} from '@/routes/user/vehicle-event-detail-suggestions';
+import {
     destroy as natureSuggestionsDestroyRoute,
     store as natureSuggestionsStoreRoute,
 } from '@/routes/user/vehicle-event-natures';
@@ -36,6 +40,8 @@ type FormShape = {
     title: string;
     // Natures (UI « Nature »), at least one, unlimited.
     categories: string[];
+    // Detail lines (section « Détails »), optional, unlimited.
+    details: string[];
     // Unavailability flag; locked (forced true) when the event is reductive.
     implies_unavailability: boolean;
     start_date: string;
@@ -129,6 +135,8 @@ export function useVehicleEventForm(
         busyDates: string[];
         /** Catalogue suggestions, two blocks (reductive frozen + others). */
         natureSuggestions?: NatureSuggestions;
+        /** Suggestion catalogue of the « Détails » lines (fully user-managed). */
+        detailSuggestions?: DeletableNatureSuggestion[];
     },
     options: {
         /** Files queued in create mode, sent with the multipart create request. */
@@ -174,11 +182,21 @@ export function useVehicleEventForm(
     removeSuggestionModalOpen: Ref<boolean>;
     requestRemoveSuggestion: (suggestion: DeletableNatureSuggestion) => void;
     confirmRemoveSuggestion: () => void;
+    /** Mêmes gestes pour le catalogue des « Détails ». */
+    detailToAdd: Ref<string | null>;
+    addDetailModalOpen: Ref<boolean>;
+    requestAddDetail: (label: string) => void;
+    confirmAddDetail: () => void;
+    detailSuggestionToRemove: Ref<DeletableNatureSuggestion | null>;
+    removeDetailSuggestionModalOpen: Ref<boolean>;
+    requestRemoveDetailSuggestion: (suggestion: DeletableNatureSuggestion) => void;
+    confirmRemoveDetailSuggestion: () => void;
     submit: () => void;
 } {
     const form = useForm<FormShape>({
         title: '',
         categories: [],
+        details: [],
         implies_unavailability: true,
         start_date: '',
         end_date: '',
@@ -201,6 +219,7 @@ export function useVehicleEventForm(
             if (value) {
                 form.title = value.title;
                 form.categories = [...value.categories];
+                form.details = [...value.details];
                 form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
                 form.amount = centsToEuros(value.amountCents);
@@ -270,6 +289,10 @@ export function useVehicleEventForm(
         hasDuplicateCategories(form.categories),
     );
 
+    const hasDetailDuplicates = computed<boolean>(() =>
+        hasDuplicateCategories(form.details),
+    );
+
     const canSubmit = computed<boolean>(() => {
         if (range.value.startDate === null) {
             return false;
@@ -288,7 +311,7 @@ export function useVehicleEventForm(
             return false;
         }
 
-        if (hasCategoryDuplicates.value) {
+        if (hasCategoryDuplicates.value || hasDetailDuplicates.value) {
             return false;
         }
 
@@ -311,6 +334,7 @@ export function useVehicleEventForm(
     const payloadTransform = (data: FormShape): Record<string, unknown> => ({
         title: data.title.trim(),
         categories: cleanCustomCategories(data.categories),
+        details: cleanCustomCategories(data.details),
         // A reductive event always implies an unavailability (server-forced).
         implies_unavailability: selectedIsReductive.value ? true : data.implies_unavailability,
         start_date: range.value.startDate,
@@ -356,6 +380,64 @@ export function useVehicleEventForm(
     const requestRemoveSuggestion = (suggestion: DeletableNatureSuggestion): void => {
         suggestionToRemove.value = suggestion;
         removeSuggestionModalOpen.value = true;
+    };
+
+    const detailToAdd = ref<string | null>(null);
+    const addDetailModalOpen = ref<boolean>(false);
+    const detailSuggestionToRemove = ref<DeletableNatureSuggestion | null>(null);
+    const removeDetailSuggestionModalOpen = ref<boolean>(false);
+
+    const requestAddDetail = (label: string): void => {
+        detailToAdd.value = label;
+        addDetailModalOpen.value = true;
+    };
+
+    const confirmAddDetail = (): void => {
+        if (detailToAdd.value === null) {
+            return;
+        }
+
+        addDetailModalOpen.value = false;
+
+        router.post(
+            detailSuggestionsStoreRoute.url(),
+            { label: detailToAdd.value },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['detailSuggestions', 'flash'],
+                onFinish: () => {
+                    detailToAdd.value = null;
+                },
+            },
+        );
+    };
+
+    const requestRemoveDetailSuggestion = (suggestion: DeletableNatureSuggestion): void => {
+        detailSuggestionToRemove.value = suggestion;
+        removeDetailSuggestionModalOpen.value = true;
+    };
+
+    const confirmRemoveDetailSuggestion = (): void => {
+        if (detailSuggestionToRemove.value === null) {
+            return;
+        }
+
+        removeDetailSuggestionModalOpen.value = false;
+
+        router.delete(
+            detailSuggestionsDestroyRoute.url({
+                vehicleEventDetailSuggestion: detailSuggestionToRemove.value.id,
+            }),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['detailSuggestions', 'flash'],
+                onFinish: () => {
+                    detailSuggestionToRemove.value = null;
+                },
+            },
+        );
     };
 
     const confirmRemoveSuggestion = (): void => {
@@ -423,6 +505,14 @@ export function useVehicleEventForm(
         removeSuggestionModalOpen,
         requestRemoveSuggestion,
         confirmRemoveSuggestion,
+        detailToAdd,
+        addDetailModalOpen,
+        requestAddDetail,
+        confirmAddDetail,
+        detailSuggestionToRemove,
+        removeDetailSuggestionModalOpen,
+        requestRemoveDetailSuggestion,
+        confirmRemoveDetailSuggestion,
         submit,
     };
 }

@@ -1384,6 +1384,7 @@ final class DemoSeeder extends Seeder
             description: 'CT 2026.',
             title: 'Contrôle technique',
             categories: ['Contrôle réglementaire', 'Maintenance préventive'],
+            details: ['Passage au contrôle technique', 'Réglage des phares'],
             amountCents: 8500,
         );
 
@@ -1400,6 +1401,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-03-04',
             description: 'Révision + remplacement pneus hiver.',
             categories: ['Entretien', 'Pneus'],
+            details: ['Changement des pneus hiver', 'Vidange', 'Contrôle des niveaux', 'Remplacement filtre habitacle'],
             amountCents: 74000,
         );
 
@@ -1433,6 +1435,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-06-09',
             description: 'Réparation carrosserie aile avant droite.',
             categories: ['Sinistre', 'Carrosserie'],
+            details: ['Remplacement aile avant droite', 'Peinture et vernis'],
             amountCents: 210000,
         );
 
@@ -1502,6 +1505,7 @@ final class DemoSeeder extends Seeder
         ?string $endDate,
         ?string $description = null,
         array $categories = [],
+        array $details = [],
         ?int $amountCents = null,
     ): void {
         $hasFiscalImpact = array_intersect(
@@ -1521,6 +1525,10 @@ final class DemoSeeder extends Seeder
 
         foreach (array_values(array_unique($categories)) as $category) {
             $event->categories()->create(['category' => $category]);
+        }
+
+        foreach (array_values(array_unique($details)) as $detail) {
+            $event->details()->create(['detail' => $detail]);
         }
     }
 

@@ -67,6 +67,11 @@ const days = useVehicleEventsTimeline(filteredEvents, activeWindow);
 const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
 const totalLabel = computed<string>(() => formatEur(totalAmountCents.value / 100, 2));
 const filtersOpen = ref<boolean>(false);
+
+/** Extrait de la description pour la timeline : 50 premiers caractères. */
+function descriptionExcerpt(description: string): string {
+    return description.length > 50 ? `${description.slice(0, 50)}…` : description;
+}
 </script>
 
 <template>
@@ -307,11 +312,31 @@ const filtersOpen = ref<boolean>(false);
                                                 </span>
                                             </span>
                                         </div>
+                                        <ul
+                                            v-if="entry.event.details.length > 0"
+                                            class="mt-0.5 flex flex-col gap-px"
+                                        >
+                                            <li
+                                                v-for="detail in entry.event.details.slice(0, 3)"
+                                                :key="detail"
+                                                class="flex items-baseline gap-1.5 text-xs text-slate-600"
+                                            >
+                                                <span class="text-slate-300" aria-hidden="true">·</span>
+                                                <span class="min-w-0 truncate">{{ detail }}</span>
+                                            </li>
+                                            <li
+                                                v-if="entry.event.details.length > 3"
+                                                class="flex items-baseline gap-1.5 text-xs text-slate-400 italic"
+                                            >
+                                                <span class="text-slate-300" aria-hidden="true">·</span>
+                                                + {{ entry.event.details.length - 3 }} autre{{ entry.event.details.length - 3 > 1 ? 's' : '' }}
+                                            </li>
+                                        </ul>
                                         <p
                                             v-if="entry.event.description"
-                                            class="line-clamp-1 text-xs whitespace-pre-line text-slate-500"
+                                            class="text-xs text-slate-500"
                                         >
-                                            {{ entry.event.description }}
+                                            {{ descriptionExcerpt(entry.event.description) }}
                                         </p>
                                     </div>
                                 </Link>

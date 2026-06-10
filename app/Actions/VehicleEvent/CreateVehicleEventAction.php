@@ -33,6 +33,7 @@ final readonly class CreateVehicleEventAction
     public function execute(StoreVehicleEventData $data): VehicleEvent
     {
         $categories = EventCategoryList::compose([], $data->categories ?? []);
+        $details = EventCategoryList::compose([], $data->details ?? []);
         $hasFiscalImpact = $this->fiscalResolver->hasReductiveNature($categories);
 
         return $this->repository->create([
@@ -44,6 +45,6 @@ final readonly class CreateVehicleEventAction
             'end_date' => $data->endDate,
             'description' => $data->description,
             'amount_cents' => $data->amountCents,
-        ], $categories);
+        ], $categories, $details);
     }
 }

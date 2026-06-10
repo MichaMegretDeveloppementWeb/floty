@@ -48,6 +48,15 @@ const props = withDefaults(
         /** Enable catalogue management (add-to-list footer + delete « x »). */
         manageSuggestions?: boolean;
         error?: string;
+        /** Wording overrides (defaults = « Nature » field). */
+        fieldLabel?: string;
+        hint?: string;
+        placeholder?: string;
+        addRowLabel?: string;
+        otherBlockLabel?: string;
+        emptyMessage?: string;
+        duplicateMessage?: string;
+        maxLength?: number;
     }>(),
     {
         lockedDefaults: () => [],
@@ -56,6 +65,14 @@ const props = withDefaults(
         deletableSuggestions: () => [],
         required: false,
         manageSuggestions: false,
+        fieldLabel: 'Nature',
+        hint: "Texte libre, la liste propose les natures connues. Une nature « réducteur fiscal » rend l'événement fiscalement réducteur.",
+        placeholder: 'Ex. Maintenance préventive, Vol...',
+        addRowLabel: 'Ajouter une nature',
+        otherBlockLabel: 'Autres natures',
+        emptyMessage: 'Aucune nature connue ne correspond.',
+        duplicateMessage: 'Cette nature est déjà présente.',
+        maxLength: 60,
     },
 );
 
@@ -125,7 +142,7 @@ function suggestionBlocksFor(index: number): SuggestionBlock[] {
 
     const blocks: SuggestionBlock[] = [
         { key: 'reductive', label: 'Réducteur fiscal', items: filterBlock(props.reductiveSuggestions) },
-        { key: 'other', label: 'Autres natures', items: filterBlock(props.otherSuggestions) },
+        { key: 'other', label: props.otherBlockLabel, items: filterBlock(props.otherSuggestions) },
     ];
 
     return blocks.filter((block) => block.items.length > 0);
@@ -221,13 +238,12 @@ function add(): void {
 <template>
     <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-slate-500">
-            Nature
+            {{ fieldLabel }}
             <span v-if="required" aria-hidden="true" class="ml-0.5 text-rose-600">*</span>
         </label>
 
         <p class="text-xs text-slate-500">
-            Texte libre, la liste propose les natures connues. Une nature
-            « réducteur fiscal » rend l'événement fiscalement réducteur.
+            {{ hint }}
         </p>
 
         <div class="flex flex-col gap-2">
@@ -260,9 +276,9 @@ function add(): void {
                         <input
                             :ref="(el) => registerInput(el, index)"
                             :value="modelValue[index]"
-                            maxlength="60"
+                            :maxlength="maxLength"
                             autocomplete="off"
-                            placeholder="Ex. Maintenance préventive, Vol..."
+                            :placeholder="placeholder"
                             :class="[
                                 'w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none',
                                 duplicateIndices.has(index)
@@ -319,7 +335,7 @@ function add(): void {
                                     v-if="suggestionBlocksFor(index).length === 0"
                                     class="px-3 py-2 text-xs text-slate-400 italic"
                                 >
-                                    Aucune nature connue ne correspond.
+                                    {{ emptyMessage }}
                                 </p>
                             </div>
 
@@ -347,15 +363,15 @@ function add(): void {
                     <button
                         type="button"
                         class="inline-flex h-9 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors duration-[120ms] ease-out hover:bg-rose-100 hover:text-rose-700"
-                        title="Retirer cette nature"
-                        aria-label="Retirer cette nature"
+                        title="Retirer cette ligne"
+                        aria-label="Retirer cette ligne"
                         @click="removeAt(index)"
                     >
                         <X :size="15" :stroke-width="1.75" />
                     </button>
                 </div>
                 <p v-if="duplicateIndices.has(index)" class="text-xs text-rose-600">
-                    Cette nature est déjà présente.
+                    {{ duplicateMessage }}
                 </p>
             </div>
 
@@ -366,7 +382,7 @@ function add(): void {
                 @click="add"
             >
                 <Plus :size="14" :stroke-width="1.75" />
-                Ajouter une nature
+                {{ addRowLabel }}
             </button>
         </div>
 

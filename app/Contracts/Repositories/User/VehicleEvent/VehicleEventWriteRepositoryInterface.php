@@ -17,15 +17,17 @@ interface VehicleEventWriteRepositoryInterface
 {
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  list<string>  $categories  Composed category list, persisted as child rows.
+     * @param  list<string>  $categories  Composed nature list, persisted as child rows.
+     * @param  list<string>  $details  Composed detail lines, persisted as child rows.
      */
-    public function create(array $attributes, array $categories = []): VehicleEvent;
+    public function create(array $attributes, array $categories = [], array $details = []): VehicleEvent;
 
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  list<string>  $categories  Replaces the event's category rows.
+     * @param  list<string>  $categories  Replaces the event's nature rows.
+     * @param  list<string>  $details  Replaces the event's detail rows.
      */
-    public function update(int $id, array $attributes, array $categories = []): VehicleEvent;
+    public function update(int $id, array $attributes, array $categories = [], array $details = []): VehicleEvent;
 
     public function softDelete(int $id): void;
 

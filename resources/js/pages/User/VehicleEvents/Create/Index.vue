@@ -19,6 +19,8 @@ const props = defineProps<{
     initialDate?: string | null;
     /** Suggestions du catalogue de natures (bloc réducteur figé + autres, supprimables avec id). */
     natureSuggestions: { reductive: string[]; other: string[]; deletable: { id: number; label: string }[] };
+    /** Suggestions de la section « Détails » (catalogue géré par l'utilisateur). */
+    detailSuggestions: { id: number; label: string }[];
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });
@@ -51,6 +53,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                 :busy-dates="busyDates"
                 :initial-date="initialDate"
                 :nature-suggestions="natureSuggestions"
+                :detail-suggestions="detailSuggestions"
             />
         </div>
     </UserLayout>
