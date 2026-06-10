@@ -66,16 +66,28 @@
         td.identity .vlabel { display: block; font-size: 6pt; color: #64748b; white-space: nowrap; }
         td.week.empty { color: #cbd5e1; }
         td.week.out { background: #e2e8f0; }
-        .grid-legend { margin-top: 2.5mm; font-size: 7pt; color: #64748b; }
+        /* Single cell spanning the out-of-fleet weeks · centred exit
+           label. white-space:normal so the span's min-content (a word)
+           never forces the uniform week columns wider. */
+        table.grid td.week.out-span {
+            font-size: 6.5pt;
+            font-weight: bold;
+            color: #475569;
+            white-space: normal;
+            vertical-align: middle;
+            padding: 0.6mm 1.5mm;
+        }
+        .grid-legend { margin-top: 2.5mm; font-size: 7pt; color: #64748b; line-height: 1; }
         .grid-legend .legend-swatch {
             display: inline-block;
-            width: 3mm;
-            height: 2.2mm;
+            width: 2.6mm;
+            height: 2.6mm;
             background: #e2e8f0;
             border: 0.4pt solid #cbd5e1;
             vertical-align: middle;
-            margin-right: 1mm;
+            margin-right: 1.5mm;
         }
+        .grid-legend .legend-text { vertical-align: middle; }
         .empty-state { font-size: 10pt; color: #64748b; margin-top: 6mm; }
     </style>
 </head>
@@ -99,14 +111,26 @@
             </thead>
             <tbody>
                 @foreach ($rows as $row)
+                    @php
+                        $firstOut = array_search(true, $row['weeksOutOfFleet'], true);
+                        $firstOut = $firstOut === false ? count($row['weeks']) : (int) $firstOut;
+                        $outCount = count($row['weeks']) - $firstOut;
+                        $exitLabel = $row['exitReason'] !== null
+                            ? 'Sortie de flotte : '.$row['exitReason']
+                            : 'Sortie de flotte';
+                    @endphp
                     <tr>
                         <td class="identity">
                             <span class="plate">{{ $row['licensePlate'] }}</span>
                             <span class="vlabel">{{ $row['vehicleLabelShort'] }} · {{ $row['userTypeShort'] }}</span>
                         </td>
-                        @foreach ($row['weeks'] as $weekIdx => $days)
-                            <td class="week {{ ($row['weeksOutOfFleet'][$weekIdx] ?? false) ? 'out' : ($days > 0 ? '' : 'empty') }}"><span class="wk">{{ $days > 0 ? $days : '' }}</span></td>
-                        @endforeach
+                        @for ($weekIdx = 0; $weekIdx < $firstOut; $weekIdx++)
+                            @php $days = $row['weeks'][$weekIdx]; @endphp
+                            <td class="week {{ $days > 0 ? '' : 'empty' }}"><span class="wk">{{ $days > 0 ? $days : '' }}</span></td>
+                        @endfor
+                        @if ($outCount > 0)
+                            <td class="week out out-span" colspan="{{ $outCount }}">{{ $exitLabel }}</td>
+                        @endif
                         <td class="num">{{ $row['daysTotal'] }}</td>
                         <td class="num">{{ $row['fullYearTax'] }}</td>
                         <td class="num">{{ $row['annualTaxDue'] }}</td>
@@ -115,7 +139,7 @@
             </tbody>
         </table>
         @if (collect($rows)->contains(fn (array $r): bool => $r['exitDate'] !== null))
-            <p class="grid-legend"><span class="legend-swatch"></span>Cases grisées : véhicule hors flotte (après la date de sortie).</p>
+            <p class="grid-legend"><span class="legend-swatch"></span><span class="legend-text">Cases grisées : véhicule sorti de flotte.</span></p>
         @endif
     @endif
 </body>

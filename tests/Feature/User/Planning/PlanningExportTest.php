@@ -171,6 +171,8 @@ final class PlanningExportTest extends TestCase
         $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
         self::assertStringContainsString('week out', $html);
         self::assertStringContainsString('Cases grisées', $html);
+        // Libellé centré sur la bande grisée, avec le vrai motif de sortie.
+        self::assertStringContainsString('Sortie de flotte : Vendu', $html);
     }
 
     #[Test]
