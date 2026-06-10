@@ -51,6 +51,7 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         { key: 'duration', label: 'Durée' },
         { key: 'title', label: 'Intitulé' },
         { key: 'categories', label: 'Nature' },
+        { key: 'garage', label: 'Garage' },
         { key: 'amount', label: 'Montant', align: 'right', mono: true },
     ];
 

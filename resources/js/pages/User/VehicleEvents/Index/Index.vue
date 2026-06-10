@@ -8,6 +8,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import AutocompleteInput from '@/Components/Ui/AutocompleteInput/AutocompleteInput.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
@@ -31,6 +32,7 @@ const props = defineProps<{
     hasAnyVehicleEvent: boolean;
     options: {
         natureValues: string[];
+        garageValues: string[];
         availableYears: number[];
     };
 }>();
@@ -140,10 +142,12 @@ function durationLabel(row: VehicleEventRow): string {
                             placeholder="Filtrer par nature"
                         />
 
-                        <TextInput
+                        <AutocompleteInput
                             v-model="tableState.garageInput.value"
                             label="Garage"
+                            :suggestions="props.options.garageValues"
                             placeholder="Ex. Garage Martin"
+                            dropdown-in-flow
                         />
 
                         <TextInput
@@ -217,6 +221,15 @@ function durationLabel(row: VehicleEventRow): string {
                         <span class="flex flex-col">
                             <span>{{ row.vehicleLicensePlate }}</span>
                             <span class="font-sans text-xs text-slate-400">{{ row.vehicleLabel }}</span>
+                        </span>
+                    </template>
+                    <template #cell-garage="{ row }">
+                        <span class="flex flex-col text-xs">
+                            <span
+                                class="max-w-[150px] truncate text-slate-600"
+                                :title="row.garage ?? undefined"
+                            >{{ row.garage ?? '-' }}</span>
+                            <span class="font-mono text-slate-400">{{ row.postalCode ?? '-' }}</span>
                         </span>
                     </template>
                     <template #cell-startDate="{ row }">

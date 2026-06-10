@@ -17,12 +17,15 @@ const props = withDefaults(
         placeholder?: string;
         maxLength?: number;
         error?: string;
+        /** In-flow dropdown (FilterPopover context: the container must grow). */
+        dropdownInFlow?: boolean;
     }>(),
     {
         suggestions: () => [],
         placeholder: '',
         maxLength: 120,
         error: undefined,
+        dropdownInFlow: false,
     },
 );
 
@@ -83,7 +86,10 @@ function select(value: string): void {
             />
             <ul
                 v-if="open && filteredSuggestions.length > 0"
-                class="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                :class="[
+                    'mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1',
+                    dropdownInFlow ? 'shadow-sm' : 'absolute z-20 shadow-lg',
+                ]"
             >
                 <li
                     v-for="suggestion in filteredSuggestions"

@@ -58,6 +58,7 @@ final class VehicleEventController extends Controller
             'hasAnyVehicleEvent' => $this->events->existsAnyVehicleEvent(),
             'options' => [
                 'natureValues' => $this->events->distinctCategories(),
+                'garageValues' => $this->events->distinctGarages(),
                 'availableYears' => $this->events->distinctEventYears(),
             ],
         ]);

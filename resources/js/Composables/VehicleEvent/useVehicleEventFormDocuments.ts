@@ -10,7 +10,7 @@ type Document = App.Data.User.VehicleEvent.VehicleEventDocumentData;
  * `UploadVehicleEventDocumentAction`). Exposed so the modal can render them (N / 5 counter,
  * 5 Mo max label, `accept` attribute on the input).
  */
-export const MAX_DOCUMENTS = 5;
+export const MAX_DOCUMENTS = 20;
 export const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024;
 export const ACCEPTED_DOCUMENT_MIMES = 'application/pdf,image/jpeg,image/png,image/webp';
 

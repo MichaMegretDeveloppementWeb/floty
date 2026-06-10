@@ -25,7 +25,7 @@ use Throwable;
  */
 final readonly class UploadVehicleEventDocumentAction
 {
-    public const int MAX_DOCUMENTS_PER_UNAVAILABILITY = 5;
+    public const int MAX_DOCUMENTS_PER_UNAVAILABILITY = 20;
 
     public function __construct(
         private VehicleEventDocumentReadRepositoryInterface $reader,

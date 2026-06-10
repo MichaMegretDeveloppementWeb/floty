@@ -77,14 +77,14 @@ final class UploadVehicleEventDocumentActionTest extends TestCase
     }
 
     #[Test]
-    public function execute_leve_too_many_documents_au_sixieme(): void
+    public function execute_leve_too_many_documents_au_vingt_et_unieme(): void
     {
         $user = User::factory()->create();
         $vehicleEvent = VehicleEvent::factory()
             ->for(Vehicle::factory()->create())
             ->create();
 
-        VehicleEventDocument::factory()->count(5)->forVehicleEvent($vehicleEvent)->create([
+        VehicleEventDocument::factory()->count(20)->forVehicleEvent($vehicleEvent)->create([
             'uploaded_by' => $user->id,
         ]);
 

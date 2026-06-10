@@ -92,7 +92,7 @@ final class StoreVehicleEventData extends Data
             'postal_code' => ['nullable', 'string', 'regex:/^\d{4,6}$/'],
             // Justification files attached during creation (atomic flow):
             // up to 5 image/PDF files, 5 MB each.
-            'documents' => ['nullable', 'array', 'max:5'],
+            'documents' => ['nullable', 'array', 'max:20'],
             'documents.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ];
 
@@ -151,7 +151,7 @@ final class StoreVehicleEventData extends Data
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',
-            'documents.max' => 'Vous ne pouvez joindre que 5 documents au maximum.',
+            'documents.max' => 'Vous ne pouvez joindre que 20 documents au maximum.',
             'documents.*.file' => 'Chaque pièce jointe doit être un fichier valide.',
             'documents.*.mimes' => 'Format invalide · seuls les fichiers PDF, JPG, PNG et WebP sont acceptés.',
             'documents.*.max' => 'Fichier trop volumineux · 5 Mo maximum.',

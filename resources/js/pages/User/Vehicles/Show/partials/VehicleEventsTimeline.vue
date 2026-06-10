@@ -18,6 +18,7 @@ import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
+import AutocompleteInput from '@/Components/Ui/AutocompleteInput/AutocompleteInput.vue';
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
@@ -58,6 +59,7 @@ const {
     categoryOptions,
     garageTerm,
     postalCodeTerm,
+    garageOptions,
     totalAmountCents,
     activeAxisCount,
     activeFilterChips,
@@ -134,10 +136,12 @@ function descriptionExcerpt(description: string): string {
                         placeholder="Filtrer par nature"
                     />
 
-                    <TextInput
+                    <AutocompleteInput
                         v-model="garageTerm"
                         label="Garage"
+                        :suggestions="garageOptions"
                         placeholder="Ex. Garage Martin"
+                        dropdown-in-flow
                     />
 
                     <TextInput
@@ -347,6 +351,12 @@ function descriptionExcerpt(description: string): string {
                                                 + {{ entry.event.details.length - 3 }} autre{{ entry.event.details.length - 3 > 1 ? 's' : '' }}
                                             </li>
                                         </ul>
+                                        <p
+                                            v-if="entry.event.garage !== null || entry.event.postalCode !== null"
+                                            class="text-xs text-slate-400"
+                                        >
+                                            {{ [entry.event.garage, entry.event.postalCode].filter(Boolean).join(' · ') }}
+                                        </p>
                                         <p
                                             v-if="entry.event.description"
                                             class="text-xs text-slate-500"

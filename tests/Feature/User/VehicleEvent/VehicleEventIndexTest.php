@@ -147,6 +147,23 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
+    public function les_options_exposent_les_garages_distincts_tries(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Garage Martin']);
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Garage Martin']);
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Carrosserie Dupont']);
+        VehicleEvent::factory()->maintenance()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicle-events')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('options.garageValues', ['Carrosserie Dupont', 'Garage Martin']),
+            );
+    }
+
+    #[Test]
     public function filtre_dedie_par_nom_de_garage_partiel(): void
     {
         $user = User::factory()->create();

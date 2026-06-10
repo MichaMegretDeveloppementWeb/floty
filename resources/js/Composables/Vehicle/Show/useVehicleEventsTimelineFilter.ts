@@ -67,6 +67,8 @@ export function useVehicleEventsTimelineFilter(
     /** Filtres texte dédiés garage / code postal (dans le popover Filtres). */
     garageTerm: Ref<string>;
     postalCodeTerm: Ref<string>;
+    /** Garages réellement renseignés sur les événements chargés (autosuggestion). */
+    garageOptions: ComputedRef<string[]>;
     totalAmountCents: ComputedRef<number>;
     activeAxisCount: ComputedRef<number>;
     activeFilterChips: ComputedRef<FilterChip[]>;
@@ -137,6 +139,20 @@ export function useVehicleEventsTimelineFilter(
         return [...present]
             .sort((a, b) => a.localeCompare(b, 'fr'))
             .map((category) => ({ value: category, label: category }));
+    });
+
+    // Autosuggestion of the garage filter = distinct garages actually present
+    // on this vehicle's loaded events (no extra round-trip).
+    const garageOptions = computed<string[]>(() => {
+        const present = new Set<string>();
+
+        for (const event of toValue(events)) {
+            if (event.garage !== null && event.garage.trim() !== '') {
+                present.add(event.garage);
+            }
+        }
+
+        return [...present].sort((a, b) => a.localeCompare(b, 'fr'));
     });
 
     /**
@@ -382,6 +398,7 @@ export function useVehicleEventsTimelineFilter(
         categoryOptions,
         garageTerm,
         postalCodeTerm,
+        garageOptions,
         totalAmountCents,
         activeAxisCount,
         activeFilterChips,
