@@ -77,14 +77,14 @@ final class PlanningExportTest extends TestCase
         self::assertSame(1, $scoped->rows[0]->weeks[9]);
         self::assertSame(0, $scoped->rows[0]->weeks[19]);
         self::assertSame(1, $scoped->rows[0]->daysTotal);
-        self::assertSame($companyA->legal_name, $scoped->scopeLabel);
+        self::assertSame($companyA->legal_name, $scoped->companyName);
         self::assertSame($companyA->short_code, $scoped->companyShortCode);
 
         // Vue d'ensemble · les deux semaines (10 et 20) sont comptées.
         self::assertSame(1, $global->rows[0]->weeks[9]);
         self::assertSame(1, $global->rows[0]->weeks[19]);
         self::assertSame(2, $global->rows[0]->daysTotal);
-        self::assertSame('Flotte entière', $global->scopeLabel);
+        self::assertNull($global->companyName);
         self::assertNull($global->companyShortCode);
 
         // Montant recalculé côté serveur (année avec règles fiscales) · la
@@ -131,11 +131,15 @@ final class PlanningExportTest extends TestCase
         $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
 
         self::assertStringContainsString($vehicle->license_plate, $html);
-        self::assertStringContainsString('Données complètes', $html);
-        self::assertStringContainsString('Flotte entière', $html);
-        self::assertStringContainsString('Planning '.$year, $html);
+        // Apostrophe HTML-encoded by Blade (d&#039;utilisation) · assert an
+        // apostrophe-free slice of the title.
+        self::assertStringContainsString('utilisation de la flotte', $html);
+        self::assertStringContainsString('Répartition hebdomadaire', $html);
+        self::assertStringContainsString('Exercice '.$year, $html);
         self::assertStringContainsString('Taxe réelle', $html);
         self::assertStringContainsString('€', $html);
+        // « Flotte entière » a été retiré (trompeur sur une sélection).
+        self::assertStringNotContainsString('Flotte entière', $html);
     }
 
     #[Test]
@@ -153,13 +157,36 @@ final class PlanningExportTest extends TestCase
 
         $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
 
-        self::assertStringContainsString('Données véhicule', $html);
+        self::assertStringContainsString('Récapitulatif des véhicules', $html);
         self::assertStringContainsString('Caractéristiques', $html);
         self::assertStringContainsString('Catégorie polluants', $html);
         self::assertStringContainsString($fiscal->pollutant_category->label(), $html);
         self::assertStringContainsString($fiscal->energy_source->label(), $html);
         self::assertStringContainsString('1re immatriculation', $html);
         self::assertStringContainsString($vehicle->first_french_registration_date->format('d/m/Y'), $html);
+    }
+
+    #[Test]
+    public function renderer_html_scope_entreprise_affiche_l_entreprise_et_le_nombre(): void
+    {
+        $year = 2024;
+        [$vehicle, , $companyA] = $this->seedFleet($year);
+
+        $data = $this->app->make(PlanningExportService::class)->build(new PlanningExportRequestData(
+            vehicleIds: [$vehicle->id],
+            year: $year,
+            mode: PlanningExportMode::Complete,
+            companyId: $companyA->id,
+        ));
+
+        $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
+
+        // The company legal name (faker) may contain & or ' that Blade
+        // encodes, so assert the label and the scoped DTO value separately.
+        self::assertStringContainsString('Entreprise :', $html);
+        self::assertSame($companyA->legal_name, $data->companyName);
+        self::assertStringContainsString('1 véhicule', $html);
+        self::assertStringNotContainsString('Flotte entière', $html);
     }
 
     #[Test]

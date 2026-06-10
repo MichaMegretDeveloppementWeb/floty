@@ -21,17 +21,12 @@
             border-bottom: 1px solid #e2e8f0;
             padding-bottom: 3mm;
         }
-        .doc-header-main { display: table-cell; vertical-align: bottom; width: 60%; }
-        .doc-header-meta { display: table-cell; vertical-align: bottom; width: 40%; text-align: right; }
-        .doc-subtitle {
-            font-size: 8pt;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #94a3b8;
-            margin: 1mm 0 0;
-        }
-        .doc-scope { font-size: 10.5pt; font-weight: bold; margin: 0; }
-        .doc-generated { font-size: 7.5pt; color: #94a3b8; margin: 0.5mm 0 0; }
+        .doc-header-main { display: table-cell; vertical-align: top; width: 62%; }
+        .doc-header-meta { display: table-cell; vertical-align: top; width: 38%; text-align: right; }
+        .doc-subtitle { font-size: 9pt; color: #64748b; margin: 1mm 0 0; }
+        .doc-meta-line { font-size: 8.5pt; color: #475569; margin: 0 0 0.5mm; }
+        .doc-meta-strong { font-weight: bold; color: #0f172a; }
+        .doc-generated { font-size: 7.5pt; color: #94a3b8; margin-top: 1mm; }
 
         .vehicle-card {
             border: 1px solid #e2e8f0;

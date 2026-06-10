@@ -11,8 +11,10 @@ use Carbon\CarbonImmutable;
  * Complete render context for a planning PDF export.
  *
  * Built by {@see App\Services\Planning\PlanningExportService}; consumed
- * by {@see App\Services\Pdf\BladeDomPdfPlanningRenderer}. `scopeLabel` is
- * the human header (« Flotte entière » or the company legal name);
+ * by {@see App\Services\Pdf\BladeDomPdfPlanningRenderer}. `companyName` is
+ * the company legal name when the export comes from the per-company view
+ * (the figures are scoped to it), and `null` from the overview (the header
+ * then shows only the vehicle count, not a misleading scope label).
  * `companyShortCode` drives the download filename only.
  */
 final readonly class PlanningExportData
@@ -21,7 +23,7 @@ final readonly class PlanningExportData
      * @param  list<PlanningExportRowData>  $rows
      */
     public function __construct(
-        public string $scopeLabel,
+        public ?string $companyName,
         public ?string $companyShortCode,
         public int $year,
         public PlanningExportMode $mode,

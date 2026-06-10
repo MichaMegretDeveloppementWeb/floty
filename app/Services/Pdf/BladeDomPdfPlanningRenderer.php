@@ -59,13 +59,29 @@ final readonly class BladeDomPdfPlanningRenderer implements PlanningPdfRendererI
      */
     private function prepareViewData(PlanningExportData $data): array
     {
+        [$title, $subtitle] = $this->titleAndSubtitle($data->mode);
+
         return [
-            'scopeLabel' => $data->scopeLabel,
+            'title' => $title,
+            'subtitle' => $subtitle,
             'year' => $data->year,
-            'modeLabel' => $data->mode->label(),
-            'generatedAtLabel' => $data->generatedAt->format('d/m/Y H:i'),
+            'companyName' => $data->companyName,
+            'vehicleCount' => count($data->rows),
+            'generatedAtLabel' => $data->generatedAt->format('d/m/Y').' à '.$data->generatedAt->format('H:i'),
             'rows' => array_map(fn (PlanningExportRowData $row): array => $this->mapRow($row), $data->rows),
         ];
+    }
+
+    /**
+     * Document title + subtitle by export mode.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function titleAndSubtitle(PlanningExportMode $mode): array
+    {
+        return $mode === PlanningExportMode::Complete
+            ? ['Planning d\'utilisation de la flotte', 'Répartition hebdomadaire des jours d\'utilisation']
+            : ['Récapitulatif des véhicules', 'Caractéristiques fiscales et montants annuels'];
     }
 
     /**

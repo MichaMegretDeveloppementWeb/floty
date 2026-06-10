@@ -120,7 +120,7 @@ final readonly class PlanningExportService
         $company = $companyId !== null ? $this->companies->findById($companyId) : null;
 
         return new PlanningExportData(
-            scopeLabel: $company !== null ? $company->legal_name : 'Flotte entière',
+            companyName: $company?->legal_name,
             companyShortCode: $company?->short_code,
             year: $year,
             mode: $request->mode,
