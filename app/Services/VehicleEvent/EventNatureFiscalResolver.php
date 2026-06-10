@@ -5,18 +5,13 @@ declare(strict_types=1);
 namespace App\Services\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
+use App\Support\VehicleEvent\EventNatureCatalog;
 
 /**
- * Decides whether a set of event natures makes the event fiscally reductive:
- * true as soon as ONE nature matches a label of the frozen reductive block
- * (`vehicle_event_natures.is_fiscally_reductive`). Free entries and every
- * other nature are non-reductive by default.
- *
- * Matching is trimmed and case-insensitive, the same normalisation as the
- * nature list composition ({@see App\Support\VehicleEvent\EventCategoryList}).
- * The result feeds the write-time denormalisation of
- * `vehicle_events.has_fiscal_impact`; the fiscal rules (R-20XX-008) keep
- * reading that frozen boolean only.
+ * True when one nature matches the frozen reductive block (trim +
+ * case-insensitive). Matches the UNION of the DB rows and
+ * {@see EventNatureCatalog::REDUCTIVE} so fiscal correctness never depends
+ * on the seeder having run; feeds the frozen `has_fiscal_impact` boolean.
  */
 final readonly class EventNatureFiscalResolver
 {
@@ -35,7 +30,7 @@ final readonly class EventNatureFiscalResolver
 
         $reductive = array_map(
             static fn (string $label): string => mb_strtolower(trim($label)),
-            $this->natures->reductiveLabels(),
+            [...$this->natures->reductiveLabels(), ...EventNatureCatalog::REDUCTIVE],
         );
 
         foreach ($natures as $nature) {

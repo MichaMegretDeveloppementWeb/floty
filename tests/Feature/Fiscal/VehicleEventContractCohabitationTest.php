@@ -6,8 +6,10 @@ namespace Tests\Feature\Fiscal;
 
 use App\Actions\Contract\StoreContractAction;
 use App\Actions\VehicleEvent\CreateVehicleEventAction;
+use App\Actions\VehicleEvent\UpdateVehicleEventAction;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
+use App\Data\User\VehicleEvent\UpdateVehicleEventData;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -21,11 +23,14 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
+use App\Models\VehicleEventNature;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
+use App\Support\VehicleEvent\EventNatureCatalog;
 use Database\Seeders\VehicleEventNatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -184,6 +189,191 @@ final class VehicleEventContractCohabitationTest extends TestCase
 
         $delta = $without->totalDue - $with->totalDue;
         $this->assertEqualsWithDelta(7.46, $delta, 0.02, 'R-2024-008 doit s\'appliquer indépendamment de l\'ordre temporel des saisies.');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function reductiveNatureProvider(): array
+    {
+        $cases = [];
+
+        foreach (EventNatureCatalog::REDUCTIVE as $label) {
+            $cases[$label] = [$label];
+        }
+
+        return $cases;
+    }
+
+    #[Test]
+    #[DataProvider('reductiveNatureProvider')]
+    public function chaque_nature_reductrice_du_bloc_fige_reduit_le_prorata(string $nature): void
+    {
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Indispo réductrice',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: [$nature],
+        ));
+
+        $this->assertTrue($vehicleEvent->has_fiscal_impact);
+        $this->assertTrue($vehicleEvent->implies_unavailability);
+        $this->assertReducesTenDays($vehicle, $contract, $vehicleEvent);
+    }
+
+    #[Test]
+    public function la_nature_reductrice_est_reconnue_malgre_la_casse_et_les_espaces(): void
+    {
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Suspension administrative',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ["  SUSPENSION DU CERTIFICAT D'IMMATRICULATION  "],
+        ));
+
+        $this->assertTrue($vehicleEvent->has_fiscal_impact);
+        $this->assertReducesTenDays($vehicle, $contract, $vehicleEvent);
+    }
+
+    #[Test]
+    public function une_nature_reductrice_parmi_des_non_reductrices_suffit_a_reduire(): void
+    {
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Sinistre immobilisant',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Sinistre', 'Carrosserie', 'Sinistre avec interdiction de circuler'],
+        ));
+
+        $this->assertTrue($vehicleEvent->has_fiscal_impact);
+        $this->assertReducesTenDays($vehicle, $contract, $vehicleEvent);
+    }
+
+    #[Test]
+    public function une_nature_libre_quelconque_ne_touche_jamais_au_prorata(): void
+    {
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Pose covering',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Covering publicitaire', 'Esthétique'],
+        ));
+
+        $this->assertFalse($vehicleEvent->has_fiscal_impact);
+
+        $without = $this->calculator->calculate($vehicle, [$contract], [], 2024);
+        $with = $this->calculator->calculate($vehicle, [$contract], [$vehicleEvent], 2024);
+
+        $this->assertSame($without->totalDue, $with->totalDue);
+    }
+
+    #[Test]
+    public function la_bascule_des_natures_a_l_update_suit_le_prorata_dans_les_deux_sens(): void
+    {
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+        $update = $this->app->make(UpdateVehicleEventAction::class);
+
+        // Créé non réducteur : aucun effet.
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Immobilisation',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Entretien'],
+        ));
+        $this->assertFalse($vehicleEvent->has_fiscal_impact);
+
+        // Basculé vers une nature réductrice : le prorata se réduit.
+        $vehicleEvent = $update->execute($vehicleEvent->id, new UpdateVehicleEventData(
+            title: 'Immobilisation',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Fourrière (demande publique)'],
+        ));
+        $this->assertTrue($vehicleEvent->has_fiscal_impact);
+        $this->assertReducesTenDays($vehicle, $contract, $vehicleEvent);
+
+        // Re-basculé non réducteur : l'effet disparaît.
+        $vehicleEvent = $update->execute($vehicleEvent->id, new UpdateVehicleEventData(
+            title: 'Immobilisation',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Entretien'],
+        ));
+        $this->assertFalse($vehicleEvent->has_fiscal_impact);
+
+        $without = $this->calculator->calculate($vehicle, [$contract], [], 2024);
+        $with = $this->calculator->calculate($vehicle, [$contract], [$vehicleEvent], 2024);
+        $this->assertSame($without->totalDue, $with->totalDue);
+    }
+
+    #[Test]
+    public function le_bloc_reducteur_du_code_fait_foi_meme_sans_catalogue_seede(): void
+    {
+        // Catalogue vide = seed oublié en prod ; le bloc du code fait foi.
+        VehicleEventNature::query()->delete();
+
+        [$vehicle, $contract] = $this->makeVehicleWithSixtyDayContract();
+
+        $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Mise en fourrière',
+            startDate: '2024-01-15',
+            endDate: '2024-01-24',
+            description: null,
+            categories: ['Fourrière (demande publique)'],
+        ));
+
+        $this->assertTrue($vehicleEvent->has_fiscal_impact);
+        $this->assertReducesTenDays($vehicle, $contract, $vehicleEvent);
+    }
+
+    /**
+     * R-2024-008 retire les 10 j d'overlap : (173 + 100) × 10 / 366 ≈ 7,46 €.
+     */
+    private function assertReducesTenDays(Vehicle $vehicle, Contract $contract, VehicleEvent $vehicleEvent): void
+    {
+        $without = $this->calculator->calculate($vehicle, [$contract], [], 2024);
+        $with = $this->calculator->calculate($vehicle, [$contract], [$vehicleEvent], 2024);
+
+        $delta = $without->totalDue - $with->totalDue;
+        $this->assertEqualsWithDelta(7.46, $delta, 0.02, 'R-2024-008 doit retirer ~10 j × tarif jour du total.');
+        $this->assertGreaterThan(0.0, $delta);
+    }
+
+    /**
+     * @return array{Vehicle, Contract}
+     */
+    private function makeVehicleWithSixtyDayContract(): array
+    {
+        $vehicle = $this->makeVehicleWltp100Essence();
+        $contract = Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => Company::factory()->create()->id,
+            'start_date' => '2024-01-01',
+            'end_date' => '2024-02-29',
+        ]);
+
+        return [$vehicle, $contract];
     }
 
     /**
