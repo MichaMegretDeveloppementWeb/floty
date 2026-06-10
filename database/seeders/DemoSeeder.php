@@ -7,6 +7,8 @@ namespace Database\Seeders;
 use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
+use App\Enums\Control\ControlAnchor;
+use App\Enums\Control\DurationUnit;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -22,6 +24,7 @@ use App\Enums\Vehicle\VehicleUserType;
 use App\Models\BillingSettings;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\ControlDefinition;
 use App\Models\Driver;
 use App\Models\FiscalDeclaration;
 use App\Models\RentalDiscount;
@@ -54,6 +57,7 @@ final class DemoSeeder extends Seeder
         $this->seedPricings($vehicles);
         $this->seedContracts($vehicles, $companies);
         $this->seedUnavailabilities($vehicles);
+        $this->seedControls();
         $this->seedDrivers($companies);
         $this->seedContractDrivers();
         $this->seedFiscalDeclarations($companies);
@@ -1454,6 +1458,35 @@ final class DemoSeeder extends Seeder
                 categories: ['Sinistre'],
             );
         }
+    }
+
+    /**
+     * Seed the global regulatory-control catalogue (Chantier B / B1): the
+     * contrôle technique, recipe légale VP (1re mise en circulation + 4 ans,
+     * puis tous les 2 ans). Saving the definition triggers the fleet-wide
+     * `controls_due_from` recompute, so badges and échéances light up on the
+     * demo vehicles.
+     */
+    private function seedControls(): void
+    {
+        ControlDefinition::query()->forceDelete();
+
+        ControlDefinition::create([
+            'name' => 'Contrôle technique',
+            'anchor' => ControlAnchor::FirstOriginRegistration,
+            'initial_duration_value' => 4,
+            'initial_duration_unit' => DurationUnit::Years,
+            'cycle_value' => 2,
+            'cycle_unit' => DurationUnit::Years,
+            'notify_driver' => false,
+            'implies_unavailability' => false,
+            // Reminder cycle: NULL fields inherit the global settings.
+            'reminder_days_before' => null,
+            'reminder_on_due_day' => null,
+            'reminder_repeat_every_days' => null,
+            'is_active' => true,
+            'display_order' => 1,
+        ]);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Seeders;
 
 use App\Models\Contract;
+use App\Models\ControlDefinition;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
@@ -216,5 +217,16 @@ final class DemoSeederSmokeTest extends TestCase
             $hasMixedCase,
             'Le seeder doit produire au moins un cas mixte (indispo + contrat + bascule VFC).',
         );
+    }
+
+    #[Test]
+    public function le_controle_technique_global_est_seede(): void
+    {
+        $ct = ControlDefinition::query()->where('name', 'Contrôle technique')->first();
+
+        $this->assertNotNull($ct, 'Le seeder doit produire le contrôle technique global.');
+        $this->assertTrue($ct->is_active);
+        $this->assertSame(4, $ct->initial_duration_value);
+        $this->assertSame(2, $ct->cycle_value);
     }
 }
