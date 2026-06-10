@@ -6,6 +6,7 @@ namespace Tests\Feature\User\Planning;
 
 use App\Data\User\Planning\PlanningExportRequestData;
 use App\Enums\Planning\PlanningExportMode;
+use App\Enums\Vehicle\VehicleExitReason;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
@@ -164,6 +165,54 @@ final class PlanningExportTest extends TestCase
         self::assertStringContainsString($fiscal->energy_source->label(), $html);
         self::assertStringContainsString('1re immatriculation', $html);
         self::assertStringContainsString($vehicle->first_french_registration_date->format('d/m/Y'), $html);
+    }
+
+    #[Test]
+    public function fiche_vehicule_liste_les_exonerations_actives(): void
+    {
+        $year = 2024;
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->electric()->create(['vehicle_id' => $vehicle->id]);
+
+        $data = $this->app->make(PlanningExportService::class)->build(new PlanningExportRequestData(
+            vehicleIds: [$vehicle->id],
+            year: $year,
+            mode: PlanningExportMode::Vehicle,
+            companyId: null,
+        ));
+
+        // Source autoritaire = vehicleFullYearTaxBreakdown->appliedExemptions
+        // (R-2024-016 exonération électrique/hydrogène pour un VE).
+        self::assertNotEmpty($data->rows[0]->exemptions);
+
+        $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
+        self::assertStringContainsString('Exonérations', $html);
+        self::assertStringContainsString('électrique', $html);
+    }
+
+    #[Test]
+    public function fiche_vehicule_mentionne_la_sortie_de_flotte(): void
+    {
+        $year = 2024;
+        $vehicle = Vehicle::factory()->create([
+            'exit_date' => "{$year}-06-15",
+            'exit_reason' => VehicleExitReason::Sold,
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $data = $this->app->make(PlanningExportService::class)->build(new PlanningExportRequestData(
+            vehicleIds: [$vehicle->id],
+            year: $year,
+            mode: PlanningExportMode::Vehicle,
+            companyId: null,
+        ));
+
+        self::assertSame("{$year}-06-15", $data->rows[0]->exitDate);
+        self::assertSame(VehicleExitReason::Sold, $data->rows[0]->exitReason);
+
+        $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
+        self::assertStringContainsString('Sorti de la flotte le 15/06/'.$year, $html);
+        self::assertStringContainsString('Vendu', $html);
     }
 
     #[Test]

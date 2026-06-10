@@ -7,6 +7,7 @@ namespace App\Services\Planning;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
+use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Planning\PlanningExportRequestData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\DTO\Planning\PlanningExportData;
@@ -76,10 +77,19 @@ final readonly class PlanningExportService
 
             // Tolerates a year without coded fiscal rules · 0 instead of
             // crashing the export (mirrors the heatmap deferred guards).
+            // `appliedExemptions` is the vehicle-level exemption set for the
+            // year (same source as the Vehicle Show « Exonérations
+            // applicables » panel).
             try {
-                $fullYearTax = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year)->total;
+                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+                $fullYearTax = $fullYear->total;
+                $exemptions = array_values(array_unique(array_map(
+                    static fn (AppliedExemptionData $exemption): string => $exemption->reason,
+                    $fullYear->appliedExemptions,
+                )));
             } catch (FiscalCalculationException) {
                 $fullYearTax = 0.0;
+                $exemptions = [];
             }
 
             try {
@@ -114,6 +124,9 @@ final readonly class PlanningExportService
                 dailyRateCents: $pricing?->daily_rate_cents,
                 weeklyRateCents: $pricing?->weekly_rate_cents,
                 monthlyRateCents: $pricing?->monthly_rate_cents,
+                exemptions: $exemptions,
+                exitDate: $vehicle->exit_date?->toDateString(),
+                exitReason: $vehicle->exit_reason,
             );
         }
 

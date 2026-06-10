@@ -113,6 +113,9 @@ final readonly class BladeDomPdfPlanningRenderer implements PlanningPdfRendererI
             'dailyRate' => $row->dailyRateCents !== null ? $this->formatEuros($row->dailyRateCents / 100) : null,
             'weeklyRate' => $row->weeklyRateCents !== null ? $this->formatEuros($row->weeklyRateCents / 100) : null,
             'monthlyRate' => $row->monthlyRateCents !== null ? $this->formatEuros($row->monthlyRateCents / 100) : null,
+            'exemptions' => $row->exemptions,
+            'exitDate' => $row->exitDate !== null ? $this->formatDateFr($row->exitDate) : null,
+            'exitReason' => $row->exitReason?->label(),
         ];
     }
 

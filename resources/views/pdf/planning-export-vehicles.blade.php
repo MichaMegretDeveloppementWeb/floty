@@ -53,6 +53,26 @@
             margin-bottom: 0.1mm;
         }
         table.kv .v { display: block; font-size: 8pt; font-weight: bold; color: #0f172a; }
+        .card-exit {
+            margin: 0 0 1.2mm;
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #be123c;
+        }
+        .card-exemptions {
+            margin: 1.2mm 0 0;
+            padding-top: 1.2mm;
+            border-top: 0.5pt dotted #cbd5e1;
+            font-size: 7.5pt;
+            color: #334155;
+        }
+        .card-exemptions .k-inline {
+            font-size: 6pt;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: bold;
+            color: #0f766e;
+        }
         .empty-state { font-size: 10pt; color: #64748b; margin-top: 6mm; }
     </style>
 </head>
@@ -68,6 +88,9 @@
                     <span class="plate">{{ $row['licensePlate'] }}</span>
                     <span class="vlabel">· {{ $row['vehicleLabel'] }} · {{ $row['userType'] }}</span>
                 </p>
+                @if ($row['exitDate'] !== null)
+                    <p class="card-exit">Sorti de la flotte le {{ $row['exitDate'] }}@if ($row['exitReason'] !== null) · {{ $row['exitReason'] }}@endif</p>
+                @endif
                 <table class="kv">
                     <tr>
                         <td><span class="k">Énergie</span><span class="v">{{ $row['energy'] }}</span></td>
@@ -85,6 +108,9 @@
                         <td><span class="k">Tarifs location (J / S / M)</span><span class="v">{{ $row['dailyRate'] ?? '-' }} / {{ $row['weeklyRate'] ?? '-' }} / {{ $row['monthlyRate'] ?? '-' }}</span></td>
                     </tr>
                 </table>
+                @if (count($row['exemptions']) > 0)
+                    <p class="card-exemptions"><span class="k-inline">Exonérations</span> {{ implode(' · ', $row['exemptions']) }}</p>
+                @endif
             </div>
         @endforeach
     @endif

@@ -7,6 +7,7 @@ namespace App\DTO\Planning;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleUserType;
 
 /**
@@ -21,6 +22,7 @@ final readonly class PlanningExportRowData
 {
     /**
      * @param  array<int, int>  $weeks  53 cells, real usage days (0-7)
+     * @param  list<string>  $exemptions  Vehicle-level exemption labels applicable for the year (same source as the Vehicle Show "Exonérations applicables" panel)
      */
     public function __construct(
         public int $id,
@@ -41,5 +43,8 @@ final readonly class PlanningExportRowData
         public ?int $dailyRateCents,
         public ?int $weeklyRateCents,
         public ?int $monthlyRateCents,
+        public array $exemptions,
+        public ?string $exitDate,
+        public ?VehicleExitReason $exitReason,
     ) {}
 }
