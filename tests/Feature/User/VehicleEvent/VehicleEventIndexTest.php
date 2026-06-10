@@ -147,7 +147,7 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function recherche_par_nom_de_garage(): void
+    public function filtre_dedie_par_nom_de_garage_partiel(): void
     {
         $user = User::factory()->create();
         VehicleEvent::factory()->maintenance()->create(['garage' => 'Garage Martin']);
@@ -155,7 +155,7 @@ final class VehicleEventIndexTest extends TestCase
         VehicleEvent::factory()->maintenance()->create();
 
         $this->actingAs($user)
-            ->get('/app/vehicle-events?search=martin')
+            ->get('/app/vehicle-events?garage=martin')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 1)
@@ -164,7 +164,7 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function recherche_par_code_postal_partiel(): void
+    public function filtre_dedie_par_code_postal_partiel(): void
     {
         $user = User::factory()->create();
         VehicleEvent::factory()->maintenance()->create(['postal_code' => '91100']);
@@ -172,11 +172,54 @@ final class VehicleEventIndexTest extends TestCase
         VehicleEvent::factory()->maintenance()->create();
 
         $this->actingAs($user)
-            ->get('/app/vehicle-events?search=91')
+            ->get('/app/vehicle-events?postalCode=91')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 1)
                 ->where('events.data.0.postalCode', '91100'),
+            );
+    }
+
+    #[Test]
+    public function la_recherche_libre_ignore_garage_et_code_postal(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Garage Martin', 'postal_code' => '91100']);
+
+        $this->actingAs($user)
+            ->get('/app/vehicle-events?search=martin')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 0),
+            );
+    }
+
+    #[Test]
+    public function recherche_libre_par_marque_et_modele_du_vehicule(): void
+    {
+        $user = User::factory()->create();
+        $c1 = Vehicle::factory()->create(['brand' => 'Citroën', 'model' => 'C1']);
+        $c3 = Vehicle::factory()->create(['brand' => 'Citroën', 'model' => 'C3']);
+        $swift = Vehicle::factory()->create(['brand' => 'Suzuki', 'model' => 'Swift']);
+        VehicleEvent::factory()->maintenance()->create(['vehicle_id' => $c1->id]);
+        VehicleEvent::factory()->maintenance()->create(['vehicle_id' => $c3->id]);
+        VehicleEvent::factory()->maintenance()->create(['vehicle_id' => $swift->id]);
+
+        // Toute la marque.
+        $this->actingAs($user)
+            ->get('/app/vehicle-events?search=citro')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 2),
+            );
+
+        // Marque + modèle combinés.
+        $this->actingAs($user)
+            ->get('/app/vehicle-events?search='.urlencode('Citroën C1'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 1)
+                ->where('events.data.0.vehicleLabel', 'Citroën C1'),
             );
     }
 

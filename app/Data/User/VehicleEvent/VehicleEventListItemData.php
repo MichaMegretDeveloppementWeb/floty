@@ -25,6 +25,8 @@ final class VehicleEventListItemData extends Data
         public int $id,
         public int $vehicleId,
         public string $vehicleLicensePlate,
+        /** « Marque Modèle », displayed discreetly under the plate (searchable). */
+        public string $vehicleLabel,
         public string $startDate,
         public ?string $endDate,
         /** Inclusive day count, or 0 when ongoing (end_date null). */
@@ -50,6 +52,7 @@ final class VehicleEventListItemData extends Data
             id: $event->id,
             vehicleId: $event->vehicle_id,
             vehicleLicensePlate: $event->vehicle->license_plate,
+            vehicleLabel: trim($event->vehicle->brand.' '.$event->vehicle->model),
             startDate: $event->start_date->toDateString(),
             endDate: $event->end_date?->toDateString(),
             daysCount: $daysCount,

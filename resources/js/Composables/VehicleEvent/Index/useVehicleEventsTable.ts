@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/vue3';
-import { computed } from 'vue';
-import type { ComputedRef } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as vehicleEventShowRoute } from '@/routes/user/vehicles/events';
@@ -13,6 +13,9 @@ export type VehicleEventFilters = {
     /** Natures (UI « Nature »), key kept as `categories` to match the backend. */
     categories: string[];
     year: number | null;
+    /** Filtres dédiés (hors recherche libre : conflit avec les plaques). */
+    garage: string;
+    postal_code: string;
 };
 
 export type FilterChip = { key: string; label: string };
@@ -32,6 +35,9 @@ const SORT_KEY_TO_COLUMN: Record<string, string> = Object.fromEntries(
 export function useVehicleEventsTable(opts: { query: Query }): {
     columns: readonly DataTableColumn<VehicleEventRow>[];
     state: ServerTableState<VehicleEventFilters>;
+    /** Saisies débouncées des filtres texte garage / code postal (300 ms). */
+    garageInput: Ref<string>;
+    postalCodeInput: Ref<string>;
     activeSortColumnKey: ComputedRef<string | null>;
     activeFiltersCount: ComputedRef<number>;
     activeFilterChips: ComputedRef<FilterChip[]>;
@@ -55,15 +61,55 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         initialSearch: opts.query.search ?? '',
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
-        defaultFilters: { categories: [], year: null },
+        defaultFilters: { categories: [], year: null, garage: '', postal_code: '' },
         initialFilters: {
             categories: opts.query.categories ?? [],
             year: opts.query.year,
+            garage: opts.query.garage ?? '',
+            postal_code: opts.query.postalCode ?? '',
         },
         serializeFilters: (f) => ({
             categories: f.categories,
             year: f.year,
+            garage: f.garage.trim() !== '' ? f.garage.trim() : null,
+            postalCode: f.postal_code.trim() !== '' ? f.postal_code.trim() : null,
         }),
+    });
+
+    // Text filters debounce locally (a reload per keystroke would hammer the
+    // server), then land in the table state in one batch. Chips removal /
+    // clearFilters update the state directly: mirror it back into the inputs.
+    const garageInput = ref<string>(opts.query.garage ?? '');
+    const postalCodeInput = ref<string>(opts.query.postalCode ?? '');
+    let textFilterTimer: ReturnType<typeof setTimeout> | null = null;
+
+    watch([garageInput, postalCodeInput], ([garage, postalCode]) => {
+        if (garage === state.filters.value.garage && postalCode === state.filters.value.postal_code) {
+            return;
+        }
+
+        if (textFilterTimer !== null) {
+            clearTimeout(textFilterTimer);
+        }
+
+        textFilterTimer = setTimeout(() => {
+            textFilterTimer = null;
+            state.patchFilters({ garage, postal_code: postalCode });
+        }, 300);
+    });
+
+    watch(
+        () => [state.filters.value.garage, state.filters.value.postal_code] as const,
+        ([garage, postalCode]) => {
+            garageInput.value = garage;
+            postalCodeInput.value = postalCode;
+        },
+    );
+
+    onBeforeUnmount(() => {
+        if (textFilterTimer !== null) {
+            clearTimeout(textFilterTimer);
+        }
     });
 
     const activeSortColumnKey = computed<string | null>(() => {
@@ -75,7 +121,10 @@ export function useVehicleEventsTable(opts: { query: Query }): {
     const activeFiltersCount = computed<number>(() => {
         const f = state.filters.value;
 
-        return f.categories.length + (f.year !== null ? 1 : 0);
+        return f.categories.length
+            + (f.year !== null ? 1 : 0)
+            + (f.garage.trim() !== '' ? 1 : 0)
+            + (f.postal_code.trim() !== '' ? 1 : 0);
     });
 
     const activeFilterChips = computed<FilterChip[]>(() => {
@@ -89,6 +138,14 @@ export function useVehicleEventsTable(opts: { query: Query }): {
             chips.push({ key: 'year', label: `Année : ${f.year}` });
         }
 
+        if (f.garage.trim() !== '') {
+            chips.push({ key: 'garage', label: `Garage : ${f.garage.trim()}` });
+        }
+
+        if (f.postal_code.trim() !== '') {
+            chips.push({ key: 'postal_code', label: `Code postal : ${f.postal_code.trim()}` });
+        }
+
         return chips;
     });
 
@@ -97,6 +154,12 @@ export function useVehicleEventsTable(opts: { query: Query }): {
 
         if (key === 'year') {
             state.setFilter('year', null);
+
+            return;
+        }
+
+        if (key === 'garage' || key === 'postal_code') {
+            state.setFilter(key, '');
 
             return;
         }
@@ -127,6 +190,8 @@ export function useVehicleEventsTable(opts: { query: Query }): {
     return {
         columns,
         state,
+        garageInput,
+        postalCodeInput,
         activeSortColumnKey,
         activeFiltersCount,
         activeFilterChips,

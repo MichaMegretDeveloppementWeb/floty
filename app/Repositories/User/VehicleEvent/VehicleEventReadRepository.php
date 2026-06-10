@@ -30,7 +30,7 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function paginateForIndex(VehicleEventIndexQueryData $query): LengthAwarePaginator
     {
         $eloquent = VehicleEvent::query()
-            ->with(['vehicle:id,license_plate', 'categories']);
+            ->with(['vehicle:id,license_plate,brand,model', 'categories']);
 
         $this->applyIndexFilters($eloquent, $query);
 
@@ -102,13 +102,27 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
         if ($data->search !== null) {
             $term = '%'.$data->search.'%';
 
+            // Garage and postal code are intentionally NOT part of the free
+            // search (they clash with license plates): they have their own
+            // dedicated filters below.
             $query->where(static function (Builder $w) use ($term): void {
                 $w->where('title', 'like', $term)
                     ->orWhere('description', 'like', $term)
-                    ->orWhere('garage', 'like', $term)
-                    ->orWhere('postal_code', 'like', $term)
-                    ->orWhereHas('vehicle', static fn (Builder $v) => $v->where('license_plate', 'like', $term));
+                    ->orWhereHas('vehicle', static function (Builder $v) use ($term): void {
+                        $v->where('license_plate', 'like', $term)
+                            ->orWhere('brand', 'like', $term)
+                            ->orWhere('model', 'like', $term)
+                            ->orWhereRaw("CONCAT(brand, ' ', model) like ?", [$term]);
+                    });
             });
+        }
+
+        if ($data->garage !== null && trim($data->garage) !== '') {
+            $query->where('garage', 'like', '%'.trim($data->garage).'%');
+        }
+
+        if ($data->postalCode !== null && trim($data->postalCode) !== '') {
+            $query->where('postal_code', 'like', '%'.trim($data->postalCode).'%');
         }
     }
 

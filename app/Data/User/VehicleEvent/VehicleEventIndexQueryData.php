@@ -15,6 +15,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *  - `categories`: natures (UI « Nature ») · case-insensitive match on the
  *    `vehicle_event_categories` child rows.
  *  - `year`: events whose reference date (`start_date`) falls in that year.
+ *  - `garage` / `postalCode`: dedicated partial-match filters (LIKE contains),
+ *    kept OUT of the free `search` to avoid clashing with license plates.
  *
  * Allowed sort keys: `startDate | vehicle | title | amount` (all pure SQL).
  */
@@ -27,6 +29,8 @@ final class VehicleEventIndexQueryData extends IndexQueryData
     public function __construct(
         public ?array $categories = null,
         public ?int $year = null,
+        public ?string $garage = null,
+        public ?string $postalCode = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -47,6 +51,8 @@ final class VehicleEventIndexQueryData extends IndexQueryData
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:60'],
             'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'garage' => ['nullable', 'string', 'max:120'],
+            'postalCode' => ['nullable', 'string', 'max:10'],
         ]);
     }
 }

@@ -19,7 +19,7 @@ import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
-import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import {
@@ -56,7 +56,8 @@ const {
     filteredEvents,
     selectedCategories,
     categoryOptions,
-    searchTerm,
+    garageTerm,
+    postalCodeTerm,
     totalAmountCents,
     activeAxisCount,
     activeFilterChips,
@@ -120,14 +121,6 @@ function descriptionExcerpt(description: string): string {
             </div>
 
             <div class="mb-3 flex flex-wrap items-center gap-3">
-                <div class="w-64">
-                    <SearchInput
-                        v-model="searchTerm"
-                        placeholder="Garage, code postal..."
-                        aria-label="Rechercher par garage ou code postal"
-                    />
-                </div>
-
                 <FilterPopover
                     v-model:open="filtersOpen"
                     :active-count="activeAxisCount"
@@ -139,6 +132,18 @@ function descriptionExcerpt(description: string): string {
                         :options="categoryOptions"
                         allow-free-entry
                         placeholder="Filtrer par nature"
+                    />
+
+                    <TextInput
+                        v-model="garageTerm"
+                        label="Garage"
+                        placeholder="Ex. Garage Martin"
+                    />
+
+                    <TextInput
+                        v-model="postalCodeTerm"
+                        label="Code postal"
+                        placeholder="Ex. 91"
                     />
                 </FilterPopover>
 

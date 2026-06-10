@@ -140,7 +140,7 @@ describe('useVehicleEventsTimelineFilter · filtre nature + total', () => {
     });
 });
 
-describe('useVehicleEventsTimelineFilter · recherche garage / code postal', () => {
+describe('useVehicleEventsTimelineFilter · filtres garage / code postal', () => {
     const events: VehicleEvent[] = [
         makeEvent({ id: 1, startDate: '2026-03-01', garage: 'Garage Martin', postalCode: '91100' }),
         makeEvent({ id: 2, startDate: '2026-04-01', garage: 'Carrosserie Dupont', postalCode: '75011' }),
@@ -150,7 +150,7 @@ describe('useVehicleEventsTimelineFilter · recherche garage / code postal', () 
     it('matche le garage en « contient », insensible à la casse', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.searchTerm.value = 'martin';
+        f.garageTerm.value = 'martin';
 
         expect(f.filteredEvents.value.map((e) => e.id)).toEqual([1]);
         expect(f.isFiltered.value).toBe(true);
@@ -159,26 +159,43 @@ describe('useVehicleEventsTimelineFilter · recherche garage / code postal', () 
     it('matche le code postal en « contient » (91 → 91100)', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.searchTerm.value = '91';
+        f.postalCodeTerm.value = '91';
 
         expect(f.filteredEvents.value.map((e) => e.id)).toEqual([1]);
     });
 
-    it('exclut les événements sans garage ni code postal quand un terme est saisi', () => {
+    it('les deux filtres se combinent en ET', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.searchTerm.value = '75';
+        f.garageTerm.value = 'martin';
+        f.postalCodeTerm.value = '75';
 
-        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
+        expect(f.filteredEvents.value).toHaveLength(0);
     });
 
-    it('clearAxisFilters efface aussi la recherche', () => {
+    it('expose des chips dédiés et les retire individuellement', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.searchTerm.value = '91';
+        f.garageTerm.value = 'Martin';
+        f.postalCodeTerm.value = '91';
+
+        expect(f.activeAxisCount.value).toBe(2);
+        expect(f.activeFilterChips.value.map((c) => c.key)).toEqual(['garage', 'postal_code']);
+
+        f.removeFilterChip('garage');
+        expect(f.garageTerm.value).toBe('');
+        expect(f.activeAxisCount.value).toBe(1);
+    });
+
+    it('clearAxisFilters efface les deux filtres', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.garageTerm.value = 'Martin';
+        f.postalCodeTerm.value = '91';
         f.clearAxisFilters();
 
-        expect(f.searchTerm.value).toBe('');
+        expect(f.garageTerm.value).toBe('');
+        expect(f.postalCodeTerm.value).toBe('');
         expect(f.filteredEvents.value).toHaveLength(3);
     });
 });

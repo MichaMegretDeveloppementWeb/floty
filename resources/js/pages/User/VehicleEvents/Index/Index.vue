@@ -14,6 +14,7 @@ import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSel
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
@@ -121,7 +122,7 @@ function durationLabel(row: VehicleEventRow): string {
                     <div class="max-w-md grow">
                         <SearchInput
                             v-model="searchModel"
-                            placeholder="Rechercher (intitulé, description, immatriculation, garage, code postal)"
+                            placeholder="Rechercher (intitulé, description, immatriculation, marque, modèle)"
                             aria-label="Rechercher un événement"
                         />
                     </div>
@@ -137,6 +138,18 @@ function durationLabel(row: VehicleEventRow): string {
                             :options="natureOptions"
                             allow-free-entry
                             placeholder="Filtrer par nature"
+                        />
+
+                        <TextInput
+                            v-model="tableState.garageInput.value"
+                            label="Garage"
+                            placeholder="Ex. Garage Martin"
+                        />
+
+                        <TextInput
+                            v-model="tableState.postalCodeInput.value"
+                            label="Code postal"
+                            placeholder="Ex. 91"
                         />
                     </FilterPopover>
 
@@ -200,6 +213,12 @@ function durationLabel(row: VehicleEventRow): string {
                         />
                     </template>
 
+                    <template #cell-vehicleLicensePlate="{ row }">
+                        <span class="flex flex-col">
+                            <span>{{ row.vehicleLicensePlate }}</span>
+                            <span class="font-sans text-xs text-slate-400">{{ row.vehicleLabel }}</span>
+                        </span>
+                    </template>
                     <template #cell-startDate="{ row }">
                         {{ formatDateFr(row.startDate) }}
                     </template>

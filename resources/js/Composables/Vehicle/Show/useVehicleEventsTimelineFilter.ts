@@ -64,8 +64,9 @@ export function useVehicleEventsTimelineFilter(
     filteredEvents: ComputedRef<VehicleEvent[]>;
     selectedCategories: Ref<string[]>;
     categoryOptions: ComputedRef<FilterOption[]>;
-    /** Recherche libre garage / code postal (le véhicule est déjà le contexte). */
-    searchTerm: Ref<string>;
+    /** Filtres texte dédiés garage / code postal (dans le popover Filtres). */
+    garageTerm: Ref<string>;
+    postalCodeTerm: Ref<string>;
     totalAmountCents: ComputedRef<number>;
     activeAxisCount: ComputedRef<number>;
     activeFilterChips: ComputedRef<FilterChip[]>;
@@ -75,7 +76,8 @@ export function useVehicleEventsTimelineFilter(
     const scopeMode = ref<TimelineScopeMode>('year');
     const selectedYear = ref<number>(ALL_YEARS);
     const selectedCategories = ref<string[]>([]);
-    const searchTerm = ref<string>('');
+    const garageTerm = ref<string>('');
+    const postalCodeTerm = ref<string>('');
     const periodStart = ref<string | null>(null);
     const periodEnd = ref<string | null>(null);
     const periodOngoing = ref<boolean>(false);
@@ -138,9 +140,9 @@ export function useVehicleEventsTimelineFilter(
     });
 
     /**
-     * Nature axis (OR within the axis) + free search on garage / postal code
-     * (contains, case-insensitive · the vehicle is already the page context),
-     * applied on top of the year/period window. Empty axis = no constraint.
+     * Nature axis (OR within the axis) + dedicated garage / postal-code text
+     * filters (contains, case-insensitive), applied on top of the year/period
+     * window. Empty axis = no constraint.
      */
     function matchesAxes(event: VehicleEvent): boolean {
         if (selectedCategories.value.length > 0) {
@@ -152,15 +154,16 @@ export function useVehicleEventsTimelineFilter(
             }
         }
 
-        const term = searchTerm.value.trim().toLowerCase();
+        const garageNeedle = garageTerm.value.trim().toLowerCase();
 
-        if (term !== '') {
-            const garage = (event.garage ?? '').toLowerCase();
-            const postalCode = (event.postalCode ?? '').toLowerCase();
+        if (garageNeedle !== '' && !(event.garage ?? '').toLowerCase().includes(garageNeedle)) {
+            return false;
+        }
 
-            if (!garage.includes(term) && !postalCode.includes(term)) {
-                return false;
-            }
+        const postalNeedle = postalCodeTerm.value.trim().toLowerCase();
+
+        if (postalNeedle !== '' && !(event.postalCode ?? '').toLowerCase().includes(postalNeedle)) {
+            return false;
         }
 
         return true;
@@ -201,7 +204,7 @@ export function useVehicleEventsTimelineFilter(
     });
 
     const isFiltered = computed<boolean>(() => {
-        if (selectedCategories.value.length > 0 || searchTerm.value.trim() !== '') {
+        if (activeAxisCount.value > 0) {
             return true;
         }
 
@@ -265,16 +268,42 @@ export function useVehicleEventsTimelineFilter(
         filteredEvents.value.reduce((sum, event) => sum + (event.amountCents ?? 0), 0),
     );
 
-    const activeAxisCount = computed<number>(() => selectedCategories.value.length);
-
-    const activeFilterChips = computed<FilterChip[]>(() =>
-        selectedCategories.value.map((category) => ({
-            key: `category:${category}`,
-            label: `Nature : ${category}`,
-        })),
+    const activeAxisCount = computed<number>(() =>
+        selectedCategories.value.length
+        + (garageTerm.value.trim() !== '' ? 1 : 0)
+        + (postalCodeTerm.value.trim() !== '' ? 1 : 0),
     );
 
+    const activeFilterChips = computed<FilterChip[]>(() => {
+        const chips: FilterChip[] = selectedCategories.value.map((category) => ({
+            key: `category:${category}`,
+            label: `Nature : ${category}`,
+        }));
+
+        if (garageTerm.value.trim() !== '') {
+            chips.push({ key: 'garage', label: `Garage : ${garageTerm.value.trim()}` });
+        }
+
+        if (postalCodeTerm.value.trim() !== '') {
+            chips.push({ key: 'postal_code', label: `Code postal : ${postalCodeTerm.value.trim()}` });
+        }
+
+        return chips;
+    });
+
     function removeFilterChip(key: string): void {
+        if (key === 'garage') {
+            garageTerm.value = '';
+
+            return;
+        }
+
+        if (key === 'postal_code') {
+            postalCodeTerm.value = '';
+
+            return;
+        }
+
         const separator = key.indexOf(':');
         const kind = key.slice(0, separator);
         const value = key.slice(separator + 1);
@@ -286,7 +315,8 @@ export function useVehicleEventsTimelineFilter(
 
     function clearAxisFilters(): void {
         selectedCategories.value = [];
-        searchTerm.value = '';
+        garageTerm.value = '';
+        postalCodeTerm.value = '';
     }
 
     function setScopeMode(mode: TimelineScopeMode): void {
@@ -350,7 +380,8 @@ export function useVehicleEventsTimelineFilter(
         filteredEvents,
         selectedCategories,
         categoryOptions,
-        searchTerm,
+        garageTerm,
+        postalCodeTerm,
         totalAmountCents,
         activeAxisCount,
         activeFilterChips,
