@@ -158,7 +158,7 @@ final class PlanningExportTest extends TestCase
         $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
 
         self::assertStringContainsString('Récapitulatif des véhicules', $html);
-        self::assertStringContainsString('Caractéristiques', $html);
+        self::assertStringContainsString('Puissance fiscale', $html);
         self::assertStringContainsString('Catégorie polluants', $html);
         self::assertStringContainsString($fiscal->pollutant_category->label(), $html);
         self::assertStringContainsString($fiscal->energy_source->label(), $html);
