@@ -3,9 +3,11 @@
  * Single-value text input with a CONTAINS-filtered suggestion dropdown
  * (same interaction as the nature / détails rows: @mousedown.prevent keeps
  * the focus, Escape / blur closes). The typed text always stays valid; the
- * suggestions are a shortcut, never a constraint.
+ * suggestions are a shortcut, never a constraint. Markup mirrors TextInput
+ * (FieldLabel + same input classes) so side-by-side fields stay aligned.
  */
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
+import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 
 const props = withDefaults(
@@ -13,14 +15,12 @@ const props = withDefaults(
         label: string;
         suggestions?: string[];
         placeholder?: string;
-        hint?: string;
         maxLength?: number;
         error?: string;
     }>(),
     {
         suggestions: () => [],
         placeholder: '',
-        hint: undefined,
         maxLength: 120,
         error: undefined,
     },
@@ -28,6 +28,7 @@ const props = withDefaults(
 
 const modelValue = defineModel<string>({ required: true });
 
+const inputId = useId();
 const open = ref<boolean>(false);
 
 const filteredSuggestions = computed<string[]>(() => {
@@ -44,6 +45,14 @@ const filteredSuggestions = computed<string[]>(() => {
     });
 });
 
+const inputStateClasses = computed<string>(() => {
+    if (props.error) {
+        return 'border-rose-600 text-rose-700 focus-visible:shadow-[0_0_0_3px_var(--color-rose-50)]';
+    }
+
+    return 'border-slate-200 text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]';
+});
+
 function select(value: string): void {
     modelValue.value = value;
     open.value = false;
@@ -52,19 +61,21 @@ function select(value: string): void {
 
 <template>
     <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium text-slate-500">
+        <FieldLabel :for="inputId">
             {{ label }}
-        </label>
-        <p v-if="hint" class="text-xs text-slate-500">
-            {{ hint }}
-        </p>
+        </FieldLabel>
         <div class="relative">
             <input
+                :id="inputId"
                 v-model="modelValue"
                 :maxlength="maxLength"
                 autocomplete="off"
                 :placeholder="placeholder"
-                class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                :aria-invalid="error ? true : undefined"
+                :class="[
+                    'w-full rounded-lg border bg-white px-3 py-2 text-base leading-tight transition-colors duration-[120ms] ease-out focus:outline-none',
+                    inputStateClasses,
+                ]"
                 @focus="open = true"
                 @click="open = true"
                 @keydown.esc="open = false"

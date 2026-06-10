@@ -1,6 +1,6 @@
 import type { InertiaForm } from '@inertiajs/vue3';
 import { router, useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import {
     destroy as detailSuggestionsDestroyRoute,
@@ -126,7 +126,7 @@ export function hasReductiveNature(
  *     the catalogue drive `selectedIsReductive` (fiscal-effect banner) and
  *     lock `implies_unavailability` to true (the server forces it anyway),
  *   - synchronises `range` and `ongoing` when `props.editing` changes (create vs edit mode),
- *   - computes `canSubmit` (button disabled until name, natures and bounds are set),
+ *   - validates client-side at submit and scrolls to the topmost field error,
  *   - applies `payloadTransform` (range+ongoing → snake_case backend),
  *   - dispatches submit (POST store or PATCH update); the controller redirects
  *     to the vehicle "Événements" tab on success, Inertia keeps the page and
@@ -170,7 +170,6 @@ export function useVehicleEventForm(
     isFixedDate: ComputedRef<boolean>;
     /** Long French label of the fixed day (empty unless `isFixedDate`). */
     fixedDateLabel: ComputedRef<string>;
-    canSubmit: ComputedRef<boolean>;
     /** ≥ 1 nature belongs to the reductive catalogue block. */
     selectedIsReductive: ComputedRef<boolean>;
     conflictDaysCount: ComputedRef<number>;
@@ -301,30 +300,51 @@ export function useVehicleEventForm(
         hasDuplicateCategories(form.details),
     );
 
-    const canSubmit = computed<boolean>(() => {
+    /**
+     * Client-side validation at submit time. The button stays enabled: every
+     * problem is reported as a field error at its own spot (then the form
+     * scrolls to the topmost one), so the user always knows what blocks.
+     */
+    const validateClientSide = (): boolean => {
+        form.clearErrors();
+
         if (range.value.startDate === null) {
-            return false;
+            form.setError('start_date', 'La date de début est obligatoire.');
         }
 
         if (!ongoing.value && range.value.endDate === null) {
-            return false;
+            form.setError('end_date', 'La date de fin est obligatoire (ou cochez « Événement en cours »).');
         }
 
         if (form.title.trim() === '') {
-            return false;
+            form.setError('title', "Le nom de l'événement est obligatoire.");
         }
 
-        // At least one nature is required.
         if (cleanCustomCategories(form.categories).length === 0) {
-            return false;
+            form.setError('categories', 'Au moins une nature est obligatoire.');
+        } else if (hasCategoryDuplicates.value) {
+            form.setError('categories', 'Cette nature est déjà présente.');
         }
 
-        if (hasCategoryDuplicates.value || hasDetailDuplicates.value) {
-            return false;
+        if (hasDetailDuplicates.value) {
+            form.setError('details', 'Ce détail est déjà présent.');
         }
 
-        return true;
-    });
+        const postalCode = form.postal_code.trim();
+
+        if (postalCode !== '' && !/^\d{4,6}$/.test(postalCode)) {
+            form.setError('postal_code', 'Le code postal doit être une suite de 4 à 6 chiffres.');
+        }
+
+        return !form.hasErrors;
+    };
+
+    /** Scroll to the topmost visible field error (InputError has role=alert). */
+    const scrollToFirstError = (): void => {
+        void nextTick(() => {
+            document.querySelector('[role="alert"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    };
 
     const amountError = computed<string | undefined>(
         () => (form.errors as Record<string, string | undefined>).amount_cents,
@@ -471,7 +491,9 @@ export function useVehicleEventForm(
     };
 
     const submit = (): void => {
-        if (!canSubmit.value) {
+        if (!validateClientSide()) {
+            scrollToFirstError();
+
             return;
         }
 
@@ -480,6 +502,7 @@ export function useVehicleEventForm(
                 vehicleEventsUpdateRoute.url({
                     vehicleEvent: props.editing.id,
                 }),
+                { onError: scrollToFirstError },
             );
 
             return;
@@ -491,7 +514,7 @@ export function useVehicleEventForm(
             // Files queued during creation travel with the multipart request;
             // Inertia switches to FormData automatically when files are present.
             documents: options.pendingDocuments?.value ?? [],
-        })).post(vehicleEventsStoreRoute.url());
+        })).post(vehicleEventsStoreRoute.url(), { onError: scrollToFirstError });
     };
 
     return {
@@ -503,7 +526,6 @@ export function useVehicleEventForm(
         isEditing,
         isFixedDate,
         fixedDateLabel,
-        canSubmit,
         selectedIsReductive,
         conflictDaysCount,
         amountError,

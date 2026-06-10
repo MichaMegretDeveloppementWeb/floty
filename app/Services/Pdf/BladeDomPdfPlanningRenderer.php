@@ -81,7 +81,7 @@ final readonly class BladeDomPdfPlanningRenderer implements PlanningPdfRendererI
     {
         return $mode === PlanningExportMode::Complete
             ? ['Planning d\'utilisation de la flotte', 'Répartition hebdomadaire des jours d\'utilisation']
-            : ['Récapitulatif des véhicules', 'Caractéristiques fiscales et montants annuels'];
+            : ['Inventaire du parc de véhicules', 'Caractéristiques fiscales et montants annuels'];
     }
 
     /**

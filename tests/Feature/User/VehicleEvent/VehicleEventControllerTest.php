@@ -55,6 +55,34 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
+    public function le_code_postal_doit_etre_une_suite_de_4_a_6_chiffres(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $payload = [
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Entretien courant',
+            'categories' => ['Entretien'],
+            'start_date' => '2024-04-01',
+            'end_date' => '2024-04-03',
+        ];
+
+        foreach (['91A00', '123', '1234567', '91 100'] as $invalid) {
+            $this->actingAs($user)
+                ->post('/app/vehicle-events', [...$payload, 'postal_code' => $invalid])
+                ->assertSessionHasErrors(['postal_code']);
+        }
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [...$payload, 'postal_code' => '91100'])
+            ->assertSessionDoesntHaveErrors()
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_events', ['postal_code' => '91100']);
+    }
+
+    #[Test]
     public function un_garage_enregistre_alimente_automatiquement_les_suggestions(): void
     {
         $user = User::factory()->create();

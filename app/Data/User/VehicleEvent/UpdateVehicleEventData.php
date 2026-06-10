@@ -78,7 +78,7 @@ final class UpdateVehicleEventData extends Data
             'details' => ['nullable', 'array'],
             'details.*' => ['string', 'max:100', 'distinct:ignore_case'],
             'garage' => ['nullable', 'string', 'max:120'],
-            'postal_code' => ['nullable', 'string', 'max:10'],
+            'postal_code' => ['nullable', 'string', 'regex:/^\d{4,6}$/'],
         ];
     }
 
@@ -102,7 +102,7 @@ final class UpdateVehicleEventData extends Data
             'details.*.distinct' => 'Ce détail est déjà présent.',
             'details.*.max' => 'Un détail ne peut pas dépasser 100 caractères.',
             'garage.max' => 'Le nom du garage ne peut pas dépasser 120 caractères.',
-            'postal_code.max' => 'Le code postal ne peut pas dépasser 10 caractères.',
+            'postal_code.regex' => 'Le code postal doit être une suite de 4 à 6 chiffres.',
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',

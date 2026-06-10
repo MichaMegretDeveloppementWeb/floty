@@ -71,7 +71,6 @@ const {
     isEditing,
     isFixedDate,
     fixedDateLabel,
-    canSubmit,
     selectedIsReductive,
     conflictDaysCount,
     amountError,
@@ -114,7 +113,10 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
 </script>
 
 <template>
-    <form class="flex flex-col gap-6" @submit.prevent="submit">
+    <!-- novalidate : la validation client maison affiche les erreurs en
+         français au bon endroit et scrolle vers la première, à la place
+         des bulles natives du navigateur. -->
+    <form class="flex flex-col gap-6" novalidate @submit.prevent="submit">
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -275,18 +277,16 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
                 <AutocompleteInput
                     v-model="form.garage"
-                    label="Nom du garage"
+                    label="Nom du garage (facultatif)"
                     :suggestions="garageSuggestions"
                     placeholder="Ex. Garage Martin"
-                    hint="Facultatif. Les garages déjà renseignés sont proposés automatiquement."
                     :max-length="120"
                     :error="form.errors.garage"
                 />
                 <TextInput
                     v-model="form.postal_code"
-                    label="Code postal"
+                    label="Code postal (facultatif)"
                     placeholder="Ex. 91100"
-                    :maxlength="10"
                     :error="form.errors.postal_code"
                 />
             </div>
@@ -460,7 +460,6 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
             <Button
                 type="submit"
                 :loading="form.processing"
-                :disabled="!canSubmit"
             >
                 {{ isEditing ? 'Enregistrer les modifications' : 'Enregistrer l\'événement' }}
             </Button>
