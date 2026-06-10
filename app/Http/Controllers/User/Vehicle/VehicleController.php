@@ -122,7 +122,8 @@ final class VehicleController extends Controller
         // Single events load, threaded to the always-eager base DTO and (when
         // ?tab=overview) the overview payload, so the two no longer query the
         // same vehicle_events / documents rows twice within one request.
-        $vehicleEvents = $this->vehicleEventRead->findForVehicle($vehicle);
+        // Timeline variant: the events tab renders the « Détails » lines.
+        $vehicleEvents = $this->vehicleEventRead->findForVehicleTimeline($vehicle);
 
         $vehicleData = $this->vehicleDetail->findVehicleData($vehicleModel, $vehicleEvents);
 

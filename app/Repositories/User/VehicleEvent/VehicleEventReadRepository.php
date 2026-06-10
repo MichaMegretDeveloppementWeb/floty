@@ -21,6 +21,15 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     public function findForVehicle(int $vehicleId): Collection
     {
         return VehicleEvent::query()
+            ->with(['documents', 'categories'])
+            ->where('vehicle_id', $vehicleId)
+            ->orderByDesc('start_date')
+            ->get();
+    }
+
+    public function findForVehicleTimeline(int $vehicleId): Collection
+    {
+        return VehicleEvent::query()
             ->with(['documents', 'categories', 'details'])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')

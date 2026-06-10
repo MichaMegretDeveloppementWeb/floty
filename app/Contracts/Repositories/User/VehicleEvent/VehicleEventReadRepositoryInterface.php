@@ -22,11 +22,22 @@ interface VehicleEventReadRepositoryInterface
 {
     /**
      * All unavailabilities of a vehicle (excluding soft-deleted),
-     * sorted by `start_date DESC` for reverse-chronological display.
+     * sorted by `start_date DESC`, eager documents + natures. Consumed by
+     * the vehicle Edit page and the contract fiscal breakdown, which never
+     * render the « Détails » lines (strict per-screen loading: the timeline
+     * uses {@see findForVehicleTimeline()} instead).
      *
      * @return Collection<int, VehicleEvent>
      */
     public function findForVehicle(int $vehicleId): Collection;
+
+    /**
+     * Same set with the « Détails » lines eager on top (documents + natures
+     * + details), for the vehicle Show page whose events tab renders them.
+     *
+     * @return Collection<int, VehicleEvent>
+     */
+    public function findForVehicleTimeline(int $vehicleId): Collection;
 
     /**
      * Unavailabilities for several vehicles in one `SELECT IN` · returns

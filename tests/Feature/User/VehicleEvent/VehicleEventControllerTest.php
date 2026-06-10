@@ -167,6 +167,59 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_remplace_les_details_et_le_garage(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $event = VehicleEvent::factory()->maintenance()->create([
+            'vehicle_id' => $vehicle->id,
+            'garage' => 'Garage Martin',
+            'postal_code' => '91100',
+        ]);
+        $event->details()->create(['detail' => 'Vidange']);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-events/{$event->id}", [
+                'title' => 'Entretien courant',
+                'categories' => ['Entretien'],
+                'details' => ['Changement courroie', 'Contrôle des niveaux'],
+                'garage' => 'Carrosserie Dupont',
+                'postal_code' => '75011',
+                'start_date' => $event->start_date->toDateString(),
+                'end_date' => $event->end_date?->toDateString(),
+            ])
+            ->assertRedirect();
+
+        // Les lignes de détail sont remplacées (l'ancienne disparaît).
+        $this->assertSame(
+            ['Changement courroie', 'Contrôle des niveaux'],
+            $event->details()->pluck('detail')->all(),
+        );
+        $this->assertDatabaseHas('vehicle_events', [
+            'id' => $event->id,
+            'garage' => 'Carrosserie Dupont',
+            'postal_code' => '75011',
+        ]);
+
+        // Vider garage / code postal / détails les remet à null / zéro ligne.
+        $this->actingAs($user)
+            ->patch("/app/vehicle-events/{$event->id}", [
+                'title' => 'Entretien courant',
+                'categories' => ['Entretien'],
+                'start_date' => $event->start_date->toDateString(),
+                'end_date' => $event->end_date?->toDateString(),
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(0, $event->details()->count());
+        $this->assertDatabaseHas('vehicle_events', [
+            'id' => $event->id,
+            'garage' => null,
+            'postal_code' => null,
+        ]);
+    }
+
+    #[Test]
     public function update_recalcule_l_impact_fiscal_si_les_natures_changent(): void
     {
         $user = User::factory()->create();
