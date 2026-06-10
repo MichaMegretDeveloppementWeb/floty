@@ -7,8 +7,12 @@
  * the rest), filtered by prefix as you type · any typed text is still kept.
  * Live dedup vs the locked defaults and other entries. The model is the
  * user-supplied natures only · the backend prepends the auto ones.
+ *
+ * When the parent listens to `add-to-list`, a free entry absent from the
+ * catalogue offers an « Ajouter à la liste » action that persists it as a
+ * future suggestion (without it, the free text stays valid on the event).
  */
-import { Lock, Plus, TrendingDown, X } from 'lucide-vue-next';
+import { ListPlus, Lock, Plus, TrendingDown, X } from 'lucide-vue-next';
 import type { ComponentPublicInstance } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
@@ -33,6 +37,8 @@ const props = withDefaults(
         otherSuggestions?: string[];
         /** Mark the field as required (form context). */
         required?: boolean;
+        /** Offer « Ajouter à la liste » on free entries absent from the catalogue. */
+        allowAddToList?: boolean;
         error?: string;
     }>(),
     {
@@ -40,10 +46,14 @@ const props = withDefaults(
         reductiveSuggestions: () => [],
         otherSuggestions: () => [],
         required: false,
+        allowAddToList: false,
     },
 );
 
-const emit = defineEmits<{ 'update:modelValue': [string[]] }>();
+const emit = defineEmits<{
+    'update:modelValue': [string[]];
+    'add-to-list': [string];
+}>();
 
 /** Index of the row whose suggestion dropdown is open (null = none). */
 const openIndex = ref<number | null>(null);
@@ -96,6 +106,25 @@ function suggestionBlocksFor(index: number): SuggestionBlock[] {
     ];
 
     return blocks.filter((block) => block.items.length > 0);
+}
+
+/**
+ * True when the row's free entry could be persisted as a suggestion: filled,
+ * not a duplicate, and absent from the catalogue (both blocks + locked).
+ */
+function canAddToList(index: number): boolean {
+    if (!props.allowAddToList || duplicateIndices.value.has(index)) {
+        return false;
+    }
+
+    const key = normalizeCategory(props.modelValue[index] ?? '');
+
+    if (key === '') {
+        return false;
+    }
+
+    return ![...props.reductiveSuggestions, ...props.otherSuggestions, ...props.lockedDefaults]
+        .some((suggestion) => normalizeCategory(suggestion) === key);
 }
 
 function updateAt(index: number, value: string): void {
@@ -231,6 +260,16 @@ function add(): void {
                 <p v-if="duplicateIndices.has(index)" class="text-xs text-rose-600">
                     Cette nature est déjà présente.
                 </p>
+                <button
+                    v-else-if="canAddToList(index)"
+                    type="button"
+                    class="inline-flex w-fit cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 transition-colors duration-[120ms] ease-out hover:text-slate-900"
+                    :title="`Proposer « ${(modelValue[index] ?? '').trim()} » dans les suggestions futures`"
+                    @click="emit('add-to-list', (modelValue[index] ?? '').trim())"
+                >
+                    <ListPlus :size="13" :stroke-width="1.75" aria-hidden="true" />
+                    Ajouter à la liste des suggestions
+                </button>
             </div>
 
             <button

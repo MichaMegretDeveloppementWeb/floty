@@ -46,6 +46,7 @@ use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureWriteRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventWriteRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEventDocument\VehicleEventDocumentReadRepositoryInterface;
@@ -92,6 +93,7 @@ use App\Repositories\User\Vehicle\VehicleWriteRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingReadRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventNatureReadRepository;
+use App\Repositories\User\VehicleEvent\VehicleEventNatureWriteRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventReadRepository;
 use App\Repositories\User\VehicleEvent\VehicleEventWriteRepository;
 use App\Repositories\User\VehicleEventDocument\VehicleEventDocumentReadRepository;
@@ -176,6 +178,7 @@ final class RepositoryServiceProvider extends ServiceProvider
 
         // VehicleEvent
         VehicleEventNatureReadRepositoryInterface::class => VehicleEventNatureReadRepository::class,
+        VehicleEventNatureWriteRepositoryInterface::class => VehicleEventNatureWriteRepository::class,
         VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,
         VehicleEventWriteRepositoryInterface::class => VehicleEventWriteRepository::class,
         VehicleEventDocumentReadRepositoryInterface::class => VehicleEventDocumentReadRepository::class,

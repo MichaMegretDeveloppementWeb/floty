@@ -1,7 +1,8 @@
 import type { InertiaForm } from '@inertiajs/vue3';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { store as natureSuggestionsStoreRoute } from '@/routes/user/vehicle-event-natures';
 import {
     store as vehicleEventsStoreRoute,
     update as vehicleEventsUpdateRoute,
@@ -156,6 +157,8 @@ export function useVehicleEventForm(
     conflictDaysCount: ComputedRef<number>;
     /** Server error for the amount (payload key `amount_cents`, outside FormShape). */
     amountError: ComputedRef<string | undefined>;
+    /** « Ajouter à la liste » : persiste une saisie libre comme suggestion future. */
+    addNatureToList: (label: string) => void;
     submit: () => void;
 } {
     const form = useForm<FormShape>({
@@ -301,6 +304,21 @@ export function useVehicleEventForm(
         amount_cents: eurosToCents(data.amount),
     });
 
+    // Persists a free entry as a future catalogue suggestion (always
+    // non-reductive). The partial reload refreshes `natureSuggestions` only,
+    // keeping the form state (preserveState) and the user's scroll.
+    const addNatureToList = (label: string): void => {
+        router.post(
+            natureSuggestionsStoreRoute.url(),
+            { label },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['natureSuggestions', 'flash'],
+            },
+        );
+    };
+
     const submit = (): void => {
         if (!canSubmit.value) {
             return;
@@ -338,6 +356,7 @@ export function useVehicleEventForm(
         selectedIsReductive,
         conflictDaysCount,
         amountError,
+        addNatureToList,
         submit,
     };
 }

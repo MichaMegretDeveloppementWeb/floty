@@ -65,6 +65,7 @@ const {
     selectedIsReductive,
     conflictDaysCount,
     amountError,
+    addNatureToList,
     submit,
 } = useVehicleEventForm(
     {
@@ -102,8 +103,10 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                     :reductive-suggestions="natureSuggestions.reductive"
                     :other-suggestions="natureSuggestions.other"
                     required
+                    allow-add-to-list
                     :error="form.errors.categories"
                     @update:model-value="(value: string[]) => (form.categories = value)"
+                    @add-to-list="addNatureToList"
                 />
 
                 <CheckboxInput

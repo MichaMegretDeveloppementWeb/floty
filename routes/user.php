@@ -27,6 +27,7 @@ use App\Http\Controllers\User\Vehicle\VehicleRegistryLookupController;
 use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
 use App\Http\Controllers\User\VehicleEvent\VehicleEventController;
 use App\Http\Controllers\User\VehicleEvent\VehicleEventDocumentController;
+use App\Http\Controllers\User\VehicleEvent\VehicleEventNatureController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -304,6 +305,12 @@ Route::middleware('auth')
             ->whereNumber('vehicleEvent')
             ->middleware('throttle:300,1')
             ->name('vehicle-events.destroy');
+
+        // « Ajouter à la liste » : persiste une nature saisie librement comme
+        // suggestion (non réductrice) du catalogue.
+        Route::post('/vehicle-event-natures', [VehicleEventNatureController::class, 'store'])
+            ->middleware('throttle:300,1')
+            ->name('vehicle-event-natures.store');
 
         // Vehicle event documents · image/PDF justifications (5 max, 5 MB).
         // Mirrors the contract documents pattern.
