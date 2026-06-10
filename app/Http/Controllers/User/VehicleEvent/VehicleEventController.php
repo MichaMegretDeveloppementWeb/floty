@@ -9,6 +9,7 @@ use App\Actions\VehicleEvent\DeleteVehicleEventAction;
 use App\Actions\VehicleEvent\UpdateVehicleEventAction;
 use App\Actions\VehicleEvent\UploadVehicleEventDocumentAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
 use App\Data\User\VehicleEvent\UpdateVehicleEventData;
@@ -32,6 +33,7 @@ final class VehicleEventController extends Controller
 {
     public function __construct(
         private readonly VehicleEventReadRepositoryInterface $events,
+        private readonly VehicleEventNatureReadRepositoryInterface $natures,
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
         private readonly VehicleEventQueryService $eventQuery,
@@ -40,8 +42,8 @@ final class VehicleEventController extends Controller
     /**
      * Global vehicle-events index (all vehicles): server-side filtered,
      * sorted, paginated list with the total cost of the filtered set. Filters
-     * by type / category (multi-value, free text + real-value autocomplete)
-     * and year; each row links to the event detail.
+     * by nature (multi-value, suggestions = natures actually present) and
+     * year; each row links to the event detail.
      */
     public function index(VehicleEventIndexQueryData $query): Response
     {
@@ -53,8 +55,7 @@ final class VehicleEventController extends Controller
             'query' => $query,
             'hasAnyVehicleEvent' => $this->events->existsAnyVehicleEvent(),
             'options' => [
-                'typeValues' => $this->events->distinctTypesPresent(),
-                'categorySuggestions' => $this->events->distinctCategories(),
+                'natureValues' => $this->events->distinctCategories(),
                 'availableYears' => $this->events->distinctEventYears(),
             ],
         ]);
@@ -78,7 +79,7 @@ final class VehicleEventController extends Controller
             'vehicle' => $this->vehicleHeader($vehicle),
             'busyDates' => $this->busyDatesForYear($vehicle, $year),
             'initialDate' => $initialDate,
-            'categorySuggestions' => $this->events->distinctCategories(),
+            'natureSuggestions' => $this->natureSuggestions(),
         ]);
     }
 
@@ -109,7 +110,7 @@ final class VehicleEventController extends Controller
             'vehicle' => $this->vehicleHeader($vehicle),
             'vehicleEvent' => VehicleEventData::fromModel($event),
             'busyDates' => $this->busyDatesForYear($vehicle, $event->start_date->year),
-            'categorySuggestions' => $this->events->distinctCategories(),
+            'natureSuggestions' => $this->natureSuggestions(),
         ]);
     }
 
@@ -183,6 +184,22 @@ final class VehicleEventController extends Controller
         return redirect()
             ->route('user.vehicles.show', ['vehicle' => $vehicleId, 'tab' => 'events'])
             ->with('toast-success', 'Événement supprimé.');
+    }
+
+    /**
+     * Two-block nature suggestions for the form pages: the frozen fiscally
+     * reductive block + every other catalogue entry (base + user additions).
+     * Free entries typed on an event but never « ajoutées à la liste » do not
+     * suggest (DB catalogue is the single source).
+     *
+     * @return array{reductive: list<string>, other: list<string>}
+     */
+    private function natureSuggestions(): array
+    {
+        return [
+            'reductive' => $this->natures->reductiveLabels(),
+            'other' => $this->natures->nonReductiveLabels(),
+        ];
     }
 
     /**

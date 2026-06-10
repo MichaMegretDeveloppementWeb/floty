@@ -23,6 +23,7 @@ final class VehicleControlsTabData extends Data
      * @param  array<int, EnumOptionData>  $anchorOptions
      * @param  array<int, EnumOptionData>  $durationUnitOptions
      * @param  array<int, EnumOptionData>  $statusOptions
+     * @param  array{reductive: list<string>, other: list<string>}  $natureSuggestions
      */
     public function __construct(
         public int $vehicleId,
@@ -35,5 +36,7 @@ final class VehicleControlsTabData extends Data
         #[DataCollectionOf(EnumOptionData::class)]
         public array $statusOptions,
         public ControlReminderSettingsData $reminderSettings,
+        /** Catalogue suggestions for the « Fait » modal's nature field. */
+        public array $natureSuggestions,
     ) {}
 }

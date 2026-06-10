@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventType;
-use App\Support\VehicleEvent\EventCategoryList;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
 use Spatie\LaravelData\Attributes\Validation\Date;
@@ -26,15 +24,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class UpdateVehicleEventData extends Data
 {
     /**
-     * `title` / `categories` are nullable WITHOUT a default on purpose (see
+     * `categories` is nullable WITHOUT a default on purpose (see
      * {@see StoreVehicleEventData}): a defaulted Spatie Data property is
-     * validated as `sometimes`, which would skip the `required` rules.
+     * validated as `sometimes`, which would skip the `required` rule.
      *
      * @param  list<string>|null  $categories
      */
     public function __construct(
+        /** Free name of the event, always required. */
         #[Required]
-        public VehicleEventType $type,
+        public string $title,
 
         #[Required, Date]
         public string $startDate,
@@ -45,13 +44,10 @@ final class UpdateVehicleEventData extends Data
         #[Max(500)]
         public ?string $description,
 
-        /** Free name; required (via rules) and kept only for the `other` type. */
-        public ?string $title,
-
-        /** User-supplied categories; the Action composes them with the type default. */
+        /** Natures of the event (UI « Nature »), at least one. */
         public ?array $categories,
 
-        /** Informative unavailability flag; forced true for known types. */
+        /** Unavailability flag; forced true server-side when reductive. */
         public bool $impliesUnavailability = true,
 
         /** Optional cost (TTC) in cents; costs only, never a revenue. */
@@ -63,15 +59,11 @@ final class UpdateVehicleEventData extends Data
      */
     public static function rules(ValidationContext $context): array
     {
-        $isOther = ($context->payload['type'] ?? null) === VehicleEventType::Other->value;
-
         return [
-            'title' => ['nullable', 'string', 'max:120', 'required_if:type,other'],
+            'title' => ['required', 'string', 'max:120'],
             'implies_unavailability' => ['boolean'],
             'amount_cents' => ['nullable', 'integer', 'min:0'],
-            'categories' => $isOther
-                ? ['required', 'array', 'min:1', 'max:'.EventCategoryList::MAX]
-                : ['nullable', 'array', 'max:'.(EventCategoryList::MAX - 1)],
+            'categories' => ['required', 'array', 'min:1'],
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
         ];
     }
@@ -82,20 +74,17 @@ final class UpdateVehicleEventData extends Data
     public static function messages(): array
     {
         return [
-            'type.required' => "Le type d'événement est obligatoire.",
-            'type.enum' => "Le type d'événement sélectionné est invalide.",
-            'title.required_if' => "Le nom de l'événement est obligatoire pour le type « Personnalisé ».",
+            'title.required' => "Le nom de l'événement est obligatoire.",
             'title.max' => "Le nom de l'événement ne doit pas dépasser :max caractères.",
             'start_date.required' => 'La date de début est obligatoire.',
             'start_date.date' => 'La date de début doit être une date valide.',
             'end_date.date' => 'La date de fin doit être une date valide.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
             'description.max' => 'La description ne doit pas dépasser :max caractères.',
-            'categories.required' => 'Au moins une catégorie est obligatoire.',
-            'categories.min' => 'Au moins une catégorie est obligatoire.',
-            'categories.max' => 'Vous ne pouvez pas dépasser 5 catégories.',
-            'categories.*.distinct' => 'Cette catégorie est déjà présente.',
-            'categories.*.max' => 'Une catégorie ne peut pas dépasser 60 caractères.',
+            'categories.required' => 'Au moins une nature est obligatoire.',
+            'categories.min' => 'Au moins une nature est obligatoire.',
+            'categories.*.distinct' => 'Cette nature est déjà présente.',
+            'categories.*.max' => 'Une nature ne peut pas dépasser 60 caractères.',
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventSystemKind;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -15,7 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Page « Événements » globale (tous véhicules) · filtres type/catégorie/année,
+ * Page « Événements » globale (tous véhicules) · filtres nature/année,
  * total des coûts du jeu filtré, pagination, tri, garde-fou budget de requêtes.
  */
 final class VehicleEventIndexTest extends TestCase
@@ -36,8 +35,7 @@ final class VehicleEventIndexTest extends TestCase
                 ->where('hasAnyVehicleEvent', true)
                 ->has('events.data', 3)
                 ->has('events.meta')
-                ->has('options.typeValues')
-                ->has('options.categorySuggestions')
+                ->has('options.natureValues')
                 ->has('options.availableYears'),
             );
     }
@@ -57,15 +55,15 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function filtre_par_types_multi(): void
+    public function filtre_par_natures_multi(): void
     {
         $user = User::factory()->create();
-        VehicleEvent::factory()->maintenance()->create();
-        VehicleEvent::factory()->maintenance()->create();
-        VehicleEvent::factory()->poundPublic()->create();
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create();
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create();
+        VehicleEvent::factory()->poundPublic()->withCategories('Fourrière (demande publique)')->create();
 
         $this->actingAs($user)
-            ->get(route('user.vehicle-events.index', ['types' => ['maintenance']]))
+            ->get(route('user.vehicle-events.index', ['categories' => ['Maintenance / entretien']]))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 2)
@@ -74,41 +72,38 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function suggestions_de_type_exposent_les_titres_personnalises_pas_le_bucket_other(): void
+    public function nature_values_expose_les_natures_presentes_distinctes_et_triees(): void
     {
         $user = User::factory()->create();
-        VehicleEvent::factory()->maintenance()->create();
-        VehicleEvent::factory()->custom('Lavage')->create();
-        VehicleEvent::factory()->custom('Lavage')->create();
-        VehicleEvent::factory()->custom('Changement de pneus')->create();
-        // System lifecycle marker (other + system_kind): never a suggestion.
-        VehicleEvent::factory()->custom('Sortie de flotte')->create([
-            'system_kind' => VehicleEventSystemKind::FleetExit,
-        ]);
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create();
+        VehicleEvent::factory()->custom('Lavage')->withCategories('Esthétique')->create();
+        // Nature dupliquée sur deux événements : exposée une seule fois.
+        VehicleEvent::factory()->custom('Lavage')->withCategories('Esthétique')->create();
+        VehicleEvent::factory()->custom('Changement de pneus')->withCategories('Pneumatiques')->create();
 
         $this->actingAs($user)
             ->get('/app/vehicle-events')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('options.typeValues', [
-                    'maintenance',
-                    'Changement de pneus',
-                    'Lavage',
+                ->where('options.natureValues', [
+                    'Esthétique',
+                    'Maintenance / entretien',
+                    'Pneumatiques',
                 ]),
             );
     }
 
     #[Test]
-    public function filtre_par_titre_personnalise(): void
+    public function filtre_par_nature_libre(): void
     {
         $user = User::factory()->create();
-        VehicleEvent::factory()->custom('Lavage')->create(['amount_cents' => 3000]);
-        VehicleEvent::factory()->custom('Lavage')->create(['amount_cents' => 4000]);
-        VehicleEvent::factory()->custom('Changement de pneus')->create(['amount_cents' => 50000]);
-        VehicleEvent::factory()->maintenance()->create(['amount_cents' => 99999]);
+        VehicleEvent::factory()->custom('Lavage')->withCategories('Esthétique')->create(['amount_cents' => 3000]);
+        VehicleEvent::factory()->custom('Lavage')->withCategories('Esthétique')->create(['amount_cents' => 4000]);
+        VehicleEvent::factory()->custom('Changement de pneus')->withCategories('Pneumatiques')->create(['amount_cents' => 50000]);
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create(['amount_cents' => 99999]);
 
         $this->actingAs($user)
-            ->get(route('user.vehicle-events.index', ['types' => ['Lavage']]))
+            ->get(route('user.vehicle-events.index', ['categories' => ['Esthétique']]))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 2)
@@ -117,17 +112,17 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function filtre_combine_type_connu_et_titre_personnalise_ou_dans_l_axe(): void
+    public function filtre_combine_nature_catalogue_et_nature_libre_ou_dans_l_axe(): void
     {
         $user = User::factory()->create();
-        VehicleEvent::factory()->maintenance()->create();
-        VehicleEvent::factory()->custom('Lavage')->create();
-        VehicleEvent::factory()->custom('Changement de pneus')->create();
-        VehicleEvent::factory()->poundPublic()->create();
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create();
+        VehicleEvent::factory()->custom('Lavage')->withCategories('Esthétique')->create();
+        VehicleEvent::factory()->custom('Changement de pneus')->withCategories('Pneumatiques')->create();
+        VehicleEvent::factory()->poundPublic()->withCategories('Fourrière (demande publique)')->create();
 
-        // maintenance (enum connu) OU « Lavage » (titre personnalisé).
+        // « Maintenance / entretien » (catalogue) OU « Esthétique » (nature libre).
         $this->actingAs($user)
-            ->get(route('user.vehicle-events.index', ['types' => ['maintenance', 'Lavage']]))
+            ->get(route('user.vehicle-events.index', ['categories' => ['Maintenance / entretien', 'Esthétique']]))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 2),
@@ -135,7 +130,7 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
-    public function filtre_par_categories_multi_insensible_casse_ou_dans_l_axe(): void
+    public function filtre_par_natures_multi_insensible_casse_ou_dans_l_axe(): void
     {
         $user = User::factory()->create();
         VehicleEvent::factory()->maintenance()->withCategories('Entretien')->create();
@@ -170,19 +165,41 @@ final class VehicleEventIndexTest extends TestCase
     public function total_amount_porte_sur_le_jeu_filtre_complet_pas_seulement_la_page(): void
     {
         $user = User::factory()->create();
-        VehicleEvent::factory()->maintenance()->create(['amount_cents' => 10000]);
-        VehicleEvent::factory()->maintenance()->create(['amount_cents' => 20000]);
-        VehicleEvent::factory()->maintenance()->create(['amount_cents' => 30000]);
-        VehicleEvent::factory()->poundPublic()->create(['amount_cents' => 99999]);
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create(['amount_cents' => 10000]);
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create(['amount_cents' => 20000]);
+        VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create(['amount_cents' => 30000]);
+        VehicleEvent::factory()->poundPublic()->withCategories('Fourrière (demande publique)')->create(['amount_cents' => 99999]);
 
-        // Page de 2 mais total = somme des 3 maintenance (60000), pas les 2 de la page,
-        // et la fourrière (autre type) exclue par le filtre.
+        // Total = somme des 3 maintenance (60000), pas seulement la page,
+        // et la fourrière (autre nature) exclue par le filtre.
         $this->actingAs($user)
-            ->get(route('user.vehicle-events.index', ['types' => ['maintenance'], 'perPage' => 10]))
+            ->get(route('user.vehicle-events.index', ['categories' => ['Maintenance / entretien'], 'perPage' => 10]))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('events.meta.total', 3)
                 ->where('totalAmountCents', 60000),
+            );
+    }
+
+    #[Test]
+    public function pagination_du_jeu_filtre_par_nature(): void
+    {
+        $user = User::factory()->create();
+        for ($i = 0; $i < 12; $i++) {
+            VehicleEvent::factory()->maintenance()->withCategories('Maintenance / entretien')->create();
+        }
+
+        $this->actingAs($user)
+            ->get(route('user.vehicle-events.index', [
+                'categories' => ['Maintenance / entretien'],
+                'perPage' => 10,
+                'page' => 2,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 12)
+                ->where('events.meta.currentPage', 2)
+                ->has('events.data', 2),
             );
     }
 
@@ -201,6 +218,24 @@ final class VehicleEventIndexTest extends TestCase
                 ->where('events.data.0.amountCents', 90000)
                 ->where('events.data.1.amountCents', 40000)
                 ->where('events.data.2.amountCents', 5000),
+            );
+    }
+
+    #[Test]
+    public function tri_par_titre_ascendant(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->custom('Lavage')->create();
+        VehicleEvent::factory()->custom('Audit')->create();
+        VehicleEvent::factory()->custom('Pneus')->create();
+
+        $this->actingAs($user)
+            ->get(route('user.vehicle-events.index', ['sortKey' => 'title', 'sortDirection' => 'asc']))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.data.0.title', 'Audit')
+                ->where('events.data.1.title', 'Lavage')
+                ->where('events.data.2.title', 'Pneus'),
             );
     }
 

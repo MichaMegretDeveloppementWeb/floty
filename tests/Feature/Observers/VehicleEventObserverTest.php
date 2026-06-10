@@ -6,7 +6,6 @@ namespace Tests\Feature\Observers;
 
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
@@ -51,7 +50,7 @@ final class VehicleEventObserverTest extends TestCase
 
         VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::Maintenance,
+            'title' => 'Entretien courant',
             'has_fiscal_impact' => false,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-15',
@@ -67,7 +66,7 @@ final class VehicleEventObserverTest extends TestCase
 
         VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::PoundPublic,
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-15',
@@ -86,7 +85,7 @@ final class VehicleEventObserverTest extends TestCase
     {
         $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::PoundPublic,
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-15',

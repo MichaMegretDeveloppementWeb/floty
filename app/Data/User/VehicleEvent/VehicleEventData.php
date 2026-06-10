@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\VehicleEvent;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
@@ -13,13 +12,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Read-side representation of a vehicle event (vehicle Show page, lists, etc.).
  *
- *   - `title`: custom name, present only for the `other` type (null for known
- *     types, whose label is derived from the enum on the front).
- *   - `categories`: up to 5 free-text categories (known types carry their type
- *     default; `other` carries the user-supplied ones); populated only when the
- *     relation is eager-loaded.
+ *   - `title`: free name of the event (always present).
+ *   - `categories`: the natures (UI « Nature », free text, at least one);
+ *     populated only when the relation is eager-loaded.
  *   - `impliesUnavailability`: drives the "Indisponibilité" badge.
- *   - `hasFiscalImpact`: independent fiscal-reducer axis (never true for `other`).
+ *   - `hasFiscalImpact`: fiscal-reducer axis, derived at write time from the
+ *     reductive natures of the catalogue.
  *   - `daysCount`: inclusive day count, or 0 when the event is still ongoing
  *     (end_date null); the frontend then renders "depuis le {start_date}".
  *   - `documents`: attached evidence (0..5 image or PDF files); populated
@@ -35,8 +33,7 @@ final class VehicleEventData extends Data
     public function __construct(
         public int $id,
         public int $vehicleId,
-        public VehicleEventType $type,
-        public ?string $title,
+        public string $title,
         public array $categories,
         public bool $hasFiscalImpact,
         public bool $impliesUnavailability,
@@ -73,7 +70,6 @@ final class VehicleEventData extends Data
         return new self(
             id: $u->id,
             vehicleId: $u->vehicle_id,
-            type: $u->type,
             title: $u->title,
             categories: $categories,
             hasFiscalImpact: $u->has_fiscal_impact,

@@ -15,7 +15,6 @@ use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
@@ -78,7 +77,6 @@ final class CreateVehicleActionTest extends TestCase
             ->where('system_kind', VehicleEventSystemKind::Acquisition)
             ->sole();
 
-        $this->assertSame(VehicleEventType::Other, $event->type);
         $this->assertSame('Entrée en flotte', $event->title);
         $this->assertFalse($event->implies_unavailability);
         $this->assertFalse($event->has_fiscal_impact);

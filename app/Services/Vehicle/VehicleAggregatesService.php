@@ -359,10 +359,10 @@ final class VehicleAggregatesService
 
     /**
      * Counts `weekNumber → {reductive, nonReductive}` from the already
-     * loaded Collection. A date covered by two unavailabilities of
-     * different types (allowed by ADR-0019) is counted once, with the
-     * fiscally reductive type taking priority (the most informative
-     * signal for the UI).
+     * loaded Collection. A date covered by two overlapping events
+     * (allowed by ADR-0019) is counted once, with the fiscally
+     * reductive event taking priority (the most informative signal
+     * for the UI).
      *
      * @param  Collection<int, VehicleEvent>  $vehicleEventModels
      * @return array<int, array{reductive: int, nonReductive: int}> weekNumber → totals per type
@@ -387,7 +387,7 @@ final class VehicleAggregatesService
                 continue;
             }
 
-            $isReductive = $row->type->isFiscallyReductive();
+            $isReductive = $row->has_fiscal_impact;
             $start = $row->start_date->greaterThan($yearStart) ? $row->start_date : $yearStart;
             $end = $row->end_date === null || $row->end_date->greaterThan($yearEnd)
                 ? $yearEnd

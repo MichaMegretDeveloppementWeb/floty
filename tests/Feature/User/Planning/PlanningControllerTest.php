@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Planning;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
@@ -159,7 +158,7 @@ final class PlanningControllerTest extends TestCase
     public function index_expose_weeks_with_unavailability_pour_chaque_vehicule(): void
     {
         // ADR-0019 D5 - la heatmap doit savoir, pour chaque véhicule,
-        // sur quelles semaines une indispo (tous types confondus) existe
+        // sur quelles semaines une indispo (toutes natures confondues) existe
         // pour rendre la bordure rouge côté UI.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -175,7 +174,7 @@ final class PlanningControllerTest extends TestCase
 
         VehicleEvent::factory()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::PoundPublic,
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
             'start_date' => $start,
             'end_date' => $end,
@@ -211,7 +210,7 @@ final class PlanningControllerTest extends TestCase
 
         VehicleEvent::factory()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
+            'title' => 'Entretien courant',
             'has_fiscal_impact' => false,
             'start_date' => $start,
             'end_date' => $end,

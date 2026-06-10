@@ -64,6 +64,7 @@ final class MigrationsCleanlinessTest extends TestCase
             'sessions',
             'vehicle_control_overrides',
             'vehicle_event_categories',
+            'vehicle_event_natures',
             'vehicle_events',
             'vehicle_event_documents',
             'users',

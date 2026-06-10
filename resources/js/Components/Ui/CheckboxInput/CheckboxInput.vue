@@ -56,7 +56,7 @@ ids.push(errorId.value);
                     :disabled="disabled"
                     :aria-invalid="error ? true : undefined"
                     :aria-describedby="describedBy"
-                    class="peer size-4 cursor-[inherit] appearance-none rounded-sm border border-slate-300 bg-white transition-colors duration-[120ms] ease-out checked:border-slate-900 checked:bg-slate-900 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] focus-visible:outline-none disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 aria-invalid:border-rose-600"
+                    class="peer size-4 cursor-[inherit] appearance-none rounded-sm border border-slate-300 bg-white transition-colors duration-[120ms] ease-out checked:border-slate-900 checked:bg-slate-900 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] focus-visible:outline-none disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:checked:border-slate-400 disabled:checked:bg-slate-400 aria-invalid:border-rose-600"
                 />
                 <Check
                     :size="12"

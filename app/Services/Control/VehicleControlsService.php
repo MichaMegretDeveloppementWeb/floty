@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Control;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
 use App\Data\User\Control\ControlReminderSettingsData;
 use App\Data\User\Control\Vehicle\VehicleControlsBadgeData;
 use App\Data\User\Control\Vehicle\VehicleControlsTabData;
@@ -29,6 +30,7 @@ final readonly class VehicleControlsService
         private EffectiveControlResolver $resolver,
         private FleetControlScheduleScanner $scanner,
         private VehicleReadRepositoryInterface $vehicles,
+        private VehicleEventNatureReadRepositoryInterface $natures,
     ) {}
 
     public function buildForVehicle(Vehicle $vehicle, CarbonImmutable $today): VehicleControlsTabData
@@ -45,6 +47,10 @@ final readonly class VehicleControlsService
                 $context->settings,
                 $context->defaultRecipients,
             ),
+            natureSuggestions: [
+                'reductive' => $this->natures->reductiveLabels(),
+                'other' => $this->natures->nonReductiveLabels(),
+            ],
         );
     }
 

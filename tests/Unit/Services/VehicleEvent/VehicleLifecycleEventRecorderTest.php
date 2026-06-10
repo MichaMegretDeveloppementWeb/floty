@@ -7,7 +7,6 @@ namespace Tests\Unit\Services\VehicleEvent;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Services\VehicleEvent\VehicleLifecycleEventRecorder;
@@ -46,7 +45,6 @@ final class VehicleLifecycleEventRecorderTest extends TestCase
             ->where('system_kind', VehicleEventSystemKind::Acquisition)
             ->sole();
 
-        self::assertSame(VehicleEventType::Other, $event->type);
         self::assertSame('Entrée en flotte', $event->title);
         self::assertFalse($event->has_fiscal_impact);
         self::assertFalse($event->implies_unavailability);
@@ -92,7 +90,6 @@ final class VehicleLifecycleEventRecorderTest extends TestCase
             ->where('system_kind', VehicleEventSystemKind::FleetExit)
             ->sole();
 
-        self::assertSame(VehicleEventType::Other, $event->type);
         self::assertSame('Sortie de flotte', $event->title);
         self::assertFalse($event->has_fiscal_impact);
         self::assertFalse($event->implies_unavailability);

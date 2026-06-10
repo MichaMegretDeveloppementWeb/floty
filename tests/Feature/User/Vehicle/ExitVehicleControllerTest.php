@@ -7,7 +7,6 @@ namespace Tests\Feature\User\Vehicle;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
@@ -117,10 +116,8 @@ final class ExitVehicleControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create(['exit_date' => null]);
 
-        VehicleEvent::factory()->create([
+        VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2025-06-10',
             'end_date' => '2025-07-05',
         ]);
@@ -369,7 +366,6 @@ final class ExitVehicleControllerTest extends TestCase
             ->where('system_kind', VehicleEventSystemKind::FleetExit)
             ->sole();
 
-        self::assertSame(VehicleEventType::Other, $event->type);
         self::assertSame('Sortie de flotte', $event->title);
         self::assertFalse($event->implies_unavailability);
         self::assertFalse($event->has_fiscal_impact);

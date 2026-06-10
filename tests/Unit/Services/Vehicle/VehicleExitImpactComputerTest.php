@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Vehicle;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
@@ -89,10 +88,8 @@ final class VehicleExitImpactComputerTest extends TestCase
     #[Test]
     public function indispo_qui_deborde_exit_date_remonte_un_conflit(): void
     {
-        $vehicleEvent = VehicleEvent::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $this->vehicleId,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2025-06-10',
             'end_date' => '2025-07-05',
         ]);
@@ -102,7 +99,7 @@ final class VehicleExitImpactComputerTest extends TestCase
         self::assertTrue($impact->hasConflicts);
         self::assertCount(1, $impact->conflictingUnavailabilities);
         self::assertSame($vehicleEvent->id, $impact->conflictingUnavailabilities[0]->id);
-        self::assertSame(VehicleEventType::Maintenance, $impact->conflictingUnavailabilities[0]->type);
+        self::assertSame('Entretien courant', $impact->conflictingUnavailabilities[0]->title);
     }
 
     #[Test]
@@ -126,10 +123,8 @@ final class VehicleExitImpactComputerTest extends TestCase
     {
         $this->createContract('2025-05-01', '2025-07-31');
         $this->createContract('2025-08-01', '2025-09-30');
-        VehicleEvent::factory()->create([
+        VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $this->vehicleId,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2025-07-15',
             'end_date' => '2025-07-20',
         ]);

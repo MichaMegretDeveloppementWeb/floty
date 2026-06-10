@@ -27,10 +27,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class RecordControlExecutionData extends Data
 {
     /**
-     * @param  list<string>  $categories  Custom categories added on the "Fait"
-     *                                    modal (the « Contrôle » + « Entretien »
-     *                                    defaults are prepended by the Action,
-     *                                    so at most 3 here to reach the cap of 5).
+     * @param  list<string>  $categories  Extra natures added on the "Fait"
+     *                                    modal; the Action prepends the auto
+     *                                    natures « Contrôle réglementaire » +
+     *                                    « Suivi véhicule ». Unlimited.
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
@@ -57,9 +57,9 @@ final class RecordControlExecutionData extends Data
             'vehicle_control_override_id' => ['nullable', 'integer', 'exists:vehicle_control_overrides,id', 'required_without:control_definition_id'],
             'note' => ['nullable', 'string', 'max:500'],
             'amount_cents' => ['nullable', 'integer', 'min:0'],
-            // « Contrôle » + « Entretien » sont ajoutés d'office par l'Action,
-            // l'utilisateur peut en ajouter jusqu'à 3 (plafond total de 5).
-            'categories' => ['nullable', 'array', 'max:3'],
+            // « Contrôle réglementaire » + « Suivi véhicule » sont ajoutés
+            // d'office par l'Action ; les ajouts utilisateur sont illimités.
+            'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
             'documents' => ['nullable', 'array', 'max:5'],
             'documents.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
@@ -108,9 +108,8 @@ final class RecordControlExecutionData extends Data
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',
-            'categories.max' => 'Vous ne pouvez ajouter que 3 catégories (en plus de « Contrôle » et « Entretien »).',
-            'categories.*.max' => 'Une catégorie ne peut pas dépasser 60 caractères.',
-            'categories.*.distinct' => 'Cette catégorie est déjà présente.',
+            'categories.*.max' => 'Une nature ne peut pas dépasser 60 caractères.',
+            'categories.*.distinct' => 'Cette nature est déjà présente.',
             'documents.max' => 'Vous ne pouvez joindre que 5 documents au maximum.',
             'documents.*.file' => 'Chaque pièce jointe doit être un fichier valide.',
             'documents.*.mimes' => 'Format invalide · seuls les fichiers PDF, JPG, PNG et WebP sont acceptés.',

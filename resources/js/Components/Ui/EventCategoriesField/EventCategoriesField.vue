@@ -1,35 +1,45 @@
 <script setup lang="ts">
 /**
- * Multi-category editor (Chantier A) shared by the event form and the control
- * "Fait" modal. Shows the fixed default(s) as locked chips, then a dynamic list
- * of free-text inputs, each with a real styled dropdown of suggestions
- * (backend distinct + seed) filtered by prefix as you type · any typed text is
- * still kept. Live dedup vs the locked defaults and other entries. The model is
- * the CUSTOM categories only · the backend prepends the defaults.
+ * Nature editor (refonte type → nature) shared by the event form and the
+ * control "Fait" modal. Shows the fixed auto natures as locked chips, then a
+ * dynamic unlimited list of free-text inputs, each with a styled dropdown of
+ * catalogue suggestions split in two blocks (« Réducteur fiscal » first, then
+ * the rest), filtered by prefix as you type · any typed text is still kept.
+ * Live dedup vs the locked defaults and other entries. The model is the
+ * user-supplied natures only · the backend prepends the auto ones.
  */
-import { Lock, Plus, X } from 'lucide-vue-next';
+import { Lock, Plus, TrendingDown, X } from 'lucide-vue-next';
 import type { ComponentPublicInstance } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { duplicateCustomIndices, normalizeCategory } from '@/Utils/vehicleEventCategories';
 
+type SuggestionBlock = {
+    key: 'reductive' | 'other';
+    label: string;
+    items: string[];
+};
+
 const props = withDefaults(
     defineProps<{
-        /** Custom categories (v-model). */
+        /** User-supplied natures (v-model). */
         modelValue: string[];
-        /** Fixed default categories shown locked (non-removable). */
+        /** Fixed auto natures shown locked (non-removable). */
         lockedDefaults?: string[];
-        /** Autocomplete suggestions (merged: backend distinct + seed). */
-        suggestions?: string[];
-        /** Total cap including the locked defaults. */
-        max?: number;
+        /** Catalogue suggestions · frozen fiscally-reductive block. */
+        reductiveSuggestions?: string[];
+        /** Catalogue suggestions · every other nature (base + user additions). */
+        otherSuggestions?: string[];
+        /** Mark the field as required (form context). */
+        required?: boolean;
         error?: string;
     }>(),
     {
         lockedDefaults: () => [],
-        suggestions: () => [],
-        max: 5,
+        reductiveSuggestions: () => [],
+        otherSuggestions: () => [],
+        required: false,
     },
 );
 
@@ -38,22 +48,14 @@ const emit = defineEmits<{ 'update:modelValue': [string[]] }>();
 /** Index of the row whose suggestion dropdown is open (null = none). */
 const openIndex = ref<number | null>(null);
 
-/** Live refs to the custom-category inputs, to focus the freshly added one. */
+/** Live refs to the nature inputs, to focus the freshly added one. */
 const inputEls = ref<(HTMLInputElement | null)[]>([]);
 
 function registerInput(el: Element | ComponentPublicInstance | null, index: number): void {
     inputEls.value[index] = el instanceof HTMLInputElement ? el : null;
 }
 
-const maxCustom = computed<number>(() => Math.max(0, props.max - props.lockedDefaults.length));
-
-const remaining = computed<number>(() => maxCustom.value - props.modelValue.length);
-
 const canAdd = computed<boolean>(() => {
-    if (props.modelValue.length >= maxCustom.value) {
-        return false;
-    }
-
     const last = props.modelValue[props.modelValue.length - 1];
 
     // Force the previous input to be filled before adding another.
@@ -65,10 +67,11 @@ const duplicateIndices = computed<Set<number>>(() =>
 );
 
 /**
- * Suggestions for one row: the global list minus the locked defaults and the
- * OTHER rows' values, filtered by prefix on the current row's text.
+ * Suggestion blocks for one row: each block minus the locked defaults and the
+ * OTHER rows' values, filtered by prefix on the current row's text. Empty
+ * blocks are dropped.
  */
-function suggestionsFor(index: number): string[] {
+function suggestionBlocksFor(index: number): SuggestionBlock[] {
     const used = new Set(
         [...props.lockedDefaults, ...props.modelValue.filter((_, i) => i !== index)]
             .map(normalizeCategory)
@@ -76,15 +79,23 @@ function suggestionsFor(index: number): string[] {
     );
     const typed = normalizeCategory(props.modelValue[index] ?? '');
 
-    return props.suggestions.filter((suggestion) => {
-        const key = normalizeCategory(suggestion);
+    const filterBlock = (items: string[]): string[] =>
+        items.filter((suggestion) => {
+            const key = normalizeCategory(suggestion);
 
-        if (key === '' || used.has(key)) {
-            return false;
-        }
+            if (key === '' || used.has(key)) {
+                return false;
+            }
 
-        return typed === '' || key.startsWith(typed);
-    });
+            return typed === '' || key.startsWith(typed);
+        });
+
+    const blocks: SuggestionBlock[] = [
+        { key: 'reductive', label: 'Réducteur fiscal', items: filterBlock(props.reductiveSuggestions) },
+        { key: 'other', label: 'Autres natures', items: filterBlock(props.otherSuggestions) },
+    ];
+
+    return blocks.filter((block) => block.items.length > 0);
 }
 
 function updateAt(index: number, value: string): void {
@@ -121,21 +132,18 @@ function add(): void {
 
 <template>
     <div class="flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-            <label class="text-sm font-medium text-slate-500">
-                Catégories
-            </label>
-            <span class="text-xs text-slate-400">
-                {{ lockedDefaults.length + modelValue.length }} / {{ max }}
-            </span>
-        </div>
+        <label class="text-sm font-medium text-slate-500">
+            Nature
+            <span v-if="required" aria-hidden="true" class="ml-0.5 text-rose-600">*</span>
+        </label>
 
         <p class="text-xs text-slate-500">
-            Texte libre, la liste propose les catégories existantes. Jusqu'à {{ max }} au total.
+            Texte libre, la liste propose les natures connues. Une nature
+            « réducteur fiscal » rend l'événement fiscalement réducteur.
         </p>
 
         <div class="flex flex-col gap-2">
-            <!-- Locked defaults -->
+            <!-- Locked auto natures -->
             <div
                 v-for="locked in lockedDefaults"
                 :key="`locked-${locked}`"
@@ -146,14 +154,14 @@ function add(): void {
                 </Badge>
                 <span
                     class="inline-flex items-center gap-1 text-[11px] text-slate-400"
-                    title="Catégorie ajoutée automatiquement, non modifiable"
+                    title="Nature ajoutée automatiquement, non modifiable"
                 >
                     <Lock :size="12" :stroke-width="1.75" aria-hidden="true" />
                     automatique
                 </span>
             </div>
 
-            <!-- Custom inputs with dropdown -->
+            <!-- Free inputs with grouped dropdown -->
             <div
                 v-for="(_, index) in modelValue"
                 :key="`custom-${index}`"
@@ -166,7 +174,7 @@ function add(): void {
                             :value="modelValue[index]"
                             maxlength="60"
                             autocomplete="off"
-                            placeholder="Ex. Pneus, sinistre, marketing..."
+                            placeholder="Ex. Maintenance / entretien, Vol..."
                             :class="[
                                 'w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none',
                                 duplicateIndices.has(index)
@@ -179,44 +187,60 @@ function add(): void {
                             @blur="openIndex = null"
                             @input="updateAt(index, ($event.target as HTMLInputElement).value)"
                         />
-                        <ul
-                            v-if="openIndex === index && suggestionsFor(index).length > 0"
-                            class="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                        <div
+                            v-if="openIndex === index && suggestionBlocksFor(index).length > 0"
+                            class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
                         >
-                            <li
-                                v-for="suggestion in suggestionsFor(index)"
-                                :key="suggestion"
-                                class="cursor-pointer px-3 py-1.5 text-sm text-slate-700 transition-colors duration-[100ms] hover:bg-slate-50"
-                                @mousedown.prevent="selectSuggestion(index, suggestion)"
+                            <template
+                                v-for="block in suggestionBlocksFor(index)"
+                                :key="block.key"
                             >
-                                {{ suggestion }}
-                            </li>
-                        </ul>
+                                <p class="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                                    {{ block.label }}
+                                </p>
+                                <ul>
+                                    <li
+                                        v-for="suggestion in block.items"
+                                        :key="suggestion"
+                                        class="flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 transition-colors duration-[100ms] hover:bg-slate-50"
+                                        @mousedown.prevent="selectSuggestion(index, suggestion)"
+                                    >
+                                        <TrendingDown
+                                            v-if="block.key === 'reductive'"
+                                            :size="13"
+                                            :stroke-width="1.75"
+                                            class="shrink-0 text-rose-500"
+                                            aria-hidden="true"
+                                        />
+                                        {{ suggestion }}
+                                    </li>
+                                </ul>
+                            </template>
+                        </div>
                     </div>
                     <button
                         type="button"
                         class="inline-flex h-9 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors duration-[120ms] ease-out hover:bg-rose-100 hover:text-rose-700"
-                        title="Retirer cette catégorie"
-                        aria-label="Retirer cette catégorie"
+                        title="Retirer cette nature"
+                        aria-label="Retirer cette nature"
                         @click="removeAt(index)"
                     >
                         <X :size="15" :stroke-width="1.75" />
                     </button>
                 </div>
                 <p v-if="duplicateIndices.has(index)" class="text-xs text-rose-600">
-                    Cette catégorie est déjà présente.
+                    Cette nature est déjà présente.
                 </p>
             </div>
 
             <button
-                v-if="remaining > 0"
                 type="button"
                 :disabled="!canAdd"
                 class="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-[120ms] ease-out hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="add"
             >
                 <Plus :size="14" :stroke-width="1.75" />
-                Ajouter une catégorie
+                Ajouter une nature
             </button>
         </div>
 

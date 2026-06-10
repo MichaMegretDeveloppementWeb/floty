@@ -10,8 +10,7 @@ type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 function makeEvent(overrides: Partial<VehicleEvent> & { id: number; startDate: string }): VehicleEvent {
     return {
         vehicleId: 1,
-        type: 'maintenance',
-        title: null,
+        title: 'Entretien courant',
         categories: [],
         hasFiscalImpact: false,
         impliesUnavailability: true,

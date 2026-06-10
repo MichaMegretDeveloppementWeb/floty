@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\VehicleEvent\VehicleEventSystemKind;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Observers\VehicleEventObserver;
 use Database\Factories\VehicleEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -21,24 +20,21 @@ use Illuminate\Support\Carbon;
 /**
  * Vehicle event over a continuous day range (formerly "unavailability").
  *
- * Two orthogonal axes:
+ * The identity is the free name (`title`) + the natures (free text, child
+ * rows in {@see VehicleEventCategory}, labelled « Nature » in the UI). Two
+ * orthogonal axes:
  *   - `implies_unavailability` : informative "the vehicle is unavailable these
- *     days" flag (heatmap / usage / timeline / exit). Always true for known
- *     types; for the `other` (custom) type it follows the user's choice.
- *   - `has_fiscal_impact` : fiscal prorata reducer (ADR-0016 rev. 1.1, see
- *     {@see VehicleEventType::isFiscallyReductive()}), denormalized with a SQL
- *     CHECK enforcing consistency with `type`. Never true for `other`.
- *
- * `title` carries the custom name of an `other` event (null for known types,
- * which derive their label from the enum on the front). Categories (up to 5,
- * free text + suggestions) live in {@see VehicleEventCategory}; a known type
- * gets its default category, the `other` type carries the user-supplied ones.
+ *     days" flag (heatmap / usage / timeline / exit). User choice, but forced
+ *     true when the event is fiscally reductive (SQL CHECK as backstop).
+ *   - `has_fiscal_impact` : fiscal prorata reducer (ADR-0016 rev. 1.1),
+ *     denormalized at write time from the reductive natures of the catalogue
+ *     ({@see App\Services\VehicleEvent\EventNatureFiscalResolver}) and frozen
+ *     on the row; the fiscal rules (R-20XX-008) read only this boolean.
  *
  * @property int $id
  * @property int $vehicle_id
- * @property VehicleEventType $type
  * @property VehicleEventSystemKind|null $system_kind
- * @property string|null $title
+ * @property string $title
  * @property bool $has_fiscal_impact
  * @property bool $implies_unavailability
  * @property Carbon $start_date
@@ -51,7 +47,6 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'vehicle_id',
-    'type',
     'system_kind',
     'title',
     'has_fiscal_impact',
@@ -75,7 +70,6 @@ final class VehicleEvent extends Model
     protected function casts(): array
     {
         return [
-            'type' => VehicleEventType::class,
             'system_kind' => VehicleEventSystemKind::class,
             'has_fiscal_impact' => 'boolean',
             'implies_unavailability' => 'boolean',
@@ -128,8 +122,8 @@ final class VehicleEvent extends Model
     }
 
     /**
-     * Attached categories (free text + suggestions, up to 5), ordered by
-     * insertion so the type/control defaults come first.
+     * Attached natures (free text + catalogue suggestions, at least one),
+     * ordered by insertion. Kept under the `categories` naming in code.
      *
      * @return HasMany<VehicleEventCategory, $this>
      */

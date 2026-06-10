@@ -47,7 +47,7 @@ final class VehicleControlExecutionTest extends TestCase
         self::assertSame($definition->id, $execution->control_definition_id);
         self::assertNotNull($execution->vehicle_event_id);
 
-        // L'exécution génère un événement véhicule (Chantier A), catégorie
+        // L'exécution génère un événement véhicule (Chantier A), natures
         // « Contrôle réglementaire » + « Suivi véhicule », non fiscal,
         // indisponibilité selon le flag effectif de la définition.
         // L'événement est sur UN SEUL jour (start = end = date d'exécution) : un
@@ -56,7 +56,6 @@ final class VehicleControlExecutionTest extends TestCase
         $this->assertDatabaseHas('vehicle_events', [
             'id' => $execution->vehicle_event_id,
             'vehicle_id' => $vehicle->id,
-            'type' => 'other',
             'title' => 'Contrôle technique',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
@@ -64,9 +63,8 @@ final class VehicleControlExecutionTest extends TestCase
             'end_date' => '2024-03-10',
         ]);
 
-        // Catégories par défaut d'une exécution de contrôle :
-        // « Contrôle réglementaire » + « Suivi véhicule » (famille partagée avec
-        // le type Maintenance / entretien).
+        // Natures automatiques d'une exécution de contrôle :
+        // « Contrôle réglementaire » + « Suivi véhicule ».
         $this->assertDatabaseHas('vehicle_event_categories', [
             'vehicle_event_id' => $execution->vehicle_event_id,
             'category' => 'Contrôle réglementaire',

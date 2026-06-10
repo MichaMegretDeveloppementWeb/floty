@@ -57,7 +57,7 @@ final readonly class VehicleExitImpactComputer
         $vehicleEventData = $vehicleEvents
             ->map(static fn (VehicleEvent $u): ConflictingVehicleEventData => new ConflictingVehicleEventData(
                 id: $u->id,
-                type: $u->type,
+                title: $u->title,
                 startDate: $u->start_date->toDateString(),
                 endDate: $u->end_date?->toDateString() ?? '9999-12-31',
             ))

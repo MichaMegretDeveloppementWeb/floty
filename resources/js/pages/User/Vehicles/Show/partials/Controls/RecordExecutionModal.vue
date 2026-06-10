@@ -13,23 +13,24 @@ import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import { useRecordExecutionForm } from '@/Composables/Control/Vehicle/useRecordExecutionForm';
-import { vehicleEventCategorySuggestions } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type EffectiveControl = App.Data.User.Control.Vehicle.EffectiveControlData;
+type NatureSuggestions = { reductive: string[]; other: string[] };
 
 const props = defineProps<{
     vehicleId: number;
     control: EffectiveControl | null;
+    /** Suggestions du catalogue de natures (bloc réducteur figé + autres). */
+    natureSuggestions: NatureSuggestions;
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
 
 const { form, fieldError, addDocuments, removeDocument, seed, submit } = useRecordExecutionForm(props.vehicleId);
 
-// « Contrôle réglementaire » + « Suivi véhicule » sont ajoutés d'office par le
-// backend ; l'utilisateur peut ajouter jusqu'à 3 catégories de plus (plafond de 5).
+// « Contrôle réglementaire » + « Suivi véhicule » sont ajoutées d'office par le
+// backend ; l'utilisateur peut ajouter d'autres natures librement.
 const lockedControlCategories = ['Contrôle réglementaire', 'Suivi véhicule'];
-const categorySuggestions = [...vehicleEventCategorySuggestions];
 
 watch(open, (isOpen) => {
     if (isOpen && props.control !== null) {
@@ -95,8 +96,8 @@ function onSubmit(): void {
             <EventCategoriesField
                 :model-value="form.categories"
                 :locked-defaults="lockedControlCategories"
-                :suggestions="categorySuggestions"
-                :max="5"
+                :reductive-suggestions="natureSuggestions.reductive"
+                :other-suggestions="natureSuggestions.other"
                 :error="fieldError('categories')"
                 @update:model-value="(value: string[]) => (form.categories = value)"
             />

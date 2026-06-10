@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
@@ -148,7 +147,7 @@ final class DeclarationInvalidationDetectorTest extends TestCase
         $declaration = $this->makeDeclaration(2025);
         $this->makeContract('2025-01-01', '2025-12-31'); // contrat actif sur l'année
         $vehicleEvent = $this->makeVehicleEvent(
-            type: VehicleEventType::Maintenance, // non réductrice
+            hasFiscalImpact: false, // nature non réductrice
             start: '2025-03-01',
             end: '2025-03-15',
         );
@@ -164,7 +163,7 @@ final class DeclarationInvalidationDetectorTest extends TestCase
         $declaration = $this->makeDeclaration(2025);
         $this->makeContract('2025-01-01', '2025-12-31');
         $vehicleEvent = $this->makeVehicleEvent(
-            type: VehicleEventType::PoundPublic, // réductrice
+            hasFiscalImpact: true, // nature réductrice
             start: '2025-03-01',
             end: '2025-03-15',
         );
@@ -336,15 +335,14 @@ final class DeclarationInvalidationDetectorTest extends TestCase
         );
     }
 
-    private function makeVehicleEvent(VehicleEventType $type, string $start, string $end): VehicleEvent
+    private function makeVehicleEvent(bool $hasFiscalImpact, string $start, string $end): VehicleEvent
     {
         return VehicleEvent::withoutEvents(
             fn (): VehicleEvent => VehicleEvent::factory()->create([
                 'vehicle_id' => $this->vehicle->id,
-                'type' => $type,
                 'start_date' => $start,
                 'end_date' => $end,
-                'has_fiscal_impact' => $type->isFiscallyReductive(),
+                'has_fiscal_impact' => $hasFiscalImpact,
             ]),
         );
     }

@@ -13,8 +13,7 @@ function makeEvent(
 ): VehicleEvent {
     return {
         vehicleId: 1,
-        type: 'maintenance',
-        title: null,
+        title: 'Entretien courant',
         categories: [],
         hasFiscalImpact: false,
         impliesUnavailability: true,
@@ -87,52 +86,31 @@ describe('vehicleEventOverlapsWindow', () => {
     });
 });
 
-describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', () => {
+describe('useVehicleEventsTimelineFilter · filtre nature + total', () => {
     const events: VehicleEvent[] = [
-        makeEvent({ id: 1, startDate: '2026-03-01', type: 'maintenance', categories: ['Entretien'], amountCents: 10000 }),
-        makeEvent({ id: 2, startDate: '2026-04-01', type: 'other', title: 'Lavage', categories: ['Contrôle', 'Entretien'], amountCents: 8500 }),
-        makeEvent({ id: 3, startDate: '2026-05-01', type: 'theft', categories: ['Vol'], amountCents: null }),
-        // System lifecycle marker (read-only): never seeds the type axis.
-        makeEvent({ id: 4, startDate: '2026-02-01', type: 'other', title: 'Sortie de flotte', isReadOnly: true, categories: ['Cycle de vie'] }),
+        makeEvent({ id: 1, startDate: '2026-03-01', title: 'Entretien courant', categories: ['Entretien'], amountCents: 10000 }),
+        makeEvent({ id: 2, startDate: '2026-04-01', title: 'Lavage', categories: ['Contrôle', 'Entretien'], amountCents: 8500 }),
+        makeEvent({ id: 3, startDate: '2026-05-01', title: 'Vol du véhicule', categories: ['Vol'], amountCents: null }),
+        makeEvent({ id: 4, startDate: '2026-02-01', title: 'Sortie de flotte', isReadOnly: true, categories: ['Cycle de vie'] }),
     ];
 
-    it('expose les options de type et catégorie réellement présentes', () => {
+    it('expose les natures réellement présentes, triées', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        // Les événements personnalisés (« other ») apparaissent par leur titre,
-        // pas sous un bucket générique « other » / « Personnalisé ». Les repères
-        // système (lecture seule) sont exclus de l'axe type.
-        expect(f.typeOptions.value.map((o) => o.value).sort()).toEqual(['Lavage', 'maintenance', 'theft']);
-        expect(f.typeOptions.value.find((o) => o.value === 'Lavage')?.label).toBe('Lavage');
-        expect(f.typeOptions.value.find((o) => o.value === 'maintenance')?.label).toBe('Maintenance / entretien');
-        expect(f.typeOptions.value.some((o) => o.value === 'other')).toBe(false);
-        expect(f.typeOptions.value.some((o) => o.value === 'Sortie de flotte')).toBe(false);
         expect(f.categoryOptions.value.map((o) => o.value)).toEqual(['Contrôle', 'Cycle de vie', 'Entretien', 'Vol']);
     });
 
-    it('filtre les événements personnalisés par leur titre (et « other » ne matche rien)', () => {
+    it('filtre par nature et somme le coût du jeu filtré', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.selectedTypes.value = ['Lavage'];
+        f.selectedCategories.value = ['Contrôle'];
+
         expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
         expect(f.totalAmountCents.value).toBe(8500);
-
-        // L'ancienne sélection par valeur d'enum « other » ne capture plus rien.
-        f.selectedTypes.value = ['other'];
-        expect(f.filteredEvents.value).toHaveLength(0);
-    });
-
-    it('filtre par type et somme le coût du jeu filtré', () => {
-        const f = useVehicleEventsTimelineFilter(() => events, 2026);
-
-        f.selectedTypes.value = ['maintenance'];
-
-        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([1]);
-        expect(f.totalAmountCents.value).toBe(10000);
         expect(f.isFiltered.value).toBe(true);
     });
 
-    it('filtre par catégorie (OU dans l\'axe, insensible à la casse)', () => {
+    it('filtre par nature (OU dans l\'axe, insensible à la casse)', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
         f.selectedCategories.value = ['entretien', 'vol'];
@@ -142,28 +120,17 @@ describe('useVehicleEventsTimelineFilter · filtres type / catégorie + total', 
         expect(f.totalAmountCents.value).toBe(18500);
     });
 
-    it('combine type ET catégorie', () => {
-        const f = useVehicleEventsTimelineFilter(() => events, 2026);
-
-        f.selectedTypes.value = ['Lavage'];
-        f.selectedCategories.value = ['Contrôle'];
-
-        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
-        expect(f.totalAmountCents.value).toBe(8500);
-    });
-
     it('expose des chips actifs supprimables et un compteur d\'axes', () => {
         const f = useVehicleEventsTimelineFilter(() => events, 2026);
 
-        f.selectedTypes.value = ['maintenance'];
-        f.selectedCategories.value = ['Vol'];
+        f.selectedCategories.value = ['Vol', 'Entretien'];
 
         expect(f.activeAxisCount.value).toBe(2);
-        expect(f.activeFilterChips.value.map((c) => c.key)).toEqual(['type:maintenance', 'category:Vol']);
+        expect(f.activeFilterChips.value.map((c) => c.key)).toEqual(['category:Vol', 'category:Entretien']);
+        expect(f.activeFilterChips.value[0]?.label).toBe('Nature : Vol');
 
-        f.removeFilterChip('type:maintenance');
-        expect(f.selectedTypes.value).toEqual([]);
-        expect(f.selectedCategories.value).toEqual(['Vol']);
+        f.removeFilterChip('category:Vol');
+        expect(f.selectedCategories.value).toEqual(['Entretien']);
 
         f.clearAxisFilters();
         expect(f.activeAxisCount.value).toBe(0);

@@ -79,7 +79,7 @@ final class FiscalInvariantsTest extends TestCase
         $this->forEachScenario(function (FiscalScenario $scenario): void {
             $hasNonReductive = false;
             foreach ($scenario->vehicleEvents as $u) {
-                if (! $u->type->isFiscallyReductive()) {
+                if (! $u->has_fiscal_impact) {
                     $hasNonReductive = true;
                     break;
                 }

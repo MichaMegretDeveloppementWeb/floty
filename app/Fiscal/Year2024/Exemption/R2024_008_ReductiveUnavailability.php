@@ -8,7 +8,6 @@ use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
@@ -29,10 +28,10 @@ use Carbon\CarbonImmutable;
  * Computation: an unavailability day is reductive if
  *   1. it falls in a taxable contract of the pair (non-LCD per
  *      {@see R2024_021_ShortTermRental::isShortTermRental()});
- *   2. AND the unavailability type has `has_fiscal_impact = true` ·
- *      one of the three reductive cases defined by
- *      {@see VehicleEventType::isFiscallyReductive()}:
- *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
+ *   2. AND the event has `has_fiscal_impact = true` · denormalised at
+ *      write time from the frozen reductive natures of the catalogue
+ *      (the three off-road cases, see
+ *      {@see App\Support\VehicleEvent\EventNatureCatalog::REDUCTIVE}).
  *
  * Days falling inside an LCD contract are already removed by
  * R-2024-021; counting them here would double-count.
@@ -43,7 +42,7 @@ use Carbon\CarbonImmutable;
  * cases: § 50 (registration certificate suspension R. 322-6 +
  * post-accident ban L. 327-4 / L. 327-5 Code de la route), § 60
  * (public pound L. 325-1 to L. 325-1-2 Code de la route), § 190
- * (effect on the annual assignment proportion). Enum → fiscal effect
+ * (effect on the annual assignment proportion). Nature → fiscal effect
  * mapping in ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule

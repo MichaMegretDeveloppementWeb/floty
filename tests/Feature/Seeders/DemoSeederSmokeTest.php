@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Seeders;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -120,7 +119,7 @@ final class DemoSeederSmokeTest extends TestCase
     {
         $hasReductiveCohabitation = false;
         foreach (VehicleEvent::query()->get() as $u) {
-            if (! $u->type->isFiscallyReductive()) {
+            if (! $u->has_fiscal_impact) {
                 continue;
             }
             $cohabitates = Contract::query()
@@ -150,10 +149,10 @@ final class DemoSeederSmokeTest extends TestCase
         // visuellement.
         $hasNonReductiveCohabitation = false;
         foreach (VehicleEvent::query()->get() as $u) {
-            if ($u->type->isFiscallyReductive()) {
+            if ($u->has_fiscal_impact) {
                 continue;
             }
-            // Type non réductrice (Maintenance, événement personnalisé, etc.).
+            // Nature non réductrice (maintenance, événement personnalisé, etc.).
             $cohabitates = Contract::query()
                 ->where('vehicle_id', $u->vehicle_id)
                 ->where('start_date', '<=', $u->end_date ?? '2099-12-31')
@@ -175,12 +174,12 @@ final class DemoSeederSmokeTest extends TestCase
     #[Test]
     public function le_seeder_produit_au_moins_un_cas_mixte_indispo_contrat_bascule_vfc(): void
     {
-        // Cas mixte EE-005-EE : indispo CiSuspension 03-10 → 03-22 cohabite
-        // avec contrat COR 03-04 → 03-28 ET chevauche la bascule VFC
+        // Cas mixte EE-005-EE : indispo « Suspension du CI » 03-10 → 03-22
+        // cohabite avec contrat COR 03-04 → 03-28 ET chevauche la bascule VFC
         // 03-15. Exerce simultanément les 3 mécaniques. Garde-fou contre
         // un futur seeder qui retirerait par erreur ce cas pédagogique.
         $hasMixedCase = false;
-        foreach (VehicleEvent::query()->where('type', VehicleEventType::CiSuspension)->get() as $u) {
+        foreach (VehicleEvent::query()->where('title', 'Suspension du CI')->get() as $u) {
             $vehicle = Vehicle::query()->find($u->vehicle_id);
             if ($vehicle === null) {
                 continue;

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
+use Database\Seeders\VehicleEventNatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -22,8 +22,16 @@ final class VehicleEventControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Catalogue des natures : requis pour que les natures réductrices
+        // soient reconnues à l'écriture.
+        $this->seed(VehicleEventNatureSeeder::class);
+    }
+
     #[Test]
-    public function store_cree_une_indisponibilite_avec_impact_fiscal_si_fourriere(): void
+    public function store_cree_une_indisponibilite_avec_impact_fiscal_si_nature_fourriere(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -31,7 +39,8 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'pound_public',
+                'title' => 'Mise en fourrière',
+                'categories' => ['Fourrière (demande publique)'],
                 'start_date' => '2024-03-01',
                 'end_date' => '2024-03-15',
                 'description' => 'Mise en fourrière suite à infraction stationnement',
@@ -40,13 +49,13 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->assertDatabaseHas('vehicle_events', [
             'vehicle_id' => $vehicle->id,
-            'type' => 'pound_public',
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
         ]);
     }
 
     #[Test]
-    public function store_ne_definit_pas_l_impact_fiscal_pour_les_autres_types(): void
+    public function store_ne_definit_pas_l_impact_fiscal_pour_les_natures_non_reductrices(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -54,7 +63,8 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-04-01',
                 'end_date' => '2024-04-03',
             ])
@@ -62,7 +72,7 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->assertDatabaseHas('vehicle_events', [
             'vehicle_id' => $vehicle->id,
-            'type' => 'maintenance',
+            'title' => 'Entretien courant',
             'has_fiscal_impact' => false,
         ]);
     }
@@ -72,17 +82,16 @@ final class VehicleEventControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $u = VehicleEvent::factory()->create([
+        $u = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2024-05-01',
             'end_date' => '2024-05-10',
         ]);
 
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$u->id}", [
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-05-01',
                 'end_date' => '2024-05-20',
                 'description' => 'Prolongée',
@@ -97,21 +106,20 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_recalcule_l_impact_fiscal_si_type_change(): void
+    public function update_recalcule_l_impact_fiscal_si_les_natures_changent(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        $u = VehicleEvent::factory()->create([
+        $u = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-05',
         ]);
 
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$u->id}", [
-                'type' => 'pound_public',
+                'title' => 'Mise en fourrière',
+                'categories' => ['Fourrière (demande publique)'],
                 'start_date' => '2024-06-01',
                 'end_date' => '2024-06-05',
             ])
@@ -119,7 +127,7 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->assertDatabaseHas('vehicle_events', [
             'id' => $u->id,
-            'type' => 'pound_public',
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
         ]);
     }
@@ -157,7 +165,8 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-07-10',
                 'end_date' => '2024-07-15',
             ])
@@ -184,10 +193,8 @@ final class VehicleEventControllerTest extends TestCase
         ]);
         $year = 2024;
 
-        VehicleEvent::factory()->create([
+        VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => sprintf('%d-03-01', $year),
             'end_date' => sprintf('%d-03-15', $year),
         ]);
@@ -207,10 +214,8 @@ final class VehicleEventControllerTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        $vehicleEvent = VehicleEvent::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::Maintenance,
-            'has_fiscal_impact' => false,
             'start_date' => '2024-08-01',
             'end_date' => '2024-08-05',
         ]);
@@ -224,7 +229,8 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$vehicleEvent->id}", [
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-08-01',
                 'end_date' => '2024-08-20',
             ])
@@ -237,7 +243,7 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_cree_un_evenement_autre_avec_titre_categories_et_indispo(): void
+    public function store_cree_un_evenement_avec_titre_natures_libres_et_indispo(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -245,7 +251,6 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'other',
                 'title' => 'Pose covering publicitaire',
                 'categories' => ['Marketing', 'Esthétique'],
                 'implies_unavailability' => true,
@@ -257,7 +262,6 @@ final class VehicleEventControllerTest extends TestCase
         $event = VehicleEvent::query()->where('vehicle_id', $vehicle->id)->latest('id')->firstOrFail();
         $this->assertDatabaseHas('vehicle_events', [
             'id' => $event->id,
-            'type' => 'other',
             'title' => 'Pose covering publicitaire',
             'has_fiscal_impact' => false,
             'implies_unavailability' => true,
@@ -266,7 +270,7 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_evenement_autre_sans_titre_ni_categorie_est_invalide(): void
+    public function store_sans_titre_ni_nature_est_invalide(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -274,15 +278,17 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'other',
                 'start_date' => '2024-09-01',
                 'end_date' => '2024-09-02',
             ])
-            ->assertSessionHasErrors(['title', 'categories']);
+            ->assertSessionHasErrors([
+                'title' => "Le nom de l'événement est obligatoire.",
+                'categories' => 'Au moins une nature est obligatoire.',
+            ]);
     }
 
     #[Test]
-    public function store_evenement_autre_sans_indispo_persiste_implies_false(): void
+    public function store_rejette_une_nature_dupliquee_insensible_casse(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -290,7 +296,44 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'other',
+                'title' => 'Entretien courant',
+                'categories' => ['Entretien', 'entretien'],
+                'start_date' => '2024-09-01',
+                'end_date' => '2024-09-02',
+            ])
+            ->assertSessionHasErrors([
+                'categories.0' => 'Cette nature est déjà présente.',
+            ]);
+    }
+
+    #[Test]
+    public function store_rejette_une_nature_trop_longue(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'title' => 'Entretien courant',
+                'categories' => [str_repeat('a', 61)],
+                'start_date' => '2024-09-01',
+                'end_date' => '2024-09-02',
+            ])
+            ->assertSessionHasErrors([
+                'categories.0' => 'Une nature ne peut pas dépasser 60 caractères.',
+            ]);
+    }
+
+    #[Test]
+    public function store_evenement_non_reducteur_sans_indispo_persiste_implies_false(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
                 'title' => 'Note interne',
                 'categories' => ['Divers'],
                 'implies_unavailability' => false,
@@ -301,7 +344,7 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->assertDatabaseHas('vehicle_events', [
             'vehicle_id' => $vehicle->id,
-            'type' => 'other',
+            'title' => 'Note interne',
             'implies_unavailability' => false,
         ]);
     }
@@ -318,7 +361,8 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-10-01',
                 'end_date' => '2024-10-03',
                 'documents' => [
@@ -359,6 +403,45 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
+    public function create_expose_les_suggestions_de_natures_en_deux_blocs(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/create")
+            ->assertOk()
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page
+                    ->component('User/VehicleEvents/Create/Index')
+                    ->has('natureSuggestions.reductive', 3)
+                    ->has('natureSuggestions.other'),
+            );
+    }
+
+    #[Test]
+    public function edit_expose_les_suggestions_de_natures_en_deux_blocs(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $event = VehicleEvent::factory()->maintenance()->create([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-05',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/{$event->id}/edit")
+            ->assertOk()
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page
+                    ->component('User/VehicleEvents/Edit/Index')
+                    ->has('natureSuggestions.reductive', 3)
+                    ->has('natureSuggestions.other'),
+            );
+    }
+
+    #[Test]
     public function show_renvoie_404_si_l_evenement_n_appartient_pas_au_vehicule(): void
     {
         $user = User::factory()->create();
@@ -387,7 +470,8 @@ final class VehicleEventControllerTest extends TestCase
 
         $this->actingAs($user)
             ->patch("/app/vehicle-events/{$event->id}", [
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-05-01',
                 'end_date' => '2024-05-12',
             ])
@@ -407,7 +491,8 @@ final class VehicleEventControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/vehicle-events', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'maintenance',
+                'title' => 'Entretien courant',
+                'categories' => ['Maintenance / entretien'],
                 'start_date' => '2024-10-01',
                 'end_date' => '2024-10-03',
                 'documents' => [

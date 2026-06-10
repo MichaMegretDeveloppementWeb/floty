@@ -7,8 +7,8 @@ namespace App\Enums\Vehicle;
 /**
  * Reason for definitive fleet exit (`vehicles.exit_reason`), set iff `exit_date IS NOT NULL`.
  *
- * Distinct from {@see App\Enums\VehicleEvent\VehicleEventType} which represents
- * temporary unavailability (vehicle remains in fleet). See ADR-0018.
+ * Distinct from {@see App\Models\VehicleEvent} which represents temporary
+ * unavailability (vehicle remains in fleet). See ADR-0018.
  */
 enum VehicleExitReason: string
 {

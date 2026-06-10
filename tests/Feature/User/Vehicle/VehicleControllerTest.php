@@ -848,7 +848,7 @@ final class VehicleControllerTest extends TestCase
                 ->has('vehicleOverview.currentStatus.rentals.0.drivers', 1)
                 ->where('vehicleOverview.currentStatus.rentals.0.drivers.0.fullName', 'Julie Martin')
                 ->has('vehicleOverview.currentStatus.events', 1)
-                ->where('vehicleOverview.currentStatus.events.0.type', 'maintenance'),
+                ->where('vehicleOverview.currentStatus.events.0.title', 'Entretien courant'),
             );
     }
 

@@ -29,7 +29,6 @@ import { useVehicleEventsTimelineFilter } from '@/Composables/Vehicle/Show/useVe
 import { create as createRoute, show as showRoute } from '@/routes/user/vehicles/events';
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
 import { formatEur } from '@/Utils/format/formatEur';
-import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
@@ -54,9 +53,7 @@ const {
     isFiltered,
     activeWindow,
     filteredEvents,
-    selectedTypes,
     selectedCategories,
-    typeOptions,
     categoryOptions,
     totalAmountCents,
     activeAxisCount,
@@ -121,21 +118,13 @@ const filtersOpen = ref<boolean>(false);
                     :active-count="activeAxisCount"
                     @reset="clearAxisFilters"
                 >
-                    <div class="flex flex-col gap-4">
-                        <MultiSelectFilter
-                            v-model="selectedTypes"
-                            label="Type"
-                            :options="typeOptions"
-                            placeholder="Filtrer par type"
-                        />
-                        <MultiSelectFilter
-                            v-model="selectedCategories"
-                            label="Catégorie"
-                            :options="categoryOptions"
-                            allow-free-entry
-                            placeholder="Filtrer par catégorie"
-                        />
-                    </div>
+                    <MultiSelectFilter
+                        v-model="selectedCategories"
+                        label="Nature"
+                        :options="categoryOptions"
+                        allow-free-entry
+                        placeholder="Filtrer par nature"
+                    />
                 </FilterPopover>
 
                 <div
@@ -279,7 +268,7 @@ const filtersOpen = ref<boolean>(false);
                                     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <span class="text-[15px] leading-tight font-semibold text-slate-900">
-                                                {{ vehicleEventDisplayTitle(entry.event) }}
+                                                {{ entry.event.title }}
                                             </span>
                                             <span
                                                 v-if="formatVehicleEventDaySpan(entry)"

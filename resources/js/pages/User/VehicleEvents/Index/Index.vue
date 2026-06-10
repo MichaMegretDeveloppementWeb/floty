@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Global vehicle-events index (all vehicles). Server-side filtered (type +
- * category multi-value, year), sorted and paginated, with the total COST of
- * the filtered set. Each row links to the event detail. Cf. plan « coûts
+ * Global vehicle-events index (all vehicles). Server-side filtered (nature
+ * multi-value, year), sorted and paginated, with the total COST of the
+ * filtered set. Each row links to the event detail. Cf. plan « coûts
  * d'événements ».
  */
 import { Head } from '@inertiajs/vue3';
@@ -20,12 +20,7 @@ import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import { useVehicleEventsTable } from '@/Composables/VehicleEvent/Index/useVehicleEventsTable';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
-import {
-    vehicleEventDisplayTitle,
-    vehicleEventTypeLabel,
-} from '@/Utils/labels/vehicleEventEnumLabels';
 
-type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type VehicleEventRow = App.Data.User.VehicleEvent.VehicleEventListItemData;
 
 const props = defineProps<{
@@ -34,8 +29,7 @@ const props = defineProps<{
     query: App.Data.User.VehicleEvent.VehicleEventIndexQueryData;
     hasAnyVehicleEvent: boolean;
     options: {
-        typeValues: string[];
-        categorySuggestions: string[];
+        natureValues: string[];
         availableYears: number[];
     };
 }>();
@@ -43,26 +37,14 @@ const props = defineProps<{
 const tableState = useVehicleEventsTable({ query: props.query });
 const filtersOpen = ref<boolean>(false);
 
-const typeOptions = computed(() =>
-    props.options.typeValues.map((value) => ({
-        value,
-        label: vehicleEventTypeLabel[value as VehicleEventType] ?? value,
-    })),
-);
-
-const categoryOptions = computed(() =>
-    props.options.categorySuggestions.map((c) => ({ value: c, label: c })),
+const natureOptions = computed(() =>
+    props.options.natureValues.map((c) => ({ value: c, label: c })),
 );
 
 const yearOptions = computed(() => [
     { value: 0, label: 'Toutes les années' },
     ...props.options.availableYears.map((y) => ({ value: y, label: String(y) })),
 ]);
-
-const typesModel = computed<string[]>({
-    get: () => tableState.state.filters.value.types,
-    set: (value) => tableState.state.setFilter('types', value),
-});
 
 const categoriesModel = computed<string[]>({
     get: () => tableState.state.filters.value.categories,
@@ -105,7 +87,7 @@ function durationLabel(row: VehicleEventRow): string {
                     Événements
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">
-                    Tous les événements de la flotte, filtrables par type, catégorie et année,
+                    Tous les événements de la flotte, filtrables par nature et année,
                     avec leur coût.
                 </p>
             </header>
@@ -149,21 +131,13 @@ function durationLabel(row: VehicleEventRow): string {
                         :active-count="tableState.activeFiltersCount.value"
                         @reset="tableState.state.clearFilters"
                     >
-                        <div class="flex flex-col gap-4">
-                            <MultiSelectFilter
-                                v-model="typesModel"
-                                label="Type"
-                                :options="typeOptions"
-                                placeholder="Filtrer par type"
-                            />
-                            <MultiSelectFilter
-                                v-model="categoriesModel"
-                                label="Catégorie"
-                                :options="categoryOptions"
-                                allow-free-entry
-                                placeholder="Filtrer par catégorie"
-                            />
-                        </div>
+                        <MultiSelectFilter
+                            v-model="categoriesModel"
+                            label="Nature"
+                            :options="natureOptions"
+                            allow-free-entry
+                            placeholder="Filtrer par nature"
+                        />
                     </FilterPopover>
 
                     <div class="ml-auto flex items-center gap-2">
@@ -235,7 +209,7 @@ function durationLabel(row: VehicleEventRow): string {
                         </span>
                     </template>
                     <template #cell-title="{ row }">
-                        {{ vehicleEventDisplayTitle(row) }}
+                        {{ row.title }}
                     </template>
                     <template #cell-categories="{ row }">
                         <span class="flex flex-wrap gap-1">

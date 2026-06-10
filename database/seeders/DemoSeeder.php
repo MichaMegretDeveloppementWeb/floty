@@ -19,7 +19,6 @@ use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\BillingSettings;
 use App\Models\Company;
 use App\Models\Contract;
@@ -30,6 +29,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
+use App\Support\VehicleEvent\EventNatureCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -1074,7 +1074,8 @@ final class DemoSeeder extends Seeder
         // EJ-010-JJ Kangoo TPMR: 8-day reducing pound period before the first COR contract.
         $this->createVehicleEvent(
             vehicle: $vehicles['EJ-010-JJ'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2024-02-12',
             endDate: '2024-02-19',
             description: 'Stationnement gênant signalé par la mairie.',
@@ -1084,7 +1085,8 @@ final class DemoSeeder extends Seeder
         // Interdiction de circuler post-sinistre 12 j, réductrice.
         $this->createVehicleEvent(
             vehicle: $vehicles['EI-009-II'],
-            type: VehicleEventType::AccidentNoCirculation,
+            title: 'Interdiction de circuler',
+            categories: ['Sinistre avec interdiction de circuler'],
             startDate: '2024-07-08',
             endDate: '2024-07-19',
             description: 'Choc latéral, expertise + interdiction préfectorale.',
@@ -1094,7 +1096,8 @@ final class DemoSeeder extends Seeder
         // réductrice (max BOFiP § 50).
         $this->createVehicleEvent(
             vehicle: $vehicles['EG-007-GG'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2024-08-05',
             endDate: '2024-08-29',
             description: 'Suspension administrative du certificat d\'immatriculation.',
@@ -1104,7 +1107,8 @@ final class DemoSeeder extends Seeder
         // (BOFiP § 50 : entretien courant exclu).
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
+            categories: ['Maintenance / entretien'],
             startDate: '2024-12-09',
             endDate: '2024-12-12',
             description: 'Révision constructeur + remplacement pneus AV.',
@@ -1115,7 +1119,8 @@ final class DemoSeeder extends Seeder
         // EA-001-AA: 11-day CI suspension overlapping the ACM contract: reducing.
         $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2024-02-15',
             endDate: '2024-02-25',
             description: 'Cohabitation contrat ACM : suspension administrative pour défaut d\'assurance.',
@@ -1124,7 +1129,8 @@ final class DemoSeeder extends Seeder
         // EB-002-BB: 10-day no-circulation overlap on the long BTP contract.
         $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: VehicleEventType::AccidentNoCirculation,
+            title: 'Interdiction de circuler',
+            categories: ['Sinistre avec interdiction de circuler'],
             startDate: '2024-03-10',
             endDate: '2024-03-19',
             description: 'Cohabitation contrat BTP : choc à l\'arrière, attente expertise.',
@@ -1133,7 +1139,8 @@ final class DemoSeeder extends Seeder
         // EE-005-EE: mixed case overlapping COR contract AND a VFC switch (PA 8→7).
         $this->createVehicleEvent(
             vehicle: $vehicles['EE-005-EE'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2024-03-10',
             endDate: '2024-03-22',
             description: 'Cohabitation contrat COR + bascule VFC : suspension CI 13 j à cheval sur 2 versions PA.',
@@ -1142,7 +1149,8 @@ final class DemoSeeder extends Seeder
         // EH-008-HH: maintenance overlapping BTP, NON-reducing (regression guard).
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
+            categories: ['Maintenance / entretien'],
             startDate: '2024-02-12',
             endDate: '2024-02-15',
             description: 'Cohabitation contrat BTP : entretien courant (NE doit PAS réduire la taxe).',
@@ -1153,7 +1161,8 @@ final class DemoSeeder extends Seeder
         // Cross-year overlap (per-year count check).
         $this->createVehicleEvent(
             vehicle: $vehicles['EI-009-II'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2024-12-20',
             endDate: '2025-01-10',
             description: 'Cross-année · 12j en 2024 + 10j en 2025.',
@@ -1162,7 +1171,8 @@ final class DemoSeeder extends Seeder
         // 15-day public pound on a contracted vehicle.
         $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2025-04-05',
             endDate: '2025-04-19',
             description: 'Fourrière publique 15j 2025 · réductrice.',
@@ -1171,7 +1181,8 @@ final class DemoSeeder extends Seeder
         // 59-day CI suspension (BOFiP case).
         $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2025-02-01',
             endDate: '2025-03-31',
             description: 'Suspension CI 59j non bissextile · cas BOFiP.',
@@ -1180,7 +1191,8 @@ final class DemoSeeder extends Seeder
         // 30-day no-circulation on an active LCD vehicle (double-count guard).
         $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: VehicleEventType::AccidentNoCirculation,
+            title: 'Interdiction de circuler',
+            categories: ['Sinistre avec interdiction de circuler'],
             startDate: '2025-03-01',
             endDate: '2025-03-30',
             description: 'Interdiction circulation 30j 2025 sur véhicule actif LLD.',
@@ -1189,7 +1201,8 @@ final class DemoSeeder extends Seeder
         // Non-fiscal maintenance on contracted vehicle (regression guard).
         $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
+            categories: ['Maintenance / entretien'],
             startDate: '2025-06-10',
             endDate: '2025-06-15',
             description: 'Maintenance 5j 2025 · NON réductrice (garde-fou).',
@@ -1198,7 +1211,8 @@ final class DemoSeeder extends Seeder
         // Fourrière privée (NON réductrice)
         $this->createVehicleEvent(
             vehicle: $vehicles['EG-007-GG'],
-            type: VehicleEventType::PoundPrivate,
+            title: 'Fourrière privée',
+            categories: ['Fourrière (demande privée)'],
             startDate: '2025-05-12',
             endDate: '2025-05-19',
             description: 'Fourrière privée 7j 2025 · NON réductrice.',
@@ -1207,7 +1221,8 @@ final class DemoSeeder extends Seeder
         // Vol simple (NON réductrice)
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: VehicleEventType::Theft,
+            title: 'Vol du véhicule',
+            categories: ['Vol'],
             startDate: '2025-08-04',
             endDate: '2025-08-18',
             description: 'Vol simple 14j 2025 · NON réductrice.',
@@ -1217,7 +1232,6 @@ final class DemoSeeder extends Seeder
         // les contrôles réglementaires récurrents sont gérés par le Chantier B).
         $this->createVehicleEvent(
             vehicle: $vehicles['EJ-010-JJ'],
-            type: VehicleEventType::Other,
             startDate: '2025-09-08',
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
@@ -1229,7 +1243,8 @@ final class DemoSeeder extends Seeder
         // Réparation accident simple (NON réductrice)
         $this->createVehicleEvent(
             vehicle: $vehicles['EL-012-LL'],
-            type: VehicleEventType::AccidentRepair,
+            title: 'Réparation après sinistre',
+            categories: ['Sinistre avec réparation'],
             startDate: '2025-07-22',
             endDate: '2025-08-04',
             description: 'Réparation accident 14j 2025 · NON réductrice.',
@@ -1238,14 +1253,16 @@ final class DemoSeeder extends Seeder
         // Cumul réductrice + non réductrice sur même véhicule en 2025
         $this->createVehicleEvent(
             vehicle: $vehicles['EQ-017-QQ'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2025-04-01',
             endDate: '2025-04-15',
             description: 'Réductrice 15j · 1/2 cumul EQ-017-QQ',
         );
         $this->createVehicleEvent(
             vehicle: $vehicles['EQ-017-QQ'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
+            categories: ['Maintenance / entretien'],
             startDate: '2025-05-10',
             endDate: '2025-05-25',
             description: 'NON réductrice 16j · 2/2 cumul EQ-017-QQ',
@@ -1254,7 +1271,8 @@ final class DemoSeeder extends Seeder
         // Suspension CI mid-2025 sur véhicule Multi-VFC
         $this->createVehicleEvent(
             vehicle: $vehicles['GK-063-KK'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2025-06-20',
             endDate: '2025-07-08',
             description: 'Suspension CI à cheval bascule VFC E85 01/07/2025.',
@@ -1263,7 +1281,8 @@ final class DemoSeeder extends Seeder
         // Fourrière publique pendant LCD (anti double-décompte avec R-2025-021)
         $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2025-01-15',
             endDate: '2025-01-20',
             description: 'Réductrice 6j PENDANT LCD · anti double-décompte R-2025-021.',
@@ -1276,7 +1295,8 @@ final class DemoSeeder extends Seeder
         // Cross 2025/2026
         $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2025-12-15',
             endDate: '2026-01-08',
             description: 'Cross 2025/2026 · 17j en 2025 + 8j en 2026.',
@@ -1285,7 +1305,8 @@ final class DemoSeeder extends Seeder
         // Fourrière publique 30j à cheval scission polluants 01/03/2026
         $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2026-02-15',
             endDate: '2026-03-16',
             description: 'Réductrice 30j à cheval scission polluants 01/03/2026.',
@@ -1294,7 +1315,8 @@ final class DemoSeeder extends Seeder
         // Suspension CI 45j
         $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2026-05-10',
             endDate: '2026-06-23',
             description: 'Suspension CI 45j 2026.',
@@ -1303,7 +1325,8 @@ final class DemoSeeder extends Seeder
         // Interdiction circulation 20j sur véhicule LCD cluster (Cluster gaming?)
         $this->createVehicleEvent(
             vehicle: $vehicles['EX-024-XX'],
-            type: VehicleEventType::AccidentNoCirculation,
+            title: 'Interdiction de circuler',
+            categories: ['Sinistre avec interdiction de circuler'],
             startDate: '2026-08-10',
             endDate: '2026-08-29',
             description: 'Interdiction circulation 20j à cheval cluster LCD.',
@@ -1312,7 +1335,8 @@ final class DemoSeeder extends Seeder
         // Maintenance 5j sur véhicule IDF post LF 2026 art. 60
         $this->createVehicleEvent(
             vehicle: $vehicles['EV-022-VV'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
+            categories: ['Maintenance / entretien'],
             startDate: '2026-07-10',
             endDate: '2026-07-14',
             description: 'Maintenance 5j · NON réductrice.',
@@ -1321,7 +1345,8 @@ final class DemoSeeder extends Seeder
         // Vol simple
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: VehicleEventType::Theft,
+            title: 'Vol du véhicule',
+            categories: ['Vol'],
             startDate: '2026-04-12',
             endDate: '2026-04-25',
             description: 'Vol simple 14j 2026 · NON réductrice.',
@@ -1330,7 +1355,8 @@ final class DemoSeeder extends Seeder
         // Suspension CI 59j à cheval 2026 non bissextile
         $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
-            type: VehicleEventType::CiSuspension,
+            title: 'Suspension du CI',
+            categories: ["Suspension du certificat d'immatriculation"],
             startDate: '2026-02-01',
             endDate: '2026-03-31',
             description: 'Suspension CI 59j 2026 (28+31) non bissextile.',
@@ -1339,7 +1365,8 @@ final class DemoSeeder extends Seeder
         // Fourrière publique sur véhicule électrique (test calcul · 0 € malgré indispo)
         $this->createVehicleEvent(
             vehicle: $vehicles['FD-030-DD'],
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            categories: ['Fourrière (demande publique)'],
             startDate: '2026-06-05',
             endDate: '2026-06-20',
             description: 'Réductrice sur élec · 0€ malgré indispo (exonération R-XXXX-016).',
@@ -1348,7 +1375,6 @@ final class DemoSeeder extends Seeder
         // CT contrôle technique (événement personnalisé · cf. Chantier B)
         $this->createVehicleEvent(
             vehicle: $vehicles['FA-027-AA'],
-            type: VehicleEventType::Other,
             startDate: '2026-09-15',
             endDate: '2026-09-16',
             description: 'CT 2026.',
@@ -1365,18 +1391,17 @@ final class DemoSeeder extends Seeder
         // Entretien courant avec coût + catégorie métier ajoutée (Suivi véhicule auto).
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
             startDate: '2026-03-04',
             endDate: '2026-03-04',
             description: 'Révision + remplacement pneus hiver.',
-            categories: ['Pneus'],
+            categories: ['Maintenance / entretien', 'Pneus'],
             amountCents: 74000,
         );
 
         // Nettoyage complet · type Maintenance/entretien (un lavage y a sa place).
         $this->createVehicleEvent(
             vehicle: $vehicles['EV-022-VV'],
-            type: VehicleEventType::Other,
             startDate: '2026-05-20',
             endDate: '2026-05-20',
             description: 'Nettoyage intérieur + extérieur avant remise en location.',
@@ -1388,7 +1413,6 @@ final class DemoSeeder extends Seeder
         // Événement personnalisé porteur de coût · catégorie réellement distincte.
         $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
-            type: VehicleEventType::Other,
             startDate: '2026-02-10',
             endDate: '2026-02-13',
             description: 'Pose covering publicitaire partenaire.',
@@ -1400,18 +1424,19 @@ final class DemoSeeder extends Seeder
         // Réparation après sinistre avec coût · catégorie Sinistre (auto) + Carrosserie.
         $this->createVehicleEvent(
             vehicle: $vehicles['EL-012-LL'],
-            type: VehicleEventType::AccidentRepair,
+            title: 'Réparation après sinistre',
             startDate: '2026-06-02',
             endDate: '2026-06-09',
             description: 'Réparation carrosserie aile avant droite.',
-            categories: ['Carrosserie'],
+            categories: ['Sinistre avec réparation', 'Carrosserie'],
             amountCents: 210000,
         );
 
         // Accident réparation sur véhicule E85 (vérifier que abat applique sans interférence)
         $this->createVehicleEvent(
             vehicle: $vehicles['FU-047-UU'],
-            type: VehicleEventType::AccidentRepair,
+            title: 'Réparation après sinistre',
+            categories: ['Sinistre avec réparation'],
             startDate: '2026-04-08',
             endDate: '2026-04-22',
             description: 'Réparation accident 15j · NON réductrice + E85 abat actif.',
@@ -1420,50 +1445,48 @@ final class DemoSeeder extends Seeder
         // Edge case Σ'.5 · indispo ONGOING (end_date = NULL · durée indéterminée)
         // sur le véhicule GM-065-MM (currentStatus=Maintenance)
         if (isset($vehicles['GM-065-MM'])) {
-            VehicleEvent::create([
-                'vehicle_id' => $vehicles['GM-065-MM']->id,
-                'type' => VehicleEventType::AccidentRepair,
-                'has_fiscal_impact' => false,
-                'start_date' => '2026-03-15',
-                'end_date' => null,
-                'description' => 'Réparation longue · expertise litige en cours · sans date de fin connue.',
-            ]);
+            $this->createVehicleEvent(
+                vehicle: $vehicles['GM-065-MM'],
+                title: 'Réparation longue durée',
+                startDate: '2026-03-15',
+                endDate: null,
+                description: 'Réparation longue · expertise litige en cours · sans date de fin connue.',
+                categories: ['Sinistre avec réparation'],
+            );
         }
     }
 
     /**
-     * @param  list<string>  $categories  Extra categories (custom events); the
-     *                                    type default is prepended automatically.
+     * @param  list<string>  $categories  Natures of the event (at least one);
+     *                                    the reductivity is derived from the
+     *                                    frozen catalogue block, like the
+     *                                    write-time Actions.
      */
     private function createVehicleEvent(
         Vehicle $vehicle,
-        VehicleEventType $type,
+        string $title,
         string $startDate,
-        string $endDate,
+        ?string $endDate,
         ?string $description = null,
-        ?string $title = null,
         array $categories = [],
         ?int $amountCents = null,
     ): void {
-        $isCustom = $type === VehicleEventType::Other;
+        $hasFiscalImpact = array_intersect(
+            array_map(static fn (string $c): string => mb_strtolower(trim($c)), $categories),
+            array_map('mb_strtolower', EventNatureCatalog::REDUCTIVE),
+        ) !== [];
 
         $event = VehicleEvent::create([
             'vehicle_id' => $vehicle->id,
-            'type' => $type,
-            'title' => $isCustom ? $title : null,
-            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'title' => $title,
+            'has_fiscal_impact' => $hasFiscalImpact,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'description' => $description,
             'amount_cents' => $amountCents,
         ]);
 
-        $default = $type->defaultCategory();
-        $finalCategories = array_values(array_unique(
-            $default === null ? $categories : array_merge([$default], $categories),
-        ));
-
-        foreach ($finalCategories as $category) {
+        foreach (array_values(array_unique($categories)) as $category) {
             $event->categories()->create(['category' => $category]);
         }
     }

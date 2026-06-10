@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests Unit de la composition des catégories d'événement (Chantier A).
+ * Tests Unit de la composition des natures d'événement (refonte type → nature).
  */
 final class EventCategoryListTest extends TestCase
 {
@@ -42,14 +42,13 @@ final class EventCategoryListTest extends TestCase
     }
 
     #[Test]
-    public function plafonne_a_cinq_les_defauts_etant_prioritaires(): void
+    public function aucun_plafond_les_natures_sont_illimitees(): void
     {
         $result = EventCategoryList::compose(
             ['Contrôle', 'Entretien'],
             ['A', 'B', 'C', 'D', 'E'],
         );
 
-        self::assertCount(5, $result);
-        self::assertSame(['Contrôle', 'Entretien', 'A', 'B', 'C'], $result);
+        self::assertSame(['Contrôle', 'Entretien', 'A', 'B', 'C', 'D', 'E'], $result);
     }
 }

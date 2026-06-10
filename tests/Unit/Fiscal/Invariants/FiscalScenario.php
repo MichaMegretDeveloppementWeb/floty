@@ -48,7 +48,7 @@ final readonly class FiscalScenario
     {
         $filtered = array_values(array_filter(
             $this->vehicleEvents,
-            static fn (VehicleEvent $u): bool => $u->type->isFiscallyReductive(),
+            static fn (VehicleEvent $u): bool => $u->has_fiscal_impact,
         ));
 
         return new self(

@@ -15,7 +15,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
@@ -163,7 +162,8 @@ final class FiscalSegmentedExecutorTest extends TestCase
             $vehicle,
             '2024-03-05',
             '2024-03-14',
-            VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            hasFiscalImpact: true,
         )];
 
         $context = new PipelineContext(
@@ -468,15 +468,16 @@ final class FiscalSegmentedExecutorTest extends TestCase
         Vehicle $vehicle,
         string $start,
         string $end,
-        VehicleEventType $type,
+        string $title,
+        bool $hasFiscalImpact,
     ): VehicleEvent {
         $vehicleEvent = new VehicleEvent;
         $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
-            'type' => $type->value,
-            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'title' => $title,
+            'has_fiscal_impact' => $hasFiscalImpact,
             'note' => null,
         ], true);
 

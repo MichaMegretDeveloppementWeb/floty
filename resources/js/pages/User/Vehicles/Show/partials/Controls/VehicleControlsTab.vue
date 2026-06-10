@@ -230,6 +230,7 @@ function resetMessage(control: EffectiveControl | null): string {
             v-model:open="recordOpen"
             :vehicle-id="props.vehicleId"
             :control="recordTarget"
+            :nature-suggestions="props.tabData.natureSuggestions"
         />
 
         <VehicleControlEditorModal

@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { countConflictDaysInRange } from '@/Composables/Vehicle/Show/useVehicleEventForm';
+import { countConflictDaysInRange, hasReductiveNature } from '@/Composables/Vehicle/Show/useVehicleEventForm';
+
+const REDUCTIVE = [
+    'Sinistre avec interdiction de circuler',
+    'Fourrière (demande publique)',
+    'Suspension du certificat d\'immatriculation',
+];
+
+describe('hasReductiveNature', () => {
+    it('retourne true dès qu\'une nature appartient au bloc réducteur', () => {
+        expect(hasReductiveNature(['Carrosserie', 'Fourrière (demande publique)'], REDUCTIVE)).toBe(true);
+    });
+
+    it('matche insensible à la casse et aux espaces', () => {
+        expect(hasReductiveNature(['  fourrière (DEMANDE publique) '], REDUCTIVE)).toBe(true);
+    });
+
+    it('retourne false pour des natures libres ou non réductrices', () => {
+        expect(hasReductiveNature(['Maintenance / entretien', 'Pneus'], REDUCTIVE)).toBe(false);
+    });
+
+    it('retourne false pour une liste vide ou des entrées vides', () => {
+        expect(hasReductiveNature([], REDUCTIVE)).toBe(false);
+        expect(hasReductiveNature(['', '   '], REDUCTIVE)).toBe(false);
+    });
+});
 
 describe('countConflictDaysInRange', () => {
     it('retourne 0 quand startDate est null', () => {

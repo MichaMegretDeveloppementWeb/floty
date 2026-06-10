@@ -18,7 +18,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
@@ -184,7 +183,8 @@ final class MultiVfcEdgeCasesTest extends TestCase
             $vehicle,
             '2024-09-01',
             '2024-09-05',
-            VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
+            hasFiscalImpact: true,
         )];
 
         $context = new PipelineContext(
@@ -447,15 +447,16 @@ final class MultiVfcEdgeCasesTest extends TestCase
         Vehicle $vehicle,
         string $start,
         string $end,
-        VehicleEventType $type,
+        string $title,
+        bool $hasFiscalImpact,
     ): VehicleEvent {
         $vehicleEvent = new VehicleEvent;
         $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
-            'type' => $type->value,
-            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'title' => $title,
+            'has_fiscal_impact' => $hasFiscalImpact,
             'note' => null,
         ], true);
 

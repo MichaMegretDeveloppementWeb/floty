@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<VehicleEvent>
+ *
+ * Default: a non-reductive named event. The reductive states (poundPublic,
+ * accidentNoCirculation, ciSuspension) mirror the frozen reductive natures of
+ * the catalogue by setting the denormalised `has_fiscal_impact` directly (the
+ * fiscal rules read only that boolean); attach the matching nature rows with
+ * {@see self::withCategories()} when a test needs them.
  */
 final class VehicleEventFactory extends Factory
 {
@@ -19,15 +24,14 @@ final class VehicleEventFactory extends Factory
      */
     public function definition(): array
     {
-        $type = fake()->randomElement(VehicleEventType::cases());
-
         $start = fake()->dateTimeBetween('-1 year', 'now');
         $end = (clone $start)->modify('+'.fake()->numberBetween(1, 14).' days');
 
         return [
             'vehicle_id' => Vehicle::factory(),
-            'type' => $type,
-            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'title' => fake()->words(3, true),
+            'has_fiscal_impact' => false,
+            'implies_unavailability' => true,
             'start_date' => $start->format('Y-m-d'),
             'end_date' => $end->format('Y-m-d'),
             'description' => fake()->optional()->sentence(),
@@ -38,8 +42,9 @@ final class VehicleEventFactory extends Factory
     public function poundPublic(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'type' => VehicleEventType::PoundPublic,
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
+            'implies_unavailability' => true,
         ]);
     }
 
@@ -47,8 +52,9 @@ final class VehicleEventFactory extends Factory
     public function accidentNoCirculation(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'type' => VehicleEventType::AccidentNoCirculation,
+            'title' => 'Interdiction de circuler',
             'has_fiscal_impact' => true,
+            'implies_unavailability' => true,
         ]);
     }
 
@@ -56,8 +62,9 @@ final class VehicleEventFactory extends Factory
     public function ciSuspension(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'type' => VehicleEventType::CiSuspension,
+            'title' => 'Suspension du CI',
             'has_fiscal_impact' => true,
+            'implies_unavailability' => true,
         ]);
     }
 
@@ -65,7 +72,7 @@ final class VehicleEventFactory extends Factory
     public function maintenance(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'type' => VehicleEventType::Maintenance,
+            'title' => 'Entretien courant',
             'has_fiscal_impact' => false,
         ]);
     }
@@ -78,16 +85,15 @@ final class VehicleEventFactory extends Factory
     }
 
     /**
-     * Custom "Autre" event: free title, never fiscally reductive, with an
-     * opt-in unavailability flag (the only case that may be false). Categories
-     * live in a child table · attach them with {@see self::withCategories()}.
+     * Named user event, never fiscally reductive, with an opt-in
+     * unavailability flag. Natures live in a child table · attach them with
+     * {@see self::withCategories()}.
      */
     public function custom(
         string $title = 'Événement personnalisé',
         bool $impliesUnavailability = true,
     ): static {
         return $this->state(fn (array $attributes): array => [
-            'type' => VehicleEventType::Other,
             'title' => $title,
             'has_fiscal_impact' => false,
             'implies_unavailability' => $impliesUnavailability,
@@ -95,7 +101,7 @@ final class VehicleEventFactory extends Factory
     }
 
     /**
-     * Attach categories (child rows) after creation.
+     * Attach natures (child rows) after creation.
      */
     public function withCategories(string ...$categories): static
     {

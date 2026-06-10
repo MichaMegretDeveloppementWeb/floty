@@ -22,6 +22,7 @@ import {
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
+type NatureSuggestions = { reductive: string[]; other: string[] };
 
 const props = defineProps<{
     vehicleId: number;
@@ -31,8 +32,8 @@ const props = defineProps<{
     busyDates: string[];
     /** ISO Y-m-d pré-sélectionnée en création (ajout depuis un jour de la timeline). */
     initialDate?: string | null;
-    /** Catégories déjà saisies (back), pour l'auto-complétion. */
-    categorySuggestions?: string[];
+    /** Suggestions du catalogue de natures (bloc réducteur figé + autres). */
+    natureSuggestions: NatureSuggestions;
 }>();
 
 const toasts = useToasts();
@@ -52,7 +53,6 @@ const {
 } = useVehicleEventFormDocuments(props);
 
 const {
-    optionGroups,
     viewYear,
     form,
     range,
@@ -61,9 +61,6 @@ const {
     isEditing,
     isFixedDate,
     fixedDateLabel,
-    isCustom,
-    lockedDefaultCategories,
-    categorySuggestions,
     canSubmit,
     selectedIsReductive,
     conflictDaysCount,
@@ -74,7 +71,7 @@ const {
         vehicleId: props.vehicleId,
         editing: props.editing,
         busyDates: props.busyDates,
-        categorySuggestions: props.categorySuggestions,
+        natureSuggestions: props.natureSuggestions,
     },
     { pendingDocuments: pendingFiles, initialDate: props.initialDate ?? undefined },
 );
@@ -88,66 +85,34 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Type et nature
+                    Nom et nature
                 </h2>
             </template>
             <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1.5">
-                    <label
-                        for="vehicle-event-type"
-                        class="text-sm font-medium text-slate-500"
-                    >
-                        Type d'événement
-                        <span aria-hidden="true" class="ml-0.5 text-rose-600">*</span>
-                    </label>
-                    <select
-                        id="vehicle-event-type"
-                        v-model="form.type"
-                        required
-                        class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
-                    >
-                        <optgroup
-                            v-for="group in optionGroups"
-                            :key="group.label"
-                            :label="group.label"
-                        >
-                            <option
-                                v-for="option in group.options"
-                                :key="option.value"
-                                :value="option.value"
-                                :class="{ 'font-semibold': option.value === 'other' }"
-                            >
-                                {{ option.label }}
-                            </option>
-                        </optgroup>
-                    </select>
-                    <InputError v-if="form.errors.type" :message="form.errors.type" />
-                </div>
-
-                <template v-if="isCustom">
-                    <TextInput
-                        v-model="form.title"
-                        label="Nom de l'événement"
-                        placeholder="Ex. Pose covering, prêt à un partenaire..."
-                        :required="true"
-                        :error="form.errors.title"
-                    />
-                </template>
+                <TextInput
+                    v-model="form.title"
+                    label="Nom de l'événement"
+                    placeholder="Ex. Mise en fourrière, pose covering, vol..."
+                    :required="true"
+                    :error="form.errors.title"
+                />
 
                 <EventCategoriesField
                     :model-value="form.categories"
-                    :locked-defaults="lockedDefaultCategories"
-                    :suggestions="categorySuggestions"
-                    :max="5"
+                    :reductive-suggestions="natureSuggestions.reductive"
+                    :other-suggestions="natureSuggestions.other"
+                    required
                     :error="form.errors.categories"
                     @update:model-value="(value: string[]) => (form.categories = value)"
                 />
 
                 <CheckboxInput
-                    v-if="isCustom"
                     v-model="form.implies_unavailability"
                     label="Génère une indisponibilité du véhicule"
-                    hint="Cochez si l'événement rend le véhicule indisponible : il sera signalé par un badge et compté dans la heatmap et l'utilisation."
+                    :disabled="selectedIsReductive"
+                    :hint="selectedIsReductive
+                        ? 'Verrouillée : une nature fiscalement réductrice implique toujours une indisponibilité.'
+                        : 'Cochez si l\'événement rend le véhicule indisponible : il sera signalé par un badge et compté dans la heatmap et l\'utilisation.'"
                 />
 
                 <div

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Rules\Vehicle\AvailableForPeriod;
-use App\Support\VehicleEvent\EventCategoryList;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\Date;
@@ -19,28 +17,23 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Create vehicle-event payload.
+ * Create vehicle-event payload (refonte type → nature).
  *
- * `has_fiscal_impact` is never carried by the payload; the Action derives it
- * from the enum via `VehicleEventType::isFiscallyReductive()`. `title` is
- * required only for the `other` (custom) type and dropped by the Action for
- * known types; `implies_unavailability` is forced true for known types (only
- * `other` may opt out).
- *
- * `categories` are the user-supplied categories (free text + suggestions). For
- * a known type the Action prepends its default category, so the form may add up
- * to {@see EventCategoryList::MAX} - 1 more; for `other` the user provides 1 to
- * {@see EventCategoryList::MAX}. The Action composes / dedups / caps the final
- * list (the rules here are the per-context guard for clean errors).
+ * `title` is the free name of the event, always required. `categories` are
+ * the natures (UI « Nature », unlimited, at least one): free text + catalogue
+ * suggestions. `has_fiscal_impact` is never carried by the payload; the
+ * Action derives it from the reductive natures of the catalogue
+ * ({@see App\Services\VehicleEvent\EventNatureFiscalResolver}) and forces
+ * `implies_unavailability` to true when the event is reductive.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class StoreVehicleEventData extends Data
 {
     /**
-     * `title` / `categories` are nullable WITHOUT a default on purpose: a Spatie
-     * Data property with a default is validated as `sometimes` (skipped when
-     * absent), which would defeat the `required` / `required_if` rules below.
+     * `categories` is nullable WITHOUT a default on purpose: a Spatie Data
+     * property with a default is validated as `sometimes` (skipped when
+     * absent), which would defeat the `required` rule below.
      *
      * @param  list<string>|null  $categories
      */
@@ -48,8 +41,9 @@ final class StoreVehicleEventData extends Data
         #[Required, IntegerType, Exists('vehicles', 'id')]
         public int $vehicleId,
 
+        /** Free name of the event, always required. */
         #[Required]
-        public VehicleEventType $type,
+        public string $title,
 
         #[Required, Date]
         public string $startDate,
@@ -59,13 +53,10 @@ final class StoreVehicleEventData extends Data
 
         public ?string $description,
 
-        /** Free name; required (via rules) and kept only for the `other` type. */
-        public ?string $title,
-
-        /** User-supplied categories; the Action composes them with the type default. */
+        /** Natures of the event (UI « Nature »), at least one. */
         public ?array $categories,
 
-        /** Informative unavailability flag; forced true for known types. */
+        /** Unavailability flag; forced true server-side when reductive. */
         public bool $impliesUnavailability = true,
 
         /** Optional cost (TTC) in cents; costs only, never a revenue. */
@@ -78,17 +69,12 @@ final class StoreVehicleEventData extends Data
     public static function rules(ValidationContext $context): array
     {
         $payload = $context->payload;
-        $isOther = ($payload['type'] ?? null) === VehicleEventType::Other->value;
 
-        // Custom name required only for `other`. Categories: `other` provides 1
-        // to MAX; a known type prepends its default, so at most MAX - 1 extra.
         $rules = [
-            'title' => ['nullable', 'string', 'max:120', 'required_if:type,other'],
+            'title' => ['required', 'string', 'max:120'],
             'implies_unavailability' => ['boolean'],
             'amount_cents' => ['nullable', 'integer', 'min:0'],
-            'categories' => $isOther
-                ? ['required', 'array', 'min:1', 'max:'.EventCategoryList::MAX]
-                : ['nullable', 'array', 'max:'.(EventCategoryList::MAX - 1)],
+            'categories' => ['required', 'array', 'min:1'],
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
             // Justification files attached during creation (atomic flow):
             // up to 5 image/PDF files, 5 MB each.
@@ -134,19 +120,16 @@ final class StoreVehicleEventData extends Data
             'vehicle_id.numeric' => 'Véhicule invalide.',
             'vehicle_id.integer' => 'Véhicule invalide.',
             'vehicle_id.exists' => 'Ce véhicule est introuvable.',
-            'type.required' => "Le type d'événement est obligatoire.",
-            'type.enum' => "Le type d'événement sélectionné est invalide.",
-            'title.required_if' => "Le nom de l'événement est obligatoire pour le type « Personnalisé ».",
+            'title.required' => "Le nom de l'événement est obligatoire.",
             'title.max' => "Le nom de l'événement ne doit pas dépasser :max caractères.",
             'start_date.required' => 'La date de début est obligatoire.',
             'start_date.date' => 'La date de début doit être une date valide.',
             'end_date.date' => 'La date de fin doit être une date valide.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
-            'categories.required' => 'Au moins une catégorie est obligatoire.',
-            'categories.min' => 'Au moins une catégorie est obligatoire.',
-            'categories.max' => 'Vous ne pouvez pas dépasser 5 catégories.',
-            'categories.*.distinct' => 'Cette catégorie est déjà présente.',
-            'categories.*.max' => 'Une catégorie ne peut pas dépasser 60 caractères.',
+            'categories.required' => 'Au moins une nature est obligatoire.',
+            'categories.min' => 'Au moins une nature est obligatoire.',
+            'categories.*.distinct' => 'Cette nature est déjà présente.',
+            'categories.*.max' => 'Une nature ne peut pas dépasser 60 caractères.',
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',

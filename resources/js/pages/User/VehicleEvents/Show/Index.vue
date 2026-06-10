@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import { useVehicleEventShow } from '@/Composables/VehicleEvent/Show/useVehicleEventShow';
-import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 import VehicleEventShowBody from './partials/VehicleEventShowBody.vue';
 import VehicleEventShowHeader from './partials/VehicleEventShowHeader.vue';
 
@@ -34,7 +33,7 @@ const {
     confirmDelete,
 } = useVehicleEventShow(() => props.vehicleEvent);
 
-const pageTitle = computed<string>(() => vehicleEventDisplayTitle(props.vehicleEvent));
+const pageTitle = computed<string>(() => props.vehicleEvent.title);
 </script>
 
 <template>

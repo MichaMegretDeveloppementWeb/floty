@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Year2026\Exemption;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Year2026\Exemption\R2026_008_ReductiveUnavailability;
 use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
@@ -87,7 +86,7 @@ final class R2026_008_ReductiveUnavailabilityTest extends TestCase
     {
         $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::AccidentRepair,
+            'title' => 'Réparation après sinistre',
             'has_fiscal_impact' => false,
             'start_date' => '2026-05-01',
             'end_date' => '2026-05-10',
@@ -147,7 +146,7 @@ final class R2026_008_ReductiveUnavailabilityTest extends TestCase
     {
         $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::PoundPrivate,
+            'title' => 'Fourrière privée',
             'has_fiscal_impact' => false,
             'start_date' => '2026-06-01',
             'end_date' => '2026-06-05',
@@ -240,7 +239,7 @@ final class R2026_008_ReductiveUnavailabilityTest extends TestCase
     {
         $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => VehicleEventType::Theft,
+            'title' => 'Vol du véhicule',
             'has_fiscal_impact' => false,
             'start_date' => '2026-07-01',
             'end_date' => '2026-08-14',

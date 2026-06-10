@@ -5,14 +5,12 @@ import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as vehicleEventShowRoute } from '@/routes/user/vehicles/events';
 import type { DataTableColumn } from '@/types/ui/data-table';
-import { vehicleEventTypeLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEventRow = App.Data.User.VehicleEvent.VehicleEventListItemData;
-type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type Query = App.Data.User.VehicleEvent.VehicleEventIndexQueryData;
 
 export type VehicleEventFilters = {
-    types: string[];
+    /** Natures (UI « Nature »), key kept as `categories` to match the backend. */
     categories: string[];
     year: number | null;
 };
@@ -23,7 +21,7 @@ export type FilterChip = { key: string; label: string };
 const COLUMN_TO_SORT_KEY: Record<string, string> = {
     vehicleLicensePlate: 'vehicle',
     startDate: 'startDate',
-    title: 'type',
+    title: 'title',
     amount: 'amount',
 };
 
@@ -46,7 +44,7 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         { key: 'startDate', label: 'Date', mono: true },
         { key: 'duration', label: 'Durée' },
         { key: 'title', label: 'Intitulé' },
-        { key: 'categories', label: 'Catégories' },
+        { key: 'categories', label: 'Nature' },
         { key: 'amount', label: 'Montant', align: 'right', mono: true },
     ];
 
@@ -57,14 +55,12 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         initialSearch: opts.query.search ?? '',
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
-        defaultFilters: { types: [], categories: [], year: null },
+        defaultFilters: { categories: [], year: null },
         initialFilters: {
-            types: opts.query.types ?? [],
             categories: opts.query.categories ?? [],
             year: opts.query.year,
         },
         serializeFilters: (f) => ({
-            types: f.types,
             categories: f.categories,
             year: f.year,
         }),
@@ -79,23 +75,15 @@ export function useVehicleEventsTable(opts: { query: Query }): {
     const activeFiltersCount = computed<number>(() => {
         const f = state.filters.value;
 
-        return f.types.length + f.categories.length + (f.year !== null ? 1 : 0);
+        return f.categories.length + (f.year !== null ? 1 : 0);
     });
 
     const activeFilterChips = computed<FilterChip[]>(() => {
         const f = state.filters.value;
-        const chips: FilterChip[] = [];
-
-        for (const type of f.types) {
-            chips.push({
-                key: `type:${type}`,
-                label: `Type : ${vehicleEventTypeLabel[type as VehicleEventType] ?? type}`,
-            });
-        }
-
-        for (const category of f.categories) {
-            chips.push({ key: `category:${category}`, label: `Catégorie : ${category}` });
-        }
+        const chips: FilterChip[] = f.categories.map((category) => ({
+            key: `category:${category}`,
+            label: `Nature : ${category}`,
+        }));
 
         if (f.year !== null) {
             chips.push({ key: 'year', label: `Année : ${f.year}` });
@@ -117,9 +105,7 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         const kind = key.slice(0, separator);
         const value = key.slice(separator + 1);
 
-        if (kind === 'type') {
-            state.setFilter('types', f.types.filter((t) => t !== value));
-        } else if (kind === 'category') {
+        if (kind === 'category') {
             state.setFilter('categories', f.categories.filter((c) => c !== value));
         }
     }

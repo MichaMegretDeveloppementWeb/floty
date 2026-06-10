@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data\User\VehicleEvent;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\VehicleEvent;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -13,9 +12,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Slim row for the global vehicle-events index table (all vehicles).
  *
  * Carries just what the listing renders: the owning vehicle plate, the
- * reference date, the type + custom title (the front derives the display
- * label), the categories, and the optional cost. NOT for the detail page
- * (which has its own richer {@see VehicleEventData}).
+ * reference date, the free name, the natures, and the optional cost. NOT for
+ * the detail page (which has its own richer {@see VehicleEventData}).
  */
 #[TypeScript]
 final class VehicleEventListItemData extends Data
@@ -31,8 +29,7 @@ final class VehicleEventListItemData extends Data
         public ?string $endDate,
         /** Inclusive day count, or 0 when ongoing (end_date null). */
         public int $daysCount,
-        public VehicleEventType $type,
-        public ?string $title,
+        public string $title,
         public array $categories,
         public bool $impliesUnavailability,
         public bool $isReadOnly,
@@ -52,7 +49,6 @@ final class VehicleEventListItemData extends Data
             startDate: $event->start_date->toDateString(),
             endDate: $event->end_date?->toDateString(),
             daysCount: $daysCount,
-            type: $event->type,
             title: $event->title,
             categories: $event->categories->pluck('category')->values()->all(),
             impliesUnavailability: $event->implies_unavailability,

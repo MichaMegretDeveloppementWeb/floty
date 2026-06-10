@@ -173,8 +173,8 @@ final readonly class DeclarationInvalidationDetector
     /**
      * Invalidates on an unavailability mutation. Short-circuits when
      * neither the current nor the previous state had fiscal impact
-     * (`has_fiscal_impact` is the denormalised mirror of
-     * {@see App\Enums\VehicleEventType::isFiscallyReductive()}).
+     * (`has_fiscal_impact` is denormalised at write time from the reductive
+     * natures, {@see App\Services\VehicleEvent\EventNatureFiscalResolver}).
      */
     public function flagForVehicleEvent(
         VehicleEvent $vehicleEvent,

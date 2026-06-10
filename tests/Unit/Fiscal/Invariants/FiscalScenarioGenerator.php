@@ -14,7 +14,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
@@ -178,8 +177,8 @@ final class FiscalScenarioGenerator
 
     /**
      * Génère 0 à 3 indispos non-chevauchantes dans l'année.
-     * Mélange de types réducteurs et non-réducteurs (l'invariant de
-     * neutralité repose sur la présence d'indispos non-réductrices).
+     * Mélange de natures réductrices et non réductrices (l'invariant de
+     * neutralité repose sur la présence d'indispos non réductrices).
      *
      * @return list<VehicleEvent>
      */
@@ -194,13 +193,13 @@ final class FiscalScenarioGenerator
         $yearEnd = Carbon::parse(sprintf('%04d-12-31', $year));
         $daysInYear = (int) $yearStart->diffInDays($yearEnd) + 1;
 
-        // Types couvrant le mix réducteur/non-réducteur (cf.
-        // VehicleEventType::isFiscallyReductive).
-        $types = [
-            VehicleEventType::Maintenance,    // non-réducteur
-            VehicleEventType::PoundPublic,    // réducteur
-            VehicleEventType::Theft,          // réducteur
-            VehicleEventType::Other,          // non-réducteur
+        // Paires [titre, nature réductrice ?] couvrant le mix
+        // réducteur/non-réducteur.
+        $natures = [
+            ['Entretien courant', false],      // non réducteur
+            ['Mise en fourrière', true],       // réducteur
+            ['Vol du véhicule', false],        // non réducteur
+            ['Autre indisponibilité', false],  // non réducteur
         ];
 
         $vehicleEvents = [];
@@ -222,12 +221,13 @@ final class FiscalScenarioGenerator
                 }
                 if (! $overlaps) {
                     $usedRanges[] = [$start, $end];
-                    $type = $types[$this->rng->getInt(0, count($types) - 1)];
+                    [$title, $hasFiscalImpact] = $natures[$this->rng->getInt(0, count($natures) - 1)];
                     $vehicleEvents[] = $this->syntheticVehicleEvent(
                         $vehicle,
                         $start->toDateString(),
                         $end->toDateString(),
-                        $type,
+                        $title,
+                        $hasFiscalImpact,
                     );
                     break;
                 }
@@ -262,15 +262,16 @@ final class FiscalScenarioGenerator
         Vehicle $vehicle,
         string $start,
         string $end,
-        VehicleEventType $type,
+        string $title,
+        bool $hasFiscalImpact,
     ): VehicleEvent {
         $vehicleEvent = new VehicleEvent;
         $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
-            'type' => $type->value,
-            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'title' => $title,
+            'has_fiscal_impact' => $hasFiscalImpact,
             'note' => null,
         ], true);
 

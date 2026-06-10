@@ -72,14 +72,6 @@ interface VehicleEventReadRepositoryInterface
     public function sumAmountForIndex(VehicleEventIndexQueryData $query): int;
 
     /**
-     * Distinct event TYPE values actually present in the data (enum values),
-     * for the type filter's real-value autocomplete.
-     *
-     * @return list<string>
-     */
-    public function distinctTypesPresent(): array;
-
-    /**
      * Distinct calendar years of events (by `start_date`), descending, for the
      * year filter.
      *
@@ -94,9 +86,9 @@ interface VehicleEventReadRepositoryInterface
     public function existsAnyVehicleEvent(): bool;
 
     /**
-     * Distinct categories already used across all events, ascending. Feeds the
-     * autocomplete suggestions (merged with the predefined seed on the front)
-     * and, later, the category filter facets.
+     * Distinct natures actually attached to events, ascending. Feeds the
+     * « Nature » filter suggestions of the global index (real values present,
+     * unlike the form suggestions which come from the catalogue).
      *
      * @return list<string>
      */

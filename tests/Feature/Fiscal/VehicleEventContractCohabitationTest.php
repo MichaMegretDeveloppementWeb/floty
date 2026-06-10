@@ -17,13 +17,13 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
+use Database\Seeders\VehicleEventNatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
@@ -63,6 +63,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(VehicleEventNatureSeeder::class);
         $this->calculator = $this->app->make(FiscalCalculator::class);
         $this->createVehicleEvent = $this->app->make(CreateVehicleEventAction::class);
         $this->storeContract = $this->app->make(StoreContractAction::class);
@@ -87,12 +88,11 @@ final class VehicleEventContractCohabitationTest extends TestCase
         // VehicleEventOverlapsContractsException.
         $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
             vehicleId: $vehicle->id,
-            type: VehicleEventType::PoundPublic,
+            title: 'Mise en fourrière',
             startDate: '2024-01-15',
             endDate: '2024-01-24',
             description: null,
-            title: null,
-            categories: null,
+            categories: ['Fourrière (demande publique)'],
         ));
 
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
@@ -125,16 +125,15 @@ final class VehicleEventContractCohabitationTest extends TestCase
             'end_date' => '2024-05-30',
         ]);
 
-        // Action - maintenance 5 j pendant le contrat (type non
-        // réducteur). Ne lève pas non plus.
+        // Action - maintenance 5 j pendant le contrat (nature non
+        // réductrice). Ne lève pas non plus.
         $vehicleEvent = $this->createVehicleEvent->execute(new StoreVehicleEventData(
             vehicleId: $vehicle->id,
-            type: VehicleEventType::Maintenance,
+            title: 'Entretien courant',
             startDate: '2024-04-10',
             endDate: '2024-04-14',
             description: null,
-            title: null,
-            categories: null,
+            categories: ['Maintenance / entretien'],
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);
@@ -142,7 +141,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
         $without = $this->calculator->calculate($vehicle, [$contract], [], 2024);
         $with = $this->calculator->calculate($vehicle, [$contract], [$vehicleEvent], 2024);
 
-        // Aucun effet sur le calcul fiscal - types non réducteurs
+        // Aucun effet sur le calcul fiscal - natures non réductrices
         // cohabitent sans toucher au prorata.
         $this->assertSame($without->totalDue, $with->totalDue);
     }
@@ -150,7 +149,7 @@ final class VehicleEventContractCohabitationTest extends TestCase
     #[Test]
     public function symetrie_contrat_cree_sur_indispo_reductrice_existante_active_r_2024_008(): void
     {
-        // Setup : véhicule, indispo `ci_suspension` 10 j pré-existante.
+        // Setup : véhicule, indispo réductrice (suspension du CI) 10 j pré-existante.
         $vehicle = $this->makeVehicleWltp100Essence();
         $company = Company::factory()->create();
 

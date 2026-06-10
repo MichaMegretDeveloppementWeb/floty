@@ -9,27 +9,26 @@ import {
 import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
 import { centsToEuros, eurosToCents } from '@/Utils/format/money';
 import {
-    isVehicleEventFiscallyReductive,
-    vehicleEventCategorySuggestions,
-    vehicleEventDefaultCategories,
-    vehicleEventTypeLabel,
-} from '@/Utils/labels/vehicleEventEnumLabels';
-import {
     cleanCustomCategories,
     hasDuplicateCategories,
     normalizeCategory,
 } from '@/Utils/vehicleEventCategories';
 
-type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
+export type NatureSuggestions = {
+    /** Frozen fiscally-reductive catalogue block. */
+    reductive: string[];
+    /** Every other catalogue suggestion (base + user additions). */
+    other: string[];
+};
+
 type FormShape = {
-    type: VehicleEventType;
-    // Custom name, used only when type === 'other' (sent null otherwise).
+    // Free name of the event, always required.
     title: string;
-    // Custom categories (the locked type default is added by the backend).
+    // Natures (UI « Nature »), at least one, unlimited.
     categories: string[];
-    // Informative unavailability flag (user-controlled only for 'other').
+    // Unavailability flag; locked (forced true) when the event is reductive.
     implies_unavailability: boolean;
     start_date: string;
     end_date: string;
@@ -39,14 +38,6 @@ type FormShape = {
 };
 
 type DateRange = { startDate: string | null; endDate: string | null };
-
-type SelectOption = { value: VehicleEventType; label: string };
-
-type SelectOptionGroup = {
-    label: string;
-    isReductive: boolean;
-    options: SelectOption[];
-};
 
 /**
  * Counts ISO dates in `busyDates` (days already assigned to an active contract) that fall
@@ -92,12 +83,32 @@ export function countConflictDaysInRange(
 }
 
 /**
- * Inertia form + UI state for the vehicle event create/edit page (ADR-0016 rev. 1.1).
+ * True when at least one nature belongs to the reductive catalogue block.
+ * Matching is trimmed + case-insensitive, mirroring the backend
+ * `EventNatureFiscalResolver`. Pure to ease unit testing.
+ */
+export function hasReductiveNature(
+    natures: ReadonlyArray<string>,
+    reductiveLabels: ReadonlyArray<string>,
+): boolean {
+    const reductiveKeys = new Set(reductiveLabels.map(normalizeCategory));
+
+    return natures.some((nature) => {
+        const key = normalizeCategory(nature);
+
+        return key !== '' && reductiveKeys.has(key);
+    });
+}
+
+/**
+ * Inertia form + UI state for the vehicle event create/edit page (refonte
+ * type → nature).
  *
- *   - builds the 3-group `optionGroups` list (Custom / Reducing / Non-reducing) consumed by the form `<select>`,
+ *   - the event identity is its free name + natures; the reductive natures of
+ *     the catalogue drive `selectedIsReductive` (fiscal-effect banner) and
+ *     lock `implies_unavailability` to true (the server forces it anyway),
  *   - synchronises `range` and `ongoing` when `props.editing` changes (create vs edit mode),
- *   - computes `canSubmit` (button disabled until the expected bounds are set),
- *   - computes `selectedIsReductive` to drive the fiscal-effect banner before submit,
+ *   - computes `canSubmit` (button disabled until name, natures and bounds are set),
  *   - applies `payloadTransform` (range+ongoing → snake_case backend),
  *   - dispatches submit (POST store or PATCH update); the controller redirects
  *     to the vehicle "Événements" tab on success, Inertia keeps the page and
@@ -108,8 +119,8 @@ export function useVehicleEventForm(
         vehicleId: number;
         editing: VehicleEvent | null;
         busyDates: string[];
-        /** Distinct categories already used (backend), for autocomplete. */
-        categorySuggestions?: string[];
+        /** Catalogue suggestions, two blocks (reductive frozen + others). */
+        natureSuggestions?: NatureSuggestions;
     },
     options: {
         /** Files queued in create mode, sent with the multipart create request. */
@@ -121,7 +132,6 @@ export function useVehicleEventForm(
         initialDate?: string;
     } = {},
 ): {
-    optionGroups: SelectOptionGroup[];
     /**
      * Year to display in the calendar on opening. Create mode: current calendar year.
      * Edit mode: the year of the edited vehicle event's `start_date`
@@ -140,56 +150,15 @@ export function useVehicleEventForm(
     isFixedDate: ComputedRef<boolean>;
     /** Long French label of the fixed day (empty unless `isFixedDate`). */
     fixedDateLabel: ComputedRef<string>;
-    /** True when the custom "other" type is selected (reveals title/flag fields). */
-    isCustom: ComputedRef<boolean>;
-    /** Fixed default category(ies) of the selected type, shown locked. */
-    lockedDefaultCategories: ComputedRef<string[]>;
-    /** Autocomplete suggestions (backend distinct + seed), deduped. */
-    categorySuggestions: ComputedRef<string[]>;
     canSubmit: ComputedRef<boolean>;
+    /** ≥ 1 nature belongs to the reductive catalogue block. */
     selectedIsReductive: ComputedRef<boolean>;
     conflictDaysCount: ComputedRef<number>;
     /** Server error for the amount (payload key `amount_cents`, outside FormShape). */
     amountError: ComputedRef<string | undefined>;
     submit: () => void;
 } {
-
-    const buildOption = (value: VehicleEventType): SelectOption => ({
-        value,
-        label: vehicleEventTypeLabel[value],
-    });
-
-    const optionGroups: SelectOptionGroup[] = [
-        {
-            label: 'Personnalisé',
-            isReductive: false,
-            options: [
-                buildOption('other'),
-            ],
-        },
-        {
-            label: 'Indisponibilité fiscalement réductrice',
-            isReductive: true,
-            options: [
-                buildOption('accident_no_circulation'),
-                buildOption('pound_public'),
-                buildOption('ci_suspension'),
-            ],
-        },
-        {
-            label: 'Indisponibilité non réductrice',
-            isReductive: false,
-            options: [
-                buildOption('maintenance'),
-                buildOption('accident_repair'),
-                buildOption('pound_private'),
-                buildOption('theft'),
-            ],
-        },
-    ];
-
     const form = useForm<FormShape>({
-        type: 'other',
         title: '',
         categories: [],
         implies_unavailability: true,
@@ -198,16 +167,6 @@ export function useVehicleEventForm(
         description: '',
         amount: null,
     });
-
-    // Custom categories of an edited event = stored list minus the type's
-    // locked default(s) (which the backend re-prepends on save).
-    const splitCustomCategories = (event: VehicleEvent): string[] => {
-        const locked = new Set(
-            vehicleEventDefaultCategories(event.type).map(normalizeCategory),
-        );
-
-        return event.categories.filter((c) => !locked.has(normalizeCategory(c)));
-    };
 
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
@@ -222,9 +181,8 @@ export function useVehicleEventForm(
         () => props.editing,
         (value) => {
             if (value) {
-                form.type = value.type;
-                form.title = value.title ?? '';
-                form.categories = splitCustomCategories(value);
+                form.title = value.title;
+                form.categories = [...value.categories];
                 form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
                 form.amount = centsToEuros(value.amountCents);
@@ -240,7 +198,6 @@ export function useVehicleEventForm(
                 initialMonth.value = Number(value.startDate.slice(5, 7));
             } else {
                 form.reset();
-                form.type = 'other';
 
                 if (options.initialDate) {
                     // Create from a specific timeline day: pre-select start = end
@@ -279,32 +236,20 @@ export function useVehicleEventForm(
             : '',
     );
 
-    const isCustom = computed<boolean>(() => form.type === 'other');
-
-    const lockedDefaultCategories = computed<string[]>(() =>
-        vehicleEventDefaultCategories(form.type),
+    const selectedIsReductive = computed<boolean>(() =>
+        hasReductiveNature(form.categories, props.natureSuggestions?.reductive ?? []),
     );
 
-    const categorySuggestions = computed<string[]>(() => {
-        const seen = new Set<string>();
-        const merged: string[] = [];
-
-        for (const suggestion of [...(props.categorySuggestions ?? []), ...vehicleEventCategorySuggestions]) {
-            const key = normalizeCategory(suggestion);
-
-            if (key === '' || seen.has(key)) {
-                continue;
-            }
-
-            seen.add(key);
-            merged.push(suggestion);
+    // A reductive event always implies an unavailability: lock the checkbox on
+    // (the server forces the same rule, this keeps the UI truthful live).
+    watch(selectedIsReductive, (isReductive) => {
+        if (isReductive) {
+            form.implies_unavailability = true;
         }
-
-        return merged;
     });
 
     const hasCategoryDuplicates = computed<boolean>(() =>
-        hasDuplicateCategories(form.categories, lockedDefaultCategories.value),
+        hasDuplicateCategories(form.categories),
     );
 
     const canSubmit = computed<boolean>(() => {
@@ -316,14 +261,12 @@ export function useVehicleEventForm(
             return false;
         }
 
-        // Custom "other" events require a free name.
-        if (isCustom.value && form.title.trim() === '') {
+        if (form.title.trim() === '') {
             return false;
         }
 
-        // "other" needs at least one category; known types are covered by
-        // their locked default.
-        if (isCustom.value && cleanCustomCategories(form.categories).length === 0) {
+        // At least one nature is required.
+        if (cleanCustomCategories(form.categories).length === 0) {
             return false;
         }
 
@@ -333,10 +276,6 @@ export function useVehicleEventForm(
 
         return true;
     });
-
-    const selectedIsReductive = computed<boolean>(() =>
-        isVehicleEventFiscallyReductive(form.type),
-    );
 
     const amountError = computed<string | undefined>(
         () => (form.errors as Record<string, string | undefined>).amount_cents,
@@ -351,24 +290,16 @@ export function useVehicleEventForm(
         ),
     );
 
-    const payloadTransform = (data: FormShape): Record<string, unknown> => {
-        const isOther = data.type === 'other';
-
-        return {
-            type: data.type,
-            // Custom name only for 'other'; known types derive it on display.
-            title: isOther && data.title.trim() !== '' ? data.title.trim() : null,
-            // Only the custom categories travel; the backend prepends the
-            // type default (and « Contrôle »/« Entretien » for control events).
-            categories: cleanCustomCategories(data.categories),
-            // Known types always imply unavailability; only 'other' may opt out.
-            implies_unavailability: isOther ? data.implies_unavailability : true,
-            start_date: range.value.startDate,
-            end_date: ongoing.value ? null : range.value.endDate,
-            description: data.description === '' ? null : data.description,
-            amount_cents: eurosToCents(data.amount),
-        };
-    };
+    const payloadTransform = (data: FormShape): Record<string, unknown> => ({
+        title: data.title.trim(),
+        categories: cleanCustomCategories(data.categories),
+        // A reductive event always implies an unavailability (server-forced).
+        implies_unavailability: selectedIsReductive.value ? true : data.implies_unavailability,
+        start_date: range.value.startDate,
+        end_date: ongoing.value ? null : range.value.endDate,
+        description: data.description === '' ? null : data.description,
+        amount_cents: eurosToCents(data.amount),
+    });
 
     const submit = (): void => {
         if (!canSubmit.value) {
@@ -395,7 +326,6 @@ export function useVehicleEventForm(
     };
 
     return {
-        optionGroups,
         viewYear,
         form,
         range,
@@ -404,9 +334,6 @@ export function useVehicleEventForm(
         isEditing,
         isFixedDate,
         fixedDateLabel,
-        isCustom,
-        lockedDefaultCategories,
-        categorySuggestions,
         canSubmit,
         selectedIsReductive,
         conflictDaysCount,

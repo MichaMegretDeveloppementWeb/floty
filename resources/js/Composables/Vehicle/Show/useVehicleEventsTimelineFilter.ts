@@ -1,10 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref, WritableComputedRef } from 'vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
-import { vehicleEventTypeLabel } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
-type VehicleEventType = App.Enums.VehicleEvent.VehicleEventType;
 type FilterOption = { value: string; label: string };
 type FilterChip = { key: string; label: string };
 
@@ -64,9 +62,7 @@ export function useVehicleEventsTimelineFilter(
     isFiltered: ComputedRef<boolean>;
     activeWindow: ComputedRef<{ from: string | null; to: string | null } | null>;
     filteredEvents: ComputedRef<VehicleEvent[]>;
-    selectedTypes: Ref<string[]>;
     selectedCategories: Ref<string[]>;
-    typeOptions: ComputedRef<FilterOption[]>;
     categoryOptions: ComputedRef<FilterOption[]>;
     totalAmountCents: ComputedRef<number>;
     activeAxisCount: ComputedRef<number>;
@@ -76,7 +72,6 @@ export function useVehicleEventsTimelineFilter(
 } {
     const scopeMode = ref<TimelineScopeMode>('year');
     const selectedYear = ref<number>(ALL_YEARS);
-    const selectedTypes = ref<string[]>([]);
     const selectedCategories = ref<string[]>([]);
     const periodStart = ref<string | null>(null);
     const periodEnd = ref<string | null>(null);
@@ -123,37 +118,8 @@ export function useVehicleEventsTimelineFilter(
         ...availableYears.value.map((year) => ({ value: year, label: String(year) })),
     ]);
 
-    // Filter suggestions = the type / category values actually present on this
-    // vehicle's loaded events (real values, « ce qui existe vraiment »). Custom
-    // events (`other`) surface by their individual title, mirroring categories,
-    // never under a single generic « Personnalisé » bucket.
-    const typeOptions = computed<FilterOption[]>(() => {
-        const knownTypes = new Set<string>();
-        const customTitles = new Set<string>();
-
-        for (const event of toValue(events)) {
-            if (event.type === 'other') {
-                // System lifecycle markers (read-only) belong to « Cycle de vie »,
-                // not the user's custom types · they never seed the type axis.
-                if (!event.isReadOnly && event.title !== null && event.title !== '') {
-                    customTitles.add(event.title);
-                }
-            } else {
-                knownTypes.add(event.type);
-            }
-        }
-
-        const knownOptions = [...knownTypes].sort().map((value) => ({
-            value,
-            label: vehicleEventTypeLabel[value as VehicleEventType] ?? value,
-        }));
-        const customOptions = [...customTitles]
-            .sort((a, b) => a.localeCompare(b, 'fr'))
-            .map((title) => ({ value: title, label: title }));
-
-        return [...knownOptions, ...customOptions];
-    });
-
+    // Filter suggestions = the natures actually present on this vehicle's
+    // loaded events (real values, « ce qui existe vraiment »).
     const categoryOptions = computed<FilterOption[]>(() => {
         const present = new Set<string>();
 
@@ -169,20 +135,10 @@ export function useVehicleEventsTimelineFilter(
     });
 
     /**
-     * Type + category axes (OR within an axis, AND between axes), applied on top
-     * of the year/period window. Empty axis = no constraint on that axis.
+     * Nature axis (OR within the axis), applied on top of the year/period
+     * window. Empty axis = no constraint.
      */
     function matchesAxes(event: VehicleEvent): boolean {
-        if (selectedTypes.value.length > 0) {
-            // Custom events are matched by their title (the suggestion value),
-            // known events by their enum type.
-            const typeValue = event.type === 'other' ? (event.title ?? '') : event.type;
-
-            if (!selectedTypes.value.includes(typeValue)) {
-                return false;
-            }
-        }
-
         if (selectedCategories.value.length > 0) {
             const eventCategories = new Set(event.categories.map((c) => c.trim().toLowerCase()));
             const hit = selectedCategories.value.some((c) => eventCategories.has(c.trim().toLowerCase()));
@@ -230,7 +186,7 @@ export function useVehicleEventsTimelineFilter(
     });
 
     const isFiltered = computed<boolean>(() => {
-        if (selectedTypes.value.length > 0 || selectedCategories.value.length > 0) {
+        if (selectedCategories.value.length > 0) {
             return true;
         }
 
@@ -294,41 +250,26 @@ export function useVehicleEventsTimelineFilter(
         filteredEvents.value.reduce((sum, event) => sum + (event.amountCents ?? 0), 0),
     );
 
-    const activeAxisCount = computed<number>(
-        () => selectedTypes.value.length + selectedCategories.value.length,
+    const activeAxisCount = computed<number>(() => selectedCategories.value.length);
+
+    const activeFilterChips = computed<FilterChip[]>(() =>
+        selectedCategories.value.map((category) => ({
+            key: `category:${category}`,
+            label: `Nature : ${category}`,
+        })),
     );
-
-    const activeFilterChips = computed<FilterChip[]>(() => {
-        const chips: FilterChip[] = [];
-
-        for (const type of selectedTypes.value) {
-            chips.push({
-                key: `type:${type}`,
-                label: `Type : ${vehicleEventTypeLabel[type as VehicleEventType] ?? type}`,
-            });
-        }
-
-        for (const category of selectedCategories.value) {
-            chips.push({ key: `category:${category}`, label: `Catégorie : ${category}` });
-        }
-
-        return chips;
-    });
 
     function removeFilterChip(key: string): void {
         const separator = key.indexOf(':');
         const kind = key.slice(0, separator);
         const value = key.slice(separator + 1);
 
-        if (kind === 'type') {
-            selectedTypes.value = selectedTypes.value.filter((t) => t !== value);
-        } else if (kind === 'category') {
+        if (kind === 'category') {
             selectedCategories.value = selectedCategories.value.filter((c) => c !== value);
         }
     }
 
     function clearAxisFilters(): void {
-        selectedTypes.value = [];
         selectedCategories.value = [];
     }
 
@@ -391,9 +332,7 @@ export function useVehicleEventsTimelineFilter(
         isFiltered,
         activeWindow,
         filteredEvents,
-        selectedTypes,
         selectedCategories,
-        typeOptions,
         categoryOptions,
         totalAmountCents,
         activeAxisCount,

@@ -17,7 +17,6 @@ import {
     contractTypeLabel,
     contractTypeShortLabel,
 } from '@/Utils/labels/contractEnumLabels';
-import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 defineProps<{
     status: App.Data.User.Vehicle.CurrentVehicleStatusData;
@@ -156,7 +155,7 @@ function eventPeriod(event: App.Data.User.VehicleEvent.VehicleEventData): string
                         class="group -mx-2 flex flex-col gap-1 rounded-lg px-2 py-1.5 transition-colors duration-[120ms] ease-out hover:bg-slate-50"
                     >
                         <span class="text-sm font-medium text-slate-900">
-                            {{ vehicleEventDisplayTitle(event) }}
+                            {{ event.title }}
                         </span>
                         <span class="text-sm text-slate-500">{{ eventPeriod(event) }}</span>
                     </Link>

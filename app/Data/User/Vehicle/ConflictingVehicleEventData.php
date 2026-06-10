@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
-use App\Enums\VehicleEvent\VehicleEventType;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -16,7 +15,7 @@ final class ConflictingVehicleEventData extends Data
 {
     public function __construct(
         public int $id,
-        public VehicleEventType $type,
+        public string $title,
         public string $startDate,
         public string $endDate,
     ) {}

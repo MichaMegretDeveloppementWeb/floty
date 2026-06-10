@@ -14,7 +14,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
@@ -127,7 +126,7 @@ final class OptOutNoRegressionTest extends TestCase
     public function r2024_008_indispos_reductrice_combinees_avec_opt_out_r2024_021(): void
     {
         // T6 audit pré-livraison : un LCD de 30j + 10j d'indispos
-        // réductrices `AccidentNoCirculation` (R-2024-008) qui chevauchent
+        // réductrices (interdiction de circuler, R-2024-008) qui chevauchent
         // le LCD. Sans opt-out, le LCD est exonéré. Avec opt-out
         // (Requalified), le LCD passe imposable, mais R-2024-008
         // continue de réduire les jours non-circulants.
@@ -158,7 +157,7 @@ final class OptOutNoRegressionTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'start_date' => '2024-06-10',
             'end_date' => '2024-06-19',
-            'type' => VehicleEventType::AccidentNoCirculation->value,
+            'title' => 'Interdiction de circuler',
             'has_fiscal_impact' => true,
             'description' => null,
         ], true);

@@ -5,7 +5,6 @@ import Badge from '@/Components/Ui/Badge/Badge.vue';
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { edit as editRoute } from '@/routes/user/vehicles/events';
-import { vehicleEventDisplayTitle } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleHeader = {
     id: number;
@@ -40,7 +39,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
             <div class="flex flex-col gap-2">
                 <h1 class="text-[34px] font-semibold leading-tight tracking-tight text-slate-900">
-                    {{ vehicleEventDisplayTitle(vehicleEvent) }}
+                    {{ vehicleEvent.title }}
                 </h1>
                 <div class="mt-1 flex flex-wrap items-center gap-2">
                     <Badge

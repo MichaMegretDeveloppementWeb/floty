@@ -15,7 +15,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
@@ -101,8 +100,9 @@ final class SchemaSmokeTest extends TestCase
 
         $vehicleEvent = VehicleEvent::create([
             'vehicle_id' => $vehicle->id,
-            'type' => VehicleEventType::PoundPublic,
+            'title' => 'Mise en fourrière',
             'has_fiscal_impact' => true,
+            'implies_unavailability' => true,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-10',
         ]);
@@ -196,6 +196,25 @@ final class SchemaSmokeTest extends TestCase
             ...$baseFields,
             'effective_from' => '2024-04-01',
             'effective_to' => null,
+        ]);
+    }
+
+    #[Test]
+    public function vehicle_event_check_rejects_fiscal_impact_without_unavailability(): void
+    {
+        // CHECK `chk_vehicle_events_fiscal_implies_unavailability` : un
+        // événement fiscalement réducteur implique toujours une indispo.
+        $vehicle = Vehicle::factory()->create();
+
+        $this->expectExceptionMessageMatches('/chk_vehicle_events_fiscal_implies_unavailability/');
+
+        VehicleEvent::create([
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Mise en fourrière',
+            'has_fiscal_impact' => true,
+            'implies_unavailability' => false,
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-06-10',
         ]);
     }
 
