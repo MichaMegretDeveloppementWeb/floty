@@ -118,8 +118,9 @@ const deletableKeys = computed<Map<string, DeletableSuggestion>>(() => {
 
 /**
  * Suggestion blocks for one row: each block minus the locked defaults and the
- * OTHER rows' values, filtered by prefix on the current row's text. Empty
- * blocks are dropped.
+ * OTHER rows' values, filtered by CONTAINS on the current row's text (typing
+ * « frein » surfaces « Remplacement plaquettes de frein »). Empty blocks are
+ * dropped.
  */
 function suggestionBlocksFor(index: number): SuggestionBlock[] {
     const used = new Set(
@@ -137,7 +138,7 @@ function suggestionBlocksFor(index: number): SuggestionBlock[] {
                 return false;
             }
 
-            return typed === '' || key.startsWith(typed);
+            return typed === '' || key.includes(typed);
         });
 
     const blocks: SuggestionBlock[] = [
