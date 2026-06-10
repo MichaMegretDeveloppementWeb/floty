@@ -17,8 +17,8 @@ const props = defineProps<{
     vehicle: VehicleHeader;
     vehicleEvent: VehicleEvent;
     busyDates: string[];
-    /** Suggestions du catalogue de natures (bloc réducteur figé + autres). */
-    natureSuggestions: { reductive: string[]; other: string[] };
+    /** Suggestions du catalogue de natures (bloc réducteur figé + autres + customs supprimables). */
+    natureSuggestions: { reductive: string[]; other: string[]; custom: { id: number; label: string }[] };
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });

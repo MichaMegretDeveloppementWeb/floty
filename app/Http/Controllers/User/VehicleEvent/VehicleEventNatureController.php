@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureWriteReposito
 use App\Data\User\VehicleEvent\StoreVehicleEventNatureSuggestionData;
 use App\Http\Controllers\Controller;
 use App\Models\VehicleEvent;
+use App\Models\VehicleEventNature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -30,5 +31,21 @@ final class VehicleEventNatureController extends Controller
         $this->natures->addNonReductiveSuggestion($data->label);
 
         return back()->with('toast-success', 'Nature ajoutée aux suggestions.');
+    }
+
+    /**
+     * Removes a USER-added suggestion from the catalogue (the « x » of the
+     * suggestion list). The base catalogue and the frozen reductive block are
+     * protected; events keep their attached natures untouched.
+     */
+    public function destroy(VehicleEventNature $vehicleEventNature): RedirectResponse
+    {
+        Gate::authorize('create', VehicleEvent::class);
+
+        if (! $this->natures->deleteCustomSuggestion($vehicleEventNature)) {
+            return back()->with('toast-error', 'Cette nature fait partie du catalogue de base et ne peut pas être retirée.');
+        }
+
+        return back()->with('toast-success', 'Nature retirée des suggestions.');
     }
 }

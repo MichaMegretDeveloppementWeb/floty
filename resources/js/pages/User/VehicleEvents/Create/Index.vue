@@ -17,8 +17,8 @@ const props = defineProps<{
     busyDates: string[];
     /** ISO Y-m-d pré-sélectionnée (ajout depuis un jour précis de la timeline). */
     initialDate?: string | null;
-    /** Suggestions du catalogue de natures (bloc réducteur figé + autres). */
-    natureSuggestions: { reductive: string[]; other: string[] };
+    /** Suggestions du catalogue de natures (bloc réducteur figé + autres + customs supprimables). */
+    natureSuggestions: { reductive: string[]; other: string[]; custom: { id: number; label: string }[] };
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });

@@ -307,10 +307,15 @@ Route::middleware('auth')
             ->name('vehicle-events.destroy');
 
         // « Ajouter à la liste » : persiste une nature saisie librement comme
-        // suggestion (non réductrice) du catalogue.
+        // suggestion (non réductrice) du catalogue. Le DELETE ne retire que
+        // les suggestions ajoutées par l'utilisateur (catalogue de base protégé).
         Route::post('/vehicle-event-natures', [VehicleEventNatureController::class, 'store'])
             ->middleware('throttle:300,1')
             ->name('vehicle-event-natures.store');
+        Route::delete('/vehicle-event-natures/{vehicleEventNature}', [VehicleEventNatureController::class, 'destroy'])
+            ->whereNumber('vehicleEventNature')
+            ->middleware('throttle:300,1')
+            ->name('vehicle-event-natures.destroy');
 
         // Vehicle event documents · image/PDF justifications (5 max, 5 MB).
         // Mirrors the contract documents pattern.

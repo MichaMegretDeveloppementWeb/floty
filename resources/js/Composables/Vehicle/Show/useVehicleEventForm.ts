@@ -2,7 +2,10 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import { store as natureSuggestionsStoreRoute } from '@/routes/user/vehicle-event-natures';
+import {
+    destroy as natureSuggestionsDestroyRoute,
+    store as natureSuggestionsStoreRoute,
+} from '@/routes/user/vehicle-event-natures';
 import {
     store as vehicleEventsStoreRoute,
     update as vehicleEventsUpdateRoute,
@@ -17,11 +20,15 @@ import {
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
+export type CustomNatureSuggestion = { id: number; label: string };
+
 export type NatureSuggestions = {
     /** Frozen fiscally-reductive catalogue block. */
     reductive: string[];
     /** Every other catalogue suggestion (base + user additions). */
     other: string[];
+    /** User-added subset (the only deletable suggestions). */
+    custom: CustomNatureSuggestion[];
 };
 
 type FormShape = {
@@ -157,8 +164,16 @@ export function useVehicleEventForm(
     conflictDaysCount: ComputedRef<number>;
     /** Server error for the amount (payload key `amount_cents`, outside FormShape). */
     amountError: ComputedRef<string | undefined>;
-    /** « Ajouter à la liste » : persiste une saisie libre comme suggestion future. */
-    addNatureToList: (label: string) => void;
+    /** « Ajouter à la liste » : confirmation puis persistance d'une saisie libre. */
+    natureToAdd: Ref<string | null>;
+    addNatureModalOpen: Ref<boolean>;
+    requestAddNature: (label: string) => void;
+    confirmAddNature: () => void;
+    /** Retrait d'une suggestion ajoutée par l'utilisateur (confirmation puis DELETE). */
+    suggestionToRemove: Ref<CustomNatureSuggestion | null>;
+    removeSuggestionModalOpen: Ref<boolean>;
+    requestRemoveSuggestion: (suggestion: CustomNatureSuggestion) => void;
+    confirmRemoveSuggestion: () => void;
     submit: () => void;
 } {
     const form = useForm<FormShape>({
@@ -304,17 +319,57 @@ export function useVehicleEventForm(
         amount_cents: eurosToCents(data.amount),
     });
 
-    // Persists a free entry as a future catalogue suggestion (always
-    // non-reductive). The partial reload refreshes `natureSuggestions` only,
-    // keeping the form state (preserveState) and the user's scroll.
-    const addNatureToList = (label: string): void => {
+    // « Ajouter à la liste » / retrait d'une suggestion : confirmation via
+    // modale (état porté ici), puis requête avec partial reload de
+    // `natureSuggestions` seul (preserveState garde le formulaire intact).
+    const natureToAdd = ref<string | null>(null);
+    const addNatureModalOpen = ref<boolean>(false);
+    const suggestionToRemove = ref<CustomNatureSuggestion | null>(null);
+    const removeSuggestionModalOpen = ref<boolean>(false);
+
+    const requestAddNature = (label: string): void => {
+        natureToAdd.value = label;
+        addNatureModalOpen.value = true;
+    };
+
+    const confirmAddNature = (): void => {
+        if (natureToAdd.value === null) {
+            return;
+        }
+
         router.post(
             natureSuggestionsStoreRoute.url(),
-            { label },
+            { label: natureToAdd.value },
             {
                 preserveState: true,
                 preserveScroll: true,
                 only: ['natureSuggestions', 'flash'],
+                onFinish: () => {
+                    natureToAdd.value = null;
+                },
+            },
+        );
+    };
+
+    const requestRemoveSuggestion = (suggestion: CustomNatureSuggestion): void => {
+        suggestionToRemove.value = suggestion;
+        removeSuggestionModalOpen.value = true;
+    };
+
+    const confirmRemoveSuggestion = (): void => {
+        if (suggestionToRemove.value === null) {
+            return;
+        }
+
+        router.delete(
+            natureSuggestionsDestroyRoute.url({ vehicleEventNature: suggestionToRemove.value.id }),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['natureSuggestions', 'flash'],
+                onFinish: () => {
+                    suggestionToRemove.value = null;
+                },
             },
         );
     };
@@ -356,7 +411,14 @@ export function useVehicleEventForm(
         selectedIsReductive,
         conflictDaysCount,
         amountError,
-        addNatureToList,
+        natureToAdd,
+        addNatureModalOpen,
+        requestAddNature,
+        confirmAddNature,
+        suggestionToRemove,
+        removeSuggestionModalOpen,
+        requestRemoveSuggestion,
+        confirmRemoveSuggestion,
         submit,
     };
 }

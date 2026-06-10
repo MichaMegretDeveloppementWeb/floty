@@ -8,9 +8,12 @@
  * Live dedup vs the locked defaults and other entries. The model is the
  * user-supplied natures only · the backend prepends the auto ones.
  *
- * When the parent listens to `add-to-list`, a free entry absent from the
- * catalogue offers an « Ajouter à la liste » action that persists it as a
- * future suggestion (without it, the free text stays valid on the event).
+ * When `manageSuggestions` is on (event form), the dropdown becomes the
+ * catalogue manager: a scrollable suggestion list with a « x » on each
+ * user-added entry (emits `remove-suggestion`), and a footer pinned at the
+ * bottom offering « Ajouter à la liste » as soon as one character is typed
+ * (emits `add-to-list`; an entry already in the catalogue shows an inline
+ * error instead). Confirmation modals live in the parent.
  */
 import { ListPlus, Lock, Plus, TrendingDown, X } from 'lucide-vue-next';
 import type { ComponentPublicInstance } from 'vue';
@@ -18,6 +21,8 @@ import { computed, nextTick, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { duplicateCustomIndices, normalizeCategory } from '@/Utils/vehicleEventCategories';
+
+type CustomSuggestion = { id: number; label: string };
 
 type SuggestionBlock = {
     key: 'reductive' | 'other';
@@ -35,28 +40,35 @@ const props = withDefaults(
         reductiveSuggestions?: string[];
         /** Catalogue suggestions · every other nature (base + user additions). */
         otherSuggestions?: string[];
+        /** User-added catalogue entries (the only deletable suggestions). */
+        customSuggestions?: CustomSuggestion[];
         /** Mark the field as required (form context). */
         required?: boolean;
-        /** Offer « Ajouter à la liste » on free entries absent from the catalogue. */
-        allowAddToList?: boolean;
+        /** Enable catalogue management (add-to-list footer + delete « x »). */
+        manageSuggestions?: boolean;
         error?: string;
     }>(),
     {
         lockedDefaults: () => [],
         reductiveSuggestions: () => [],
         otherSuggestions: () => [],
+        customSuggestions: () => [],
         required: false,
-        allowAddToList: false,
+        manageSuggestions: false,
     },
 );
 
 const emit = defineEmits<{
     'update:modelValue': [string[]];
     'add-to-list': [string];
+    'remove-suggestion': [CustomSuggestion];
 }>();
 
 /** Index of the row whose suggestion dropdown is open (null = none). */
 const openIndex = ref<number | null>(null);
+
+/** Row whose footer shows the « déjà présent » inline error (null = none). */
+const addErrorIndex = ref<number | null>(null);
 
 /** Live refs to the nature inputs, to focus the freshly added one. */
 const inputEls = ref<(HTMLInputElement | null)[]>([]);
@@ -75,6 +87,16 @@ const canAdd = computed<boolean>(() => {
 const duplicateIndices = computed<Set<number>>(() =>
     duplicateCustomIndices(props.modelValue, props.lockedDefaults),
 );
+
+const deletableKeys = computed<Map<string, CustomSuggestion>>(() => {
+    const map = new Map<string, CustomSuggestion>();
+
+    for (const suggestion of props.customSuggestions) {
+        map.set(normalizeCategory(suggestion.label), suggestion);
+    }
+
+    return map;
+});
 
 /**
  * Suggestion blocks for one row: each block minus the locked defaults and the
@@ -108,26 +130,61 @@ function suggestionBlocksFor(index: number): SuggestionBlock[] {
     return blocks.filter((block) => block.items.length > 0);
 }
 
-/**
- * True when the row's free entry could be persisted as a suggestion: filled,
- * not a duplicate, and absent from the catalogue (both blocks + locked).
- */
-function canAddToList(index: number): boolean {
-    if (!props.allowAddToList || duplicateIndices.value.has(index)) {
+/** Footer « Ajouter à la liste » visible as soon as one character is typed. */
+function showAddFooter(index: number): boolean {
+    return props.manageSuggestions && (props.modelValue[index] ?? '').trim() !== '';
+}
+
+function dropdownVisible(index: number): boolean {
+    if (openIndex.value !== index) {
         return false;
     }
 
-    const key = normalizeCategory(props.modelValue[index] ?? '');
+    return suggestionBlocksFor(index).length > 0 || showAddFooter(index);
+}
+
+function deletableFor(label: string): CustomSuggestion | undefined {
+    if (!props.manageSuggestions) {
+        return undefined;
+    }
+
+    return deletableKeys.value.get(normalizeCategory(label));
+}
+
+/** True when the typed value already exists in the catalogue or auto natures. */
+function existsInCatalogue(value: string): boolean {
+    const key = normalizeCategory(value);
 
     if (key === '') {
         return false;
     }
 
-    return ![...props.reductiveSuggestions, ...props.otherSuggestions, ...props.lockedDefaults]
+    return [...props.reductiveSuggestions, ...props.otherSuggestions, ...props.lockedDefaults]
         .some((suggestion) => normalizeCategory(suggestion) === key);
 }
 
+function requestAddToList(index: number): void {
+    const value = (props.modelValue[index] ?? '').trim();
+
+    if (value === '') {
+        return;
+    }
+
+    if (existsInCatalogue(value)) {
+        addErrorIndex.value = index;
+
+        return;
+    }
+
+    addErrorIndex.value = null;
+    emit('add-to-list', value);
+}
+
 function updateAt(index: number, value: string): void {
+    if (addErrorIndex.value === index) {
+        addErrorIndex.value = null;
+    }
+
     const next = [...props.modelValue];
     next[index] = value;
     emit('update:modelValue', next);
@@ -135,6 +192,7 @@ function updateAt(index: number, value: string): void {
 
 function removeAt(index: number): void {
     openIndex.value = null;
+    addErrorIndex.value = null;
     emit('update:modelValue', props.modelValue.filter((_, i) => i !== index));
 }
 
@@ -217,34 +275,72 @@ function add(): void {
                             @input="updateAt(index, ($event.target as HTMLInputElement).value)"
                         />
                         <div
-                            v-if="openIndex === index && suggestionBlocksFor(index).length > 0"
-                            class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                            v-if="dropdownVisible(index)"
+                            class="absolute z-20 mt-1 flex w-full flex-col rounded-md border border-slate-200 bg-white shadow-lg"
                         >
-                            <template
-                                v-for="block in suggestionBlocksFor(index)"
-                                :key="block.key"
-                            >
-                                <p class="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-                                    {{ block.label }}
+                            <div class="max-h-48 overflow-auto py-1">
+                                <template
+                                    v-for="block in suggestionBlocksFor(index)"
+                                    :key="block.key"
+                                >
+                                    <p class="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                                        {{ block.label }}
+                                    </p>
+                                    <ul>
+                                        <li
+                                            v-for="suggestion in block.items"
+                                            :key="suggestion"
+                                            class="group flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 transition-colors duration-[100ms] hover:bg-slate-50"
+                                            @mousedown.prevent="selectSuggestion(index, suggestion)"
+                                        >
+                                            <TrendingDown
+                                                v-if="block.key === 'reductive'"
+                                                :size="13"
+                                                :stroke-width="1.75"
+                                                class="shrink-0 text-rose-500"
+                                                aria-hidden="true"
+                                            />
+                                            <span class="min-w-0 flex-1 truncate">{{ suggestion }}</span>
+                                            <button
+                                                v-if="deletableFor(suggestion)"
+                                                type="button"
+                                                class="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-slate-400 transition-colors duration-[100ms] hover:bg-rose-100 hover:text-rose-700"
+                                                :title="`Retirer « ${suggestion} » des suggestions`"
+                                                :aria-label="`Retirer « ${suggestion} » des suggestions`"
+                                                @mousedown.prevent.stop="emit('remove-suggestion', deletableFor(suggestion)!)"
+                                            >
+                                                <X :size="13" :stroke-width="1.75" />
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </template>
+                                <p
+                                    v-if="suggestionBlocksFor(index).length === 0"
+                                    class="px-3 py-2 text-xs text-slate-400 italic"
+                                >
+                                    Aucune nature connue ne correspond.
                                 </p>
-                                <ul>
-                                    <li
-                                        v-for="suggestion in block.items"
-                                        :key="suggestion"
-                                        class="flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 transition-colors duration-[100ms] hover:bg-slate-50"
-                                        @mousedown.prevent="selectSuggestion(index, suggestion)"
-                                    >
-                                        <TrendingDown
-                                            v-if="block.key === 'reductive'"
-                                            :size="13"
-                                            :stroke-width="1.75"
-                                            class="shrink-0 text-rose-500"
-                                            aria-hidden="true"
-                                        />
-                                        {{ suggestion }}
-                                    </li>
-                                </ul>
-                            </template>
+                            </div>
+
+                            <!-- Footer pinned at the bottom: persist the free entry -->
+                            <div
+                                v-if="showAddFooter(index)"
+                                class="border-t border-slate-100 px-2 py-1.5"
+                            >
+                                <button
+                                    type="button"
+                                    class="inline-flex w-full cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs font-medium text-slate-600 transition-colors duration-[100ms] hover:bg-slate-50 hover:text-slate-900"
+                                    @mousedown.prevent="requestAddToList(index)"
+                                >
+                                    <ListPlus :size="13" :stroke-width="1.75" class="shrink-0" aria-hidden="true" />
+                                    <span class="min-w-0 truncate">
+                                        Ajouter « {{ (modelValue[index] ?? '').trim() }} » à la liste
+                                    </span>
+                                </button>
+                                <p v-if="addErrorIndex === index" class="px-1.5 pt-1 text-xs text-rose-600">
+                                    Ce terme est déjà présent dans la liste.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <button
@@ -260,16 +356,6 @@ function add(): void {
                 <p v-if="duplicateIndices.has(index)" class="text-xs text-rose-600">
                     Cette nature est déjà présente.
                 </p>
-                <button
-                    v-else-if="canAddToList(index)"
-                    type="button"
-                    class="inline-flex w-fit cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 transition-colors duration-[120ms] ease-out hover:text-slate-900"
-                    :title="`Proposer « ${(modelValue[index] ?? '').trim()} » dans les suggestions futures`"
-                    @click="emit('add-to-list', (modelValue[index] ?? '').trim())"
-                >
-                    <ListPlus :size="13" :stroke-width="1.75" aria-hidden="true" />
-                    Ajouter à la liste des suggestions
-                </button>
             </div>
 
             <button

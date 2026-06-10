@@ -22,7 +22,11 @@ import {
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
-type NatureSuggestions = { reductive: string[]; other: string[] };
+type NatureSuggestions = {
+    reductive: string[];
+    other: string[];
+    custom: { id: number; label: string }[];
+};
 
 const props = defineProps<{
     vehicleId: number;
@@ -65,7 +69,14 @@ const {
     selectedIsReductive,
     conflictDaysCount,
     amountError,
-    addNatureToList,
+    natureToAdd,
+    addNatureModalOpen,
+    requestAddNature,
+    confirmAddNature,
+    suggestionToRemove,
+    removeSuggestionModalOpen,
+    requestRemoveSuggestion,
+    confirmRemoveSuggestion,
     submit,
 } = useVehicleEventForm(
     {
@@ -102,11 +113,13 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                     :model-value="form.categories"
                     :reductive-suggestions="natureSuggestions.reductive"
                     :other-suggestions="natureSuggestions.other"
+                    :custom-suggestions="natureSuggestions.custom"
                     required
-                    allow-add-to-list
+                    manage-suggestions
                     :error="form.errors.categories"
                     @update:model-value="(value: string[]) => (form.categories = value)"
-                    @add-to-list="addNatureToList"
+                    @add-to-list="requestAddNature"
+                    @remove-suggestion="requestRemoveSuggestion"
                 />
 
                 <CheckboxInput
@@ -389,5 +402,24 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
         cancel-label="Annuler"
         tone="danger"
         @confirm="confirmDelete"
+    />
+
+    <ConfirmModal
+        v-model:open="addNatureModalOpen"
+        title="Ajouter aux suggestions ?"
+        :message="`« ${natureToAdd ?? ''} » sera proposée dans les suggestions des prochains événements.`"
+        confirm-label="Ajouter"
+        cancel-label="Annuler"
+        @confirm="confirmAddNature"
+    />
+
+    <ConfirmModal
+        v-model:open="removeSuggestionModalOpen"
+        title="Retirer cette suggestion ?"
+        :message="`« ${suggestionToRemove?.label ?? '' } » ne sera plus proposée. Les événements existants ne sont pas modifiés.`"
+        confirm-label="Retirer"
+        cancel-label="Annuler"
+        tone="danger"
+        @confirm="confirmRemoveSuggestion"
     />
 </template>

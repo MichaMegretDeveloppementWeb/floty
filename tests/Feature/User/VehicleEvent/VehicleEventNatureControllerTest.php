@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\User\VehicleEvent;
 
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleEventNature;
 use App\Support\VehicleEvent\EventNatureCatalog;
 use Database\Seeders\VehicleEventNatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -91,5 +94,82 @@ final class VehicleEventNatureControllerTest extends TestCase
             ->assertRedirect('/login');
 
         $this->assertNull(VehicleEventNature::query()->where('label', 'Carrosserie')->first());
+    }
+
+    #[Test]
+    public function supprime_une_suggestion_utilisateur(): void
+    {
+        $custom = VehicleEventNature::factory()->create(['label' => 'Carrosserie']);
+
+        $this->actingAs($this->user)
+            ->delete("/app/vehicle-event-natures/{$custom->id}")
+            ->assertRedirect()
+            ->assertSessionHas('toast-success');
+
+        $this->assertDatabaseMissing('vehicle_event_natures', ['id' => $custom->id]);
+    }
+
+    #[Test]
+    public function refuse_de_supprimer_une_nature_du_catalogue_de_base(): void
+    {
+        $base = VehicleEventNature::query()
+            ->where('label', EventNatureCatalog::NON_REDUCTIVE[0])
+            ->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->delete("/app/vehicle-event-natures/{$base->id}")
+            ->assertRedirect()
+            ->assertSessionHas('toast-error');
+
+        $this->assertDatabaseHas('vehicle_event_natures', ['id' => $base->id]);
+    }
+
+    #[Test]
+    public function refuse_de_supprimer_une_nature_du_bloc_reducteur(): void
+    {
+        $reductive = VehicleEventNature::query()
+            ->where('label', EventNatureCatalog::REDUCTIVE[0])
+            ->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->delete("/app/vehicle-event-natures/{$reductive->id}")
+            ->assertRedirect()
+            ->assertSessionHas('toast-error');
+
+        $this->assertDatabaseHas('vehicle_event_natures', ['id' => $reductive->id]);
+    }
+
+    #[Test]
+    public function la_suppression_d_une_suggestion_ne_touche_pas_les_evenements(): void
+    {
+        $custom = VehicleEventNature::factory()->create(['label' => 'Carrosserie']);
+        $event = VehicleEvent::factory()->maintenance()
+            ->withCategories('Carrosserie')
+            ->create();
+
+        $this->actingAs($this->user)
+            ->delete("/app/vehicle-event-natures/{$custom->id}")
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_event_categories', [
+            'vehicle_event_id' => $event->id,
+            'category' => 'Carrosserie',
+        ]);
+    }
+
+    #[Test]
+    public function les_pages_formulaire_exposent_les_suggestions_custom_avec_id(): void
+    {
+        $custom = VehicleEventNature::factory()->create(['label' => 'Carrosserie']);
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($this->user)
+            ->get("/app/vehicles/{$vehicle->id}/events/create")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('natureSuggestions.custom', 1)
+                ->where('natureSuggestions.custom.0.id', $custom->id)
+                ->where('natureSuggestions.custom.0.label', 'Carrosserie'),
+            );
     }
 }

@@ -27,4 +27,13 @@ interface VehicleEventNatureReadRepositoryInterface
      * @return list<string>
      */
     public function nonReductiveLabels(): array;
+
+    /**
+     * User-added suggestions only (non-reductive entries absent from the base
+     * catalogue), alphabetical, with their id. These are the only deletable
+     * entries of the « Nature » field.
+     *
+     * @return list<array{id: int, label: string}>
+     */
+    public function customSuggestions(): array;
 }
