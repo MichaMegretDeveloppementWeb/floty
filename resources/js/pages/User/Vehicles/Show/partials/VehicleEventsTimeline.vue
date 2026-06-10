@@ -19,6 +19,7 @@ import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue
 import FlagIcon from '@/Components/Ui/FlagIcon.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import MultiSelectFilter from '@/Components/Ui/MultiSelectFilter/MultiSelectFilter.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import {
@@ -55,6 +56,7 @@ const {
     filteredEvents,
     selectedCategories,
     categoryOptions,
+    searchTerm,
     totalAmountCents,
     activeAxisCount,
     activeFilterChips,
@@ -118,6 +120,14 @@ function descriptionExcerpt(description: string): string {
             </div>
 
             <div class="mb-3 flex flex-wrap items-center gap-3">
+                <div class="w-64">
+                    <SearchInput
+                        v-model="searchTerm"
+                        placeholder="Garage, code postal..."
+                        aria-label="Rechercher par garage ou code postal"
+                    />
+                </div>
+
                 <FilterPopover
                     v-model:open="filtersOpen"
                     :active-count="activeAxisCount"

@@ -60,6 +60,12 @@ final class StoreVehicleEventData extends Data
         /** Detail lines (section « Détails »), optional, unlimited. */
         public ?array $details = null,
 
+        /** Garage name (free text, optional); feeds the autocomplete. */
+        public ?string $garage = null,
+
+        /** Postal code (optional, independent from the garage). */
+        public ?string $postalCode = null,
+
         /** Unavailability flag; forced true server-side when reductive. */
         public bool $impliesUnavailability = true,
 
@@ -82,6 +88,8 @@ final class StoreVehicleEventData extends Data
             'categories.*' => ['string', 'max:60', 'distinct:ignore_case'],
             'details' => ['nullable', 'array'],
             'details.*' => ['string', 'max:100', 'distinct:ignore_case'],
+            'garage' => ['nullable', 'string', 'max:120'],
+            'postal_code' => ['nullable', 'string', 'max:10'],
             // Justification files attached during creation (atomic flow):
             // up to 5 image/PDF files, 5 MB each.
             'documents' => ['nullable', 'array', 'max:5'],
@@ -138,6 +146,8 @@ final class StoreVehicleEventData extends Data
             'categories.*.max' => 'Une nature ne peut pas dépasser 60 caractères.',
             'details.*.distinct' => 'Ce détail est déjà présent.',
             'details.*.max' => 'Un détail ne peut pas dépasser 100 caractères.',
+            'garage.max' => 'Le nom du garage ne peut pas dépasser 120 caractères.',
+            'postal_code.max' => 'Le code postal ne peut pas dépasser 10 caractères.',
             'amount_cents.numeric' => 'Le montant doit être un nombre.',
             'amount_cents.integer' => 'Le montant doit être un nombre entier.',
             'amount_cents.min' => 'Le montant ne peut pas être négatif.',

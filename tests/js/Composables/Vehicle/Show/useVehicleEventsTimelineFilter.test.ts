@@ -20,6 +20,8 @@ function makeEvent(
         impliesUnavailability: true,
         endDate: overrides.startDate,
         description: null,
+        garage: null,
+        postalCode: null,
         amountCents: null,
         daysCount: 1,
         isReadOnly: false,
@@ -135,5 +137,48 @@ describe('useVehicleEventsTimelineFilter · filtre nature + total', () => {
 
         f.clearAxisFilters();
         expect(f.activeAxisCount.value).toBe(0);
+    });
+});
+
+describe('useVehicleEventsTimelineFilter · recherche garage / code postal', () => {
+    const events: VehicleEvent[] = [
+        makeEvent({ id: 1, startDate: '2026-03-01', garage: 'Garage Martin', postalCode: '91100' }),
+        makeEvent({ id: 2, startDate: '2026-04-01', garage: 'Carrosserie Dupont', postalCode: '75011' }),
+        makeEvent({ id: 3, startDate: '2026-05-01' }),
+    ];
+
+    it('matche le garage en « contient », insensible à la casse', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.searchTerm.value = 'martin';
+
+        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([1]);
+        expect(f.isFiltered.value).toBe(true);
+    });
+
+    it('matche le code postal en « contient » (91 → 91100)', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.searchTerm.value = '91';
+
+        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([1]);
+    });
+
+    it('exclut les événements sans garage ni code postal quand un terme est saisi', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.searchTerm.value = '75';
+
+        expect(f.filteredEvents.value.map((e) => e.id)).toEqual([2]);
+    });
+
+    it('clearAxisFilters efface aussi la recherche', () => {
+        const f = useVehicleEventsTimelineFilter(() => events, 2026);
+
+        f.searchTerm.value = '91';
+        f.clearAxisFilters();
+
+        expect(f.searchTerm.value).toBe('');
+        expect(f.filteredEvents.value).toHaveLength(3);
     });
 });

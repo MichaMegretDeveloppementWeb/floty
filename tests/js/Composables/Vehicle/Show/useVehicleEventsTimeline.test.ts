@@ -17,6 +17,8 @@ function makeEvent(overrides: Partial<VehicleEvent> & { id: number; startDate: s
         impliesUnavailability: true,
         endDate: null,
         description: null,
+        garage: null,
+        postalCode: null,
         amountCents: null,
         daysCount: 0,
         isReadOnly: false,

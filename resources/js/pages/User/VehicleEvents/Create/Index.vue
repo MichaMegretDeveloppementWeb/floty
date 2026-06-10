@@ -21,6 +21,8 @@ const props = defineProps<{
     natureSuggestions: { reductive: string[]; other: string[]; deletable: { id: number; label: string }[] };
     /** Suggestions de la section « Détails » (catalogue géré par l'utilisateur). */
     detailSuggestions: { id: number; label: string }[];
+    /** Garages déjà renseignés (autocomplétion auto-alimentée). */
+    garageSuggestions: string[];
 }>();
 
 const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { tab: 'events' } });
@@ -54,6 +56,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
                 :initial-date="initialDate"
                 :nature-suggestions="natureSuggestions"
                 :detail-suggestions="detailSuggestions"
+                :garage-suggestions="garageSuggestions"
             />
         </div>
     </UserLayout>

@@ -83,6 +83,7 @@ final class VehicleEventController extends Controller
             'initialDate' => $initialDate,
             'natureSuggestions' => $this->natureSuggestions(),
             'detailSuggestions' => $this->detailSuggestions->all(),
+            'garageSuggestions' => $this->events->distinctGarages(),
         ]);
     }
 
@@ -115,6 +116,7 @@ final class VehicleEventController extends Controller
             'busyDates' => $this->busyDatesForYear($vehicle, $event->start_date->year),
             'natureSuggestions' => $this->natureSuggestions(),
             'detailSuggestions' => $this->detailSuggestions->all(),
+            'garageSuggestions' => $this->events->distinctGarages(),
         ]);
     }
 

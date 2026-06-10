@@ -64,6 +64,8 @@ export function useVehicleEventsTimelineFilter(
     filteredEvents: ComputedRef<VehicleEvent[]>;
     selectedCategories: Ref<string[]>;
     categoryOptions: ComputedRef<FilterOption[]>;
+    /** Recherche libre garage / code postal (le véhicule est déjà le contexte). */
+    searchTerm: Ref<string>;
     totalAmountCents: ComputedRef<number>;
     activeAxisCount: ComputedRef<number>;
     activeFilterChips: ComputedRef<FilterChip[]>;
@@ -73,6 +75,7 @@ export function useVehicleEventsTimelineFilter(
     const scopeMode = ref<TimelineScopeMode>('year');
     const selectedYear = ref<number>(ALL_YEARS);
     const selectedCategories = ref<string[]>([]);
+    const searchTerm = ref<string>('');
     const periodStart = ref<string | null>(null);
     const periodEnd = ref<string | null>(null);
     const periodOngoing = ref<boolean>(false);
@@ -135,8 +138,9 @@ export function useVehicleEventsTimelineFilter(
     });
 
     /**
-     * Nature axis (OR within the axis), applied on top of the year/period
-     * window. Empty axis = no constraint.
+     * Nature axis (OR within the axis) + free search on garage / postal code
+     * (contains, case-insensitive · the vehicle is already the page context),
+     * applied on top of the year/period window. Empty axis = no constraint.
      */
     function matchesAxes(event: VehicleEvent): boolean {
         if (selectedCategories.value.length > 0) {
@@ -144,6 +148,17 @@ export function useVehicleEventsTimelineFilter(
             const hit = selectedCategories.value.some((c) => eventCategories.has(c.trim().toLowerCase()));
 
             if (!hit) {
+                return false;
+            }
+        }
+
+        const term = searchTerm.value.trim().toLowerCase();
+
+        if (term !== '') {
+            const garage = (event.garage ?? '').toLowerCase();
+            const postalCode = (event.postalCode ?? '').toLowerCase();
+
+            if (!garage.includes(term) && !postalCode.includes(term)) {
                 return false;
             }
         }
@@ -186,7 +201,7 @@ export function useVehicleEventsTimelineFilter(
     });
 
     const isFiltered = computed<boolean>(() => {
-        if (selectedCategories.value.length > 0) {
+        if (selectedCategories.value.length > 0 || searchTerm.value.trim() !== '') {
             return true;
         }
 
@@ -271,6 +286,7 @@ export function useVehicleEventsTimelineFilter(
 
     function clearAxisFilters(): void {
         selectedCategories.value = [];
+        searchTerm.value = '';
     }
 
     function setScopeMode(mode: TimelineScopeMode): void {
@@ -334,6 +350,7 @@ export function useVehicleEventsTimelineFilter(
         filteredEvents,
         selectedCategories,
         categoryOptions,
+        searchTerm,
         totalAmountCents,
         activeAxisCount,
         activeFilterChips,

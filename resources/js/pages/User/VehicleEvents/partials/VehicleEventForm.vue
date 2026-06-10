@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { Download, FileText, ImageIcon, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import AutocompleteInput from '@/Components/Ui/AutocompleteInput/AutocompleteInput.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
@@ -41,6 +42,8 @@ const props = defineProps<{
     natureSuggestions: NatureSuggestions;
     /** Suggestions de la section « Détails » (catalogue entièrement géré par l'utilisateur). */
     detailSuggestions: { id: number; label: string }[];
+    /** Garages déjà renseignés sur des événements (alimentés automatiquement). */
+    garageSuggestions: string[];
 }>();
 
 const toasts = useToasts();
@@ -261,6 +264,32 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                 @add-to-list="requestAddDetail"
                 @remove-suggestion="requestRemoveDetailSuggestion"
             />
+        </Card>
+
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Garage
+                </h2>
+            </template>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+                <AutocompleteInput
+                    v-model="form.garage"
+                    label="Nom du garage"
+                    :suggestions="garageSuggestions"
+                    placeholder="Ex. Garage Martin"
+                    hint="Facultatif. Les garages déjà renseignés sont proposés automatiquement."
+                    :max-length="120"
+                    :error="form.errors.garage"
+                />
+                <TextInput
+                    v-model="form.postal_code"
+                    label="Code postal"
+                    placeholder="Ex. 91100"
+                    :maxlength="10"
+                    :error="form.errors.postal_code"
+                />
+            </div>
         </Card>
 
         <Card>

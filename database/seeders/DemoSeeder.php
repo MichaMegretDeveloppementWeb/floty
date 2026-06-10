@@ -1414,6 +1414,8 @@ final class DemoSeeder extends Seeder
             description: 'Révision + remplacement pneus hiver.',
             categories: ['Entretien', 'Pneus'],
             details: ['Changement des pneus hiver', 'Vidange', 'Contrôle des niveaux', 'Remplacement filtre habitacle'],
+            garage: 'Garage Martin',
+            postalCode: '91100',
             amountCents: 74000,
         );
 
@@ -1448,6 +1450,8 @@ final class DemoSeeder extends Seeder
             description: 'Réparation carrosserie aile avant droite.',
             categories: ['Sinistre', 'Carrosserie'],
             details: ['Remplacement aile avant droite', 'Peinture et vernis'],
+            garage: 'Carrosserie Dupont',
+            postalCode: '75011',
             amountCents: 210000,
         );
 
@@ -1518,6 +1522,8 @@ final class DemoSeeder extends Seeder
         ?string $description = null,
         array $categories = [],
         array $details = [],
+        ?string $garage = null,
+        ?string $postalCode = null,
         ?int $amountCents = null,
     ): void {
         $hasFiscalImpact = array_intersect(
@@ -1532,6 +1538,8 @@ final class DemoSeeder extends Seeder
             'start_date' => $startDate,
             'end_date' => $endDate,
             'description' => $description,
+            'garage' => $garage,
+            'postal_code' => $postalCode,
             'amount_cents' => $amountCents,
         ]);
 

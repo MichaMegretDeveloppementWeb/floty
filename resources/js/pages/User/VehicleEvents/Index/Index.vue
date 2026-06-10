@@ -121,7 +121,7 @@ function durationLabel(row: VehicleEventRow): string {
                     <div class="max-w-md grow">
                         <SearchInput
                             v-model="searchModel"
-                            placeholder="Rechercher (intitulé, description, immatriculation)"
+                            placeholder="Rechercher (intitulé, description, immatriculation, garage, code postal)"
                             aria-label="Rechercher un événement"
                         />
                     </div>

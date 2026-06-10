@@ -105,9 +105,29 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
             $query->where(static function (Builder $w) use ($term): void {
                 $w->where('title', 'like', $term)
                     ->orWhere('description', 'like', $term)
+                    ->orWhere('garage', 'like', $term)
+                    ->orWhere('postal_code', 'like', $term)
                     ->orWhereHas('vehicle', static fn (Builder $v) => $v->where('license_plate', 'like', $term));
             });
         }
+    }
+
+    /**
+     * Distinct garage names already recorded on events, alphabetical. Feeds
+     * the form autocomplete: the list grows automatically with every saved
+     * event that carries a garage (no manual « Ajouter à la liste »).
+     *
+     * @return list<string>
+     */
+    public function distinctGarages(): array
+    {
+        return VehicleEvent::query()
+            ->select('garage')
+            ->distinct()
+            ->whereNotNull('garage')
+            ->orderBy('garage')
+            ->pluck('garage')
+            ->all();
     }
 
     public function distinctCategories(): array

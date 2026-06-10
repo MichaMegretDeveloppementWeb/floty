@@ -44,7 +44,20 @@ final readonly class CreateVehicleEventAction
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'description' => $data->description,
+            'garage' => $this->nullableTrimmed($data->garage),
+            'postal_code' => $this->nullableTrimmed($data->postalCode),
             'amount_cents' => $data->amountCents,
         ], $categories, $details);
+    }
+
+    /**
+     * Trimmed value, or null when blank (a spaces-only garage must not feed
+     * the autocomplete).
+     */
+    private function nullableTrimmed(?string $value): ?string
+    {
+        $value = $value !== null ? trim($value) : null;
+
+        return $value === '' ? null : $value;
     }
 }

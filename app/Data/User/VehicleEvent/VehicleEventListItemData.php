@@ -31,6 +31,10 @@ final class VehicleEventListItemData extends Data
         public int $daysCount,
         public string $title,
         public array $categories,
+        /** Garage name (free text, optional); matched by the index search. */
+        public ?string $garage,
+        /** Postal code (optional); matched by the index search. */
+        public ?string $postalCode,
         public bool $impliesUnavailability,
         public bool $isReadOnly,
         public ?int $amountCents,
@@ -51,6 +55,8 @@ final class VehicleEventListItemData extends Data
             daysCount: $daysCount,
             title: $event->title,
             categories: $event->categories->pluck('category')->values()->all(),
+            garage: $event->garage,
+            postalCode: $event->postal_code,
             impliesUnavailability: $event->implies_unavailability,
             isReadOnly: $event->isSystemGenerated(),
             amountCents: $event->amount_cents,

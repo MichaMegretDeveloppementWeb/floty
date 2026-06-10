@@ -40,6 +40,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon $start_date
  * @property Carbon|null $end_date
  * @property string|null $description
+ * @property string|null $garage
+ * @property string|null $postal_code
  * @property int|null $amount_cents
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -54,6 +56,8 @@ use Illuminate\Support\Carbon;
     'start_date',
     'end_date',
     'description',
+    'garage',
+    'postal_code',
     'amount_cents',
 ])]
 #[ObservedBy([VehicleEventObserver::class])]

@@ -95,6 +95,14 @@ interface VehicleEventReadRepositoryInterface
     public function distinctCategories(): array;
 
     /**
+     * Distinct garage names recorded on events, ascending. Feeds the form
+     * autocomplete, which grows automatically with every saved event.
+     *
+     * @return list<string>
+     */
+    public function distinctGarages(): array;
+
+    /**
      * Single event scoped to its vehicle, with `documents` eager-loaded,
      * for the dedicated detail / edit pages. Throws 404 when the id does
      * not exist OR does not belong to `$vehicleId` (URL consistency guard).

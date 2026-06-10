@@ -42,6 +42,10 @@ type FormShape = {
     categories: string[];
     // Detail lines (section « Détails »), optional, unlimited.
     details: string[];
+    // Garage name (free text, optional); feeds the autocomplete on save.
+    garage: string;
+    // Postal code (optional, independent from the garage).
+    postal_code: string;
     // Unavailability flag; locked (forced true) when the event is reductive.
     implies_unavailability: boolean;
     start_date: string;
@@ -197,6 +201,8 @@ export function useVehicleEventForm(
         title: '',
         categories: [],
         details: [],
+        garage: '',
+        postal_code: '',
         implies_unavailability: true,
         start_date: '',
         end_date: '',
@@ -220,6 +226,8 @@ export function useVehicleEventForm(
                 form.title = value.title;
                 form.categories = [...value.categories];
                 form.details = [...value.details];
+                form.garage = value.garage ?? '';
+                form.postal_code = value.postalCode ?? '';
                 form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
                 form.amount = centsToEuros(value.amountCents);
@@ -335,6 +343,8 @@ export function useVehicleEventForm(
         title: data.title.trim(),
         categories: cleanCustomCategories(data.categories),
         details: cleanCustomCategories(data.details),
+        garage: data.garage.trim() === '' ? null : data.garage.trim(),
+        postal_code: data.postal_code.trim() === '' ? null : data.postal_code.trim(),
         // A reductive event always implies an unavailability (server-forced).
         implies_unavailability: selectedIsReductive.value ? true : data.implies_unavailability,
         start_date: range.value.startDate,

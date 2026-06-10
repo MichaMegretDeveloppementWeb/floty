@@ -147,6 +147,40 @@ final class VehicleEventIndexTest extends TestCase
     }
 
     #[Test]
+    public function recherche_par_nom_de_garage(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Garage Martin']);
+        VehicleEvent::factory()->maintenance()->create(['garage' => 'Carrosserie Dupont']);
+        VehicleEvent::factory()->maintenance()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicle-events?search=martin')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 1)
+                ->where('events.data.0.garage', 'Garage Martin'),
+            );
+    }
+
+    #[Test]
+    public function recherche_par_code_postal_partiel(): void
+    {
+        $user = User::factory()->create();
+        VehicleEvent::factory()->maintenance()->create(['postal_code' => '91100']);
+        VehicleEvent::factory()->maintenance()->create(['postal_code' => '75011']);
+        VehicleEvent::factory()->maintenance()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicle-events?search=91')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('events.meta.total', 1)
+                ->where('events.data.0.postalCode', '91100'),
+            );
+    }
+
+    #[Test]
     public function filtre_year_par_date_de_debut(): void
     {
         $user = User::factory()->create();

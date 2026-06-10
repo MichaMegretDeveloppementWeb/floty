@@ -55,6 +55,39 @@ final class VehicleEventControllerTest extends TestCase
     }
 
     #[Test]
+    public function un_garage_enregistre_alimente_automatiquement_les_suggestions(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        // La page de creation ne propose encore aucun garage.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/create")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('garageSuggestions', []),
+            );
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'title' => 'Entretien courant',
+                'categories' => ['Entretien'],
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-03',
+                'garage' => 'Garage Martin',
+                'postal_code' => '91100',
+            ])
+            ->assertRedirect();
+
+        // Sans aucun geste manuel, le garage est desormais propose.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/create")
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('garageSuggestions', ['Garage Martin']),
+            );
+    }
+
+    #[Test]
     public function store_ne_definit_pas_l_impact_fiscal_pour_les_natures_non_reductrices(): void
     {
         $user = User::factory()->create();

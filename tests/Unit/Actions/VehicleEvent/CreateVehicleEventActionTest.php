@@ -234,6 +234,46 @@ final class CreateVehicleEventActionTest extends TestCase
     }
 
     #[Test]
+    public function persiste_le_garage_et_le_code_postal_trims(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Entretien courant',
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            categories: ['Entretien'],
+            garage: '  Garage Martin  ',
+            postalCode: ' 91100 ',
+        ));
+
+        $this->assertSame('Garage Martin', $vehicleEvent->garage);
+        $this->assertSame('91100', $vehicleEvent->postal_code);
+    }
+
+    #[Test]
+    public function un_garage_blanc_est_persiste_null(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            title: 'Entretien courant',
+            startDate: '2024-04-01',
+            endDate: '2024-04-03',
+            description: null,
+            categories: ['Entretien'],
+            garage: '   ',
+            postalCode: null,
+        ));
+
+        $this->assertNull($vehicleEvent->garage);
+        $this->assertNull($vehicleEvent->postal_code);
+    }
+
+    #[Test]
     public function les_details_sont_optionnels(): void
     {
         $vehicle = Vehicle::factory()->create();

@@ -43,6 +43,10 @@ final class VehicleEventData extends Data
         public string $startDate,
         public ?string $endDate,
         public ?string $description,
+        /** Garage name (free text, optional). */
+        public ?string $garage,
+        /** Postal code (optional, independent from the garage). */
+        public ?string $postalCode,
         /** Optional cost (TTC) in cents attached to this event; null = no cost. */
         public ?int $amountCents,
         public int $daysCount,
@@ -85,6 +89,8 @@ final class VehicleEventData extends Data
             startDate: $u->start_date->toDateString(),
             endDate: $u->end_date?->toDateString(),
             description: $u->description,
+            garage: $u->garage,
+            postalCode: $u->postal_code,
             amountCents: $u->amount_cents,
             daysCount: $daysCount,
             isReadOnly: $u->isSystemGenerated(),

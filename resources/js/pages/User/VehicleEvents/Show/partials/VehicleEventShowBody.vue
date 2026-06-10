@@ -109,20 +109,50 @@ const vehiclePageUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id });
             </div>
         </div>
 
-        <!-- Montant · cost attached to the event (carnet de dépenses) -->
-        <div class="rounded-xl border border-slate-200 bg-white px-6 py-5">
-            <p class="eyebrow mb-2">
-                Montant
-            </p>
-            <p
-                v-if="props.vehicleEvent.amountCents !== null"
-                class="font-mono text-lg font-semibold text-slate-900"
-            >
-                {{ formatEur(props.vehicleEvent.amountCents / 100, 2) }}
-            </p>
-            <p v-else class="text-sm text-slate-400 italic">
-                Aucun montant renseigné.
-            </p>
+        <!-- Montant + garage · cost and place attached to the event -->
+        <div class="grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-3">
+            <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
+                <p class="eyebrow mb-2">
+                    Montant
+                </p>
+                <p
+                    v-if="props.vehicleEvent.amountCents !== null"
+                    class="font-mono text-lg font-semibold text-slate-900"
+                >
+                    {{ formatEur(props.vehicleEvent.amountCents / 100, 2) }}
+                </p>
+                <p v-else class="text-sm text-slate-400 italic">
+                    Aucun montant renseigné.
+                </p>
+            </div>
+            <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
+                <p class="eyebrow mb-2">
+                    Garage
+                </p>
+                <p
+                    v-if="props.vehicleEvent.garage !== null"
+                    class="text-sm font-medium text-slate-900"
+                >
+                    {{ props.vehicleEvent.garage }}
+                </p>
+                <p v-else class="text-sm text-slate-400 italic">
+                    Non renseigné.
+                </p>
+            </div>
+            <div class="px-5 py-4">
+                <p class="eyebrow mb-2">
+                    Code postal
+                </p>
+                <p
+                    v-if="props.vehicleEvent.postalCode !== null"
+                    class="font-mono text-sm font-medium text-slate-900"
+                >
+                    {{ props.vehicleEvent.postalCode }}
+                </p>
+                <p v-else class="text-sm text-slate-400 italic">
+                    Non renseigné.
+                </p>
+            </div>
         </div>
 
         <!-- Nature · category / fiscal / availability -->
