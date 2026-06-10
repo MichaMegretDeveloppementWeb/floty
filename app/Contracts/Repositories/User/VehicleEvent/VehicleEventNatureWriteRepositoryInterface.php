@@ -20,10 +20,11 @@ interface VehicleEventNatureWriteRepositoryInterface
     public function addNonReductiveSuggestion(string $label): void;
 
     /**
-     * Deletes a USER-added suggestion. Returns false (no write) for an entry
-     * of the frozen reductive block or of the non-reductive base catalogue:
-     * only custom entries are removable. Events keep their attached natures
-     * untouched (they live in `vehicle_event_categories`).
+     * Deletes a non-reductive suggestion (base catalogue or user addition).
+     * Returns false (no write) for an entry of the frozen reductive block,
+     * which is mandatory. Events keep their attached natures untouched (they
+     * live in `vehicle_event_categories`); a re-seed recreates the base
+     * catalogue entries.
      */
-    public function deleteCustomSuggestion(VehicleEventNature $nature): bool;
+    public function deleteSuggestion(VehicleEventNature $nature): bool;
 }

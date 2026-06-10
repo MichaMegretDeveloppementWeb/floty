@@ -110,8 +110,9 @@ final class VehicleEventNatureControllerTest extends TestCase
     }
 
     #[Test]
-    public function refuse_de_supprimer_une_nature_du_catalogue_de_base(): void
+    public function supprime_une_nature_du_catalogue_de_base_non_reductrice(): void
     {
+        // Seul le bloc réducteur est obligatoire ; un re-seed recrée la base.
         $base = VehicleEventNature::query()
             ->where('label', EventNatureCatalog::NON_REDUCTIVE[0])
             ->firstOrFail();
@@ -119,9 +120,9 @@ final class VehicleEventNatureControllerTest extends TestCase
         $this->actingAs($this->user)
             ->delete("/app/vehicle-event-natures/{$base->id}")
             ->assertRedirect()
-            ->assertSessionHas('toast-error');
+            ->assertSessionHas('toast-success');
 
-        $this->assertDatabaseHas('vehicle_event_natures', ['id' => $base->id]);
+        $this->assertDatabaseMissing('vehicle_event_natures', ['id' => $base->id]);
     }
 
     #[Test]
@@ -158,18 +159,23 @@ final class VehicleEventNatureControllerTest extends TestCase
     }
 
     #[Test]
-    public function les_pages_formulaire_exposent_les_suggestions_custom_avec_id(): void
+    public function les_pages_formulaire_exposent_les_suggestions_supprimables_avec_id(): void
     {
+        // Le jeu supprimable = toutes les non réductrices (base + ajouts),
+        // jamais le bloc réducteur.
         $custom = VehicleEventNature::factory()->create(['label' => 'Carrosserie']);
         $vehicle = Vehicle::factory()->create();
+
+        $expectedCount = count(EventNatureCatalog::NON_REDUCTIVE) + 1;
 
         $this->actingAs($this->user)
             ->get("/app/vehicles/{$vehicle->id}/events/create")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('natureSuggestions.custom', 1)
-                ->where('natureSuggestions.custom.0.id', $custom->id)
-                ->where('natureSuggestions.custom.0.label', 'Carrosserie'),
+                ->has('natureSuggestions.deletable', $expectedCount)
+                // Liste alphabétique : « Carrosserie » arrive après « Administratif ».
+                ->where('natureSuggestions.deletable.1.id', $custom->id)
+                ->where('natureSuggestions.deletable.1.label', 'Carrosserie'),
             );
     }
 }

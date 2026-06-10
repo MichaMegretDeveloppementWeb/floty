@@ -6,7 +6,6 @@ namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureWriteRepositoryInterface;
 use App\Models\VehicleEventNature;
-use App\Support\VehicleEvent\EventNatureCatalog;
 
 final class VehicleEventNatureWriteRepository implements VehicleEventNatureWriteRepositoryInterface
 {
@@ -35,15 +34,9 @@ final class VehicleEventNatureWriteRepository implements VehicleEventNatureWrite
         ]);
     }
 
-    public function deleteCustomSuggestion(VehicleEventNature $nature): bool
+    public function deleteSuggestion(VehicleEventNature $nature): bool
     {
         if ($nature->is_fiscally_reductive) {
-            return false;
-        }
-
-        $baseKeys = array_map('mb_strtolower', EventNatureCatalog::NON_REDUCTIVE);
-
-        if (in_array(mb_strtolower($nature->label), $baseKeys, true)) {
             return false;
         }
 

@@ -6,7 +6,6 @@ namespace App\Repositories\User\VehicleEvent;
 
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventNatureReadRepositoryInterface;
 use App\Models\VehicleEventNature;
-use App\Support\VehicleEvent\EventNatureCatalog;
 
 final class VehicleEventNatureReadRepository implements VehicleEventNatureReadRepositoryInterface
 {
@@ -20,17 +19,13 @@ final class VehicleEventNatureReadRepository implements VehicleEventNatureReadRe
         return $this->labelsWhereReductive(false);
     }
 
-    public function customSuggestions(): array
+    public function deletableSuggestions(): array
     {
-        $baseKeys = array_map('mb_strtolower', EventNatureCatalog::NON_REDUCTIVE);
-
         return VehicleEventNature::query()
             ->where('is_fiscally_reductive', false)
             ->orderBy('label')
             ->get(['id', 'label'])
-            ->reject(static fn (VehicleEventNature $n): bool => in_array(mb_strtolower($n->label), $baseKeys, true))
             ->map(static fn (VehicleEventNature $n): array => ['id' => $n->id, 'label' => $n->label])
-            ->values()
             ->all();
     }
 

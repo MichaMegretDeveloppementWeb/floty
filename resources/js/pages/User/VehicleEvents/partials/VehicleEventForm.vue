@@ -25,7 +25,7 @@ type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 type NatureSuggestions = {
     reductive: string[];
     other: string[];
-    custom: { id: number; label: string }[];
+    deletable: { id: number; label: string }[];
 };
 
 const props = defineProps<{
@@ -113,7 +113,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                     :model-value="form.categories"
                     :reductive-suggestions="natureSuggestions.reductive"
                     :other-suggestions="natureSuggestions.other"
-                    :custom-suggestions="natureSuggestions.custom"
+                    :deletable-suggestions="natureSuggestions.deletable"
                     required
                     manage-suggestions
                     :error="form.errors.categories"

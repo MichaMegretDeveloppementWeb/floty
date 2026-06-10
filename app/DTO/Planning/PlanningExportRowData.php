@@ -22,6 +22,7 @@ final readonly class PlanningExportRowData
 {
     /**
      * @param  array<int, int>  $weeks  53 cells, real usage days (0-7)
+     * @param  list<bool>  $weeksOutOfFleet  53 cells, true where the week is after the vehicle's exit (out of fleet) · greyed in the complete grid
      * @param  list<string>  $exemptions  Vehicle-level exemption labels applicable for the year (same source as the Vehicle Show "Exonérations applicables" panel)
      */
     public function __construct(
@@ -37,6 +38,7 @@ final readonly class PlanningExportRowData
         public PollutantCategory $pollutantCategory,
         public string $firstFrenchRegistrationDate,
         public array $weeks,
+        public array $weeksOutOfFleet,
         public int $daysTotal,
         public float $fullYearTax,
         public float $annualTaxDue,

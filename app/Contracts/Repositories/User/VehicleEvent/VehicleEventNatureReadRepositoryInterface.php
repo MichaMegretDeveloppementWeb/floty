@@ -29,11 +29,11 @@ interface VehicleEventNatureReadRepositoryInterface
     public function nonReductiveLabels(): array;
 
     /**
-     * User-added suggestions only (non-reductive entries absent from the base
-     * catalogue), alphabetical, with their id. These are the only deletable
-     * entries of the « Nature » field.
+     * Every NON-reductive suggestion (base catalogue + user additions),
+     * alphabetical, with its id. These are the deletable entries of the
+     * « Nature » field; only the frozen reductive block is mandatory.
      *
      * @return list<array{id: int, label: string}>
      */
-    public function customSuggestions(): array;
+    public function deletableSuggestions(): array;
 }

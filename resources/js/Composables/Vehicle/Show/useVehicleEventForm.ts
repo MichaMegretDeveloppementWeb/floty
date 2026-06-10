@@ -20,15 +20,15 @@ import {
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
-export type CustomNatureSuggestion = { id: number; label: string };
+export type DeletableNatureSuggestion = { id: number; label: string };
 
 export type NatureSuggestions = {
     /** Frozen fiscally-reductive catalogue block. */
     reductive: string[];
     /** Every other catalogue suggestion (base + user additions). */
     other: string[];
-    /** User-added subset (the only deletable suggestions). */
-    custom: CustomNatureSuggestion[];
+    /** Same non-reductive set with ids · only the reductive block is mandatory. */
+    deletable: DeletableNatureSuggestion[];
 };
 
 type FormShape = {
@@ -169,10 +169,10 @@ export function useVehicleEventForm(
     addNatureModalOpen: Ref<boolean>;
     requestAddNature: (label: string) => void;
     confirmAddNature: () => void;
-    /** Retrait d'une suggestion ajoutée par l'utilisateur (confirmation puis DELETE). */
-    suggestionToRemove: Ref<CustomNatureSuggestion | null>;
+    /** Retrait d'une suggestion non réductrice (confirmation puis DELETE). */
+    suggestionToRemove: Ref<DeletableNatureSuggestion | null>;
     removeSuggestionModalOpen: Ref<boolean>;
-    requestRemoveSuggestion: (suggestion: CustomNatureSuggestion) => void;
+    requestRemoveSuggestion: (suggestion: DeletableNatureSuggestion) => void;
     confirmRemoveSuggestion: () => void;
     submit: () => void;
 } {
@@ -324,7 +324,7 @@ export function useVehicleEventForm(
     // `natureSuggestions` seul (preserveState garde le formulaire intact).
     const natureToAdd = ref<string | null>(null);
     const addNatureModalOpen = ref<boolean>(false);
-    const suggestionToRemove = ref<CustomNatureSuggestion | null>(null);
+    const suggestionToRemove = ref<DeletableNatureSuggestion | null>(null);
     const removeSuggestionModalOpen = ref<boolean>(false);
 
     const requestAddNature = (label: string): void => {
@@ -336,6 +336,8 @@ export function useVehicleEventForm(
         if (natureToAdd.value === null) {
             return;
         }
+
+        addNatureModalOpen.value = false;
 
         router.post(
             natureSuggestionsStoreRoute.url(),
@@ -351,7 +353,7 @@ export function useVehicleEventForm(
         );
     };
 
-    const requestRemoveSuggestion = (suggestion: CustomNatureSuggestion): void => {
+    const requestRemoveSuggestion = (suggestion: DeletableNatureSuggestion): void => {
         suggestionToRemove.value = suggestion;
         removeSuggestionModalOpen.value = true;
     };
@@ -360,6 +362,8 @@ export function useVehicleEventForm(
         if (suggestionToRemove.value === null) {
             return;
         }
+
+        removeSuggestionModalOpen.value = false;
 
         router.delete(
             natureSuggestionsDestroyRoute.url({ vehicleEventNature: suggestionToRemove.value.id }),

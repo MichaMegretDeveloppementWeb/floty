@@ -34,16 +34,16 @@ final class VehicleEventNatureController extends Controller
     }
 
     /**
-     * Removes a USER-added suggestion from the catalogue (the « x » of the
-     * suggestion list). The base catalogue and the frozen reductive block are
-     * protected; events keep their attached natures untouched.
+     * Removes a non-reductive suggestion from the catalogue (the « x » of the
+     * suggestion list). Only the frozen reductive block is protected; events
+     * keep their attached natures untouched.
      */
     public function destroy(VehicleEventNature $vehicleEventNature): RedirectResponse
     {
         Gate::authorize('create', VehicleEvent::class);
 
-        if (! $this->natures->deleteCustomSuggestion($vehicleEventNature)) {
-            return back()->with('toast-error', 'Cette nature fait partie du catalogue de base et ne peut pas être retirée.');
+        if (! $this->natures->deleteSuggestion($vehicleEventNature)) {
+            return back()->with('toast-error', 'Les natures fiscalement réductrices sont obligatoires et ne peuvent pas être retirées.');
         }
 
         return back()->with('toast-success', 'Nature retirée des suggestions.');

@@ -188,19 +188,19 @@ final class VehicleEventController extends Controller
 
     /**
      * Nature suggestions for the form pages: the frozen fiscally reductive
-     * block + every other catalogue entry (base + user additions), plus the
-     * user-added subset with ids (the only deletable entries). Free entries
-     * typed on an event but never « ajoutées à la liste » do not suggest
-     * (DB catalogue is the single source).
+     * block + every other catalogue entry (base + user additions), the latter
+     * also listed with ids as the deletable set (only the reductive block is
+     * mandatory). Free entries typed on an event but never « ajoutées à la
+     * liste » do not suggest (DB catalogue is the single source).
      *
-     * @return array{reductive: list<string>, other: list<string>, custom: list<array{id: int, label: string}>}
+     * @return array{reductive: list<string>, other: list<string>, deletable: list<array{id: int, label: string}>}
      */
     private function natureSuggestions(): array
     {
         return [
             'reductive' => $this->natures->reductiveLabels(),
             'other' => $this->natures->nonReductiveLabels(),
-            'custom' => $this->natures->customSuggestions(),
+            'deletable' => $this->natures->deletableSuggestions(),
         ];
     }
 

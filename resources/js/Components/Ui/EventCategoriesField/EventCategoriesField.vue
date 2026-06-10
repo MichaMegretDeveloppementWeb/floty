@@ -10,10 +10,11 @@
  *
  * When `manageSuggestions` is on (event form), the dropdown becomes the
  * catalogue manager: a scrollable suggestion list with a « x » on each
- * user-added entry (emits `remove-suggestion`), and a footer pinned at the
- * bottom offering « Ajouter à la liste » as soon as one character is typed
- * (emits `add-to-list`; an entry already in the catalogue shows an inline
- * error instead). Confirmation modals live in the parent.
+ * non-reductive entry (emits `remove-suggestion`; the reductive block is
+ * mandatory), and a footer pinned at the bottom offering « Ajouter à la
+ * liste » as soon as one character is typed (emits `add-to-list`; an entry
+ * already in the catalogue shows an inline error instead). Confirmation
+ * modals live in the parent.
  */
 import { ListPlus, Lock, Plus, TrendingDown, X } from 'lucide-vue-next';
 import type { ComponentPublicInstance } from 'vue';
@@ -22,7 +23,7 @@ import Badge from '@/Components/Ui/Badge/Badge.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { duplicateCustomIndices, normalizeCategory } from '@/Utils/vehicleEventCategories';
 
-type CustomSuggestion = { id: number; label: string };
+type DeletableSuggestion = { id: number; label: string };
 
 type SuggestionBlock = {
     key: 'reductive' | 'other';
@@ -40,8 +41,8 @@ const props = withDefaults(
         reductiveSuggestions?: string[];
         /** Catalogue suggestions · every other nature (base + user additions). */
         otherSuggestions?: string[];
-        /** User-added catalogue entries (the only deletable suggestions). */
-        customSuggestions?: CustomSuggestion[];
+        /** Non-reductive catalogue entries with ids (the deletable suggestions). */
+        deletableSuggestions?: DeletableSuggestion[];
         /** Mark the field as required (form context). */
         required?: boolean;
         /** Enable catalogue management (add-to-list footer + delete « x »). */
@@ -52,7 +53,7 @@ const props = withDefaults(
         lockedDefaults: () => [],
         reductiveSuggestions: () => [],
         otherSuggestions: () => [],
-        customSuggestions: () => [],
+        deletableSuggestions: () => [],
         required: false,
         manageSuggestions: false,
     },
@@ -61,7 +62,7 @@ const props = withDefaults(
 const emit = defineEmits<{
     'update:modelValue': [string[]];
     'add-to-list': [string];
-    'remove-suggestion': [CustomSuggestion];
+    'remove-suggestion': [DeletableSuggestion];
 }>();
 
 /** Index of the row whose suggestion dropdown is open (null = none). */
@@ -88,10 +89,10 @@ const duplicateIndices = computed<Set<number>>(() =>
     duplicateCustomIndices(props.modelValue, props.lockedDefaults),
 );
 
-const deletableKeys = computed<Map<string, CustomSuggestion>>(() => {
-    const map = new Map<string, CustomSuggestion>();
+const deletableKeys = computed<Map<string, DeletableSuggestion>>(() => {
+    const map = new Map<string, DeletableSuggestion>();
 
-    for (const suggestion of props.customSuggestions) {
+    for (const suggestion of props.deletableSuggestions) {
         map.set(normalizeCategory(suggestion.label), suggestion);
     }
 
@@ -143,7 +144,7 @@ function dropdownVisible(index: number): boolean {
     return suggestionBlocksFor(index).length > 0 || showAddFooter(index);
 }
 
-function deletableFor(label: string): CustomSuggestion | undefined {
+function deletableFor(label: string): DeletableSuggestion | undefined {
     if (!props.manageSuggestions) {
         return undefined;
     }
