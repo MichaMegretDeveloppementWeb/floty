@@ -11,9 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * One autocomplete suggestion for the event « Détails » lines. Entirely
- * user-managed (« Ajouter à la liste » / retrait), no frozen base: deleting
- * a suggestion never touches the detail lines already attached to events.
+ * User-managed autocomplete suggestion for the event detail lines.
  *
  * @property int $id
  * @property string $label

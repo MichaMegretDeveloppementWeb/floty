@@ -7,10 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Index sur `garage` : la liste d'autosuggestion des filtres lit
- * `SELECT DISTINCT garage` a chaque affichage (formulaire + index global),
- * l'index transforme ce scan en parcours d'index borne par le nombre de
- * garages distincts.
+ * Serves the `SELECT DISTINCT garage` autosuggestion as an index-only scan.
  */
 return new class extends Migration
 {

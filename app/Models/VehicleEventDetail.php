@@ -10,10 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * One free detail line attached to a vehicle event (section « Détails »:
- * « Vidange », « Changement courroie »...). Free text with autocomplete from
- * {@see VehicleEventDetailSuggestion}; `UNIQUE(vehicle_event_id, detail)`
- * enforces intra-event dedup.
+ * One free detail line of a vehicle event; UNIQUE(vehicle_event_id, detail).
  *
  * @property int $id
  * @property int $vehicle_event_id
@@ -30,8 +27,6 @@ final class VehicleEventDetail extends Model
     protected $table = 'vehicle_event_details';
 
     /**
-     * Owning event.
-     *
      * @return BelongsTo<VehicleEvent, $this>
      */
     public function vehicleEvent(): BelongsTo

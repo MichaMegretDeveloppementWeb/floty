@@ -116,12 +116,7 @@ const deletableKeys = computed<Map<string, DeletableSuggestion>>(() => {
     return map;
 });
 
-/**
- * Suggestion blocks for one row: each block minus the locked defaults and the
- * OTHER rows' values, filtered by CONTAINS on the current row's text (typing
- * « frein » surfaces « Remplacement plaquettes de frein »). Empty blocks are
- * dropped.
- */
+/** Suggestion blocks for one row: contains-filtered, minus locked + other rows. */
 function suggestionBlocksFor(index: number): SuggestionBlock[] {
     const used = new Set(
         [...props.lockedDefaults, ...props.modelValue.filter((_, i) => i !== index)]

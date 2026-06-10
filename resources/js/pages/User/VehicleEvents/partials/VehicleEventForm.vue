@@ -113,9 +113,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
 </script>
 
 <template>
-    <!-- novalidate : la validation client maison affiche les erreurs en
-         français au bon endroit et scrolle vers la première, à la place
-         des bulles natives du navigateur. -->
+    <!-- novalidate: la validation maison remplace les bulles natives. -->
     <form class="flex flex-col gap-6" novalidate @submit.prevent="submit">
         <Card>
             <template #header>

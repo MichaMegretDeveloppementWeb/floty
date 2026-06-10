@@ -19,10 +19,8 @@ final class VehicleEventDetailSuggestionController extends Controller
     ) {}
 
     /**
-     * « Ajouter à la liste » (section « Détails » of the event form): persists
-     * a free detail line as a future suggestion. Direct repository call: a
-     * single idempotent insert, no orchestration to delegate. The form
-     * partial-reloads its `detailSuggestions` prop on success.
+     * Persists a free detail line as a future suggestion (idempotent insert,
+     * no Action: nothing to orchestrate).
      */
     public function store(StoreVehicleEventDetailSuggestionData $data): RedirectResponse
     {
@@ -34,9 +32,7 @@ final class VehicleEventDetailSuggestionController extends Controller
     }
 
     /**
-     * Removes a detail suggestion (the « x » of the suggestion list). The
-     * whole catalogue is user-managed; events keep their attached detail
-     * lines untouched.
+     * Removes a suggestion; events keep their attached detail lines.
      */
     public function destroy(VehicleEventDetailSuggestion $vehicleEventDetailSuggestion): RedirectResponse
     {

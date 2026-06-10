@@ -8,11 +8,8 @@ use App\Models\VehicleEventDetailSuggestion;
 use Illuminate\Database\Seeder;
 
 /**
- * Liste de départ des suggestions de la section « Détails » des événements
- * (interventions courantes d'entretien, freinage, pneumatiques, contrôle,
- * carrosserie). `updateOrCreate` sur le label : un re-seed (prod compris) ne
- * crée aucun doublon et préserve les entrées ajoutées par l'utilisateur,
- * comme pour les natures.
+ * Starter list of event detail suggestions; updateOrCreate keeps re-seeds
+ * duplicate-free and preserves user entries.
  */
 final class VehicleEventDetailSuggestionSeeder extends Seeder
 {

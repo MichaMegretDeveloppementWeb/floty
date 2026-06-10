@@ -12,9 +12,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * « Ajouter à la liste » payload of the « Détails » section: persists a free
- * detail line as a future suggestion. The 100-char cap mirrors
- * `vehicle_event_detail_suggestions.label` / `vehicle_event_details.detail`.
+ * « Ajouter à la liste » payload of the detail suggestions (100 = DB cap).
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

@@ -300,11 +300,7 @@ export function useVehicleEventForm(
         hasDuplicateCategories(form.details),
     );
 
-    /**
-     * Client-side validation at submit time. The button stays enabled: every
-     * problem is reported as a field error at its own spot (then the form
-     * scrolls to the topmost one), so the user always knows what blocks.
-     */
+    /** Client-side validation at submit; every problem lands as a field error. */
     const validateClientSide = (): boolean => {
         form.clearErrors();
 

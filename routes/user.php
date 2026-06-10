@@ -318,8 +318,7 @@ Route::middleware('auth')
             ->middleware('throttle:300,1')
             ->name('vehicle-event-natures.destroy');
 
-        // Catalogue des suggestions de la section « Détails » des événements
-        // (entièrement géré par l'utilisateur : ajout + retrait).
+        // User-managed suggestion catalogue of the event detail lines.
         Route::post('/vehicle-event-detail-suggestions', [VehicleEventDetailSuggestionController::class, 'store'])
             ->middleware('throttle:300,1')
             ->name('vehicle-event-detail-suggestions.store');

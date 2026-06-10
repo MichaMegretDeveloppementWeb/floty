@@ -7,12 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Section « Details » des evenements vehicule :
- *   - `vehicle_event_details` : une ligne de detail libre par row (ex.
- *     « Vidange », « Changement courroie »), rattachee a son evenement,
- *     dedupliquee intra-evenement (UNIQUE) ;
- *   - `vehicle_event_detail_suggestions` : catalogue d'autocompletion gere
- *     par l'utilisateur (« Ajouter a la liste » \ retrait), sans bloc fige.
+ * Event detail lines (one row per line, UNIQUE per event) and their
+ * user-managed autocomplete suggestion catalogue.
  */
 return new class extends Migration
 {

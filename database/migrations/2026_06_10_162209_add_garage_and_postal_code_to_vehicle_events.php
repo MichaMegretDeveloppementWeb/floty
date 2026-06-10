@@ -7,10 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Garage (nom libre) et code postal facultatifs sur les evenements vehicule.
- * Le garage alimente automatiquement l'autocompletion (DISTINCT des valeurs
- * presentes, pas de table catalogue) ; les deux champs sont recherchables
- * (liste globale + timeline vehicule).
+ * Optional garage name and postal code on vehicle events.
  */
 return new class extends Migration
 {

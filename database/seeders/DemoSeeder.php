@@ -49,10 +49,7 @@ final class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Hard guard: this seeder purges and replaces business data (events,
-        // contracts, vehicles...). Running it against production would
-        // destroy real client data, so it fails loudly there · use the
-        // targeted seeders (natures, détails, fiscal rules) instead.
+        // Purges and replaces business data: must fail loudly in production.
         if (app()->isProduction()) {
             throw new RuntimeException(
                 'DemoSeeder est interdit en production : il purge et remplace les données métier. '

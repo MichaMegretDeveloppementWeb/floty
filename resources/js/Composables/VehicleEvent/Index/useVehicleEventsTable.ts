@@ -77,9 +77,8 @@ export function useVehicleEventsTable(opts: { query: Query }): {
         }),
     });
 
-    // Text filters debounce locally (a reload per keystroke would hammer the
-    // server), then land in the table state in one batch. Chips removal /
-    // clearFilters update the state directly: mirror it back into the inputs.
+    // Text filters debounce locally, then land in the state in one batch;
+    // chip removal / clearFilters mirror back into the inputs.
     const garageInput = ref<string>(opts.query.garage ?? '');
     const postalCodeInput = ref<string>(opts.query.postalCode ?? '');
     let textFilterTimer: ReturnType<typeof setTimeout> | null = null;

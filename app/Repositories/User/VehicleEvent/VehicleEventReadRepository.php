@@ -111,9 +111,8 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
         if ($data->search !== null) {
             $term = '%'.$data->search.'%';
 
-            // Garage and postal code are intentionally NOT part of the free
-            // search (they clash with license plates): they have their own
-            // dedicated filters below.
+            // Garage / postal code stay out of the free search (they clash
+            // with license plates): dedicated filters below.
             $query->where(static function (Builder $w) use ($term): void {
                 $w->where('title', 'like', $term)
                     ->orWhere('description', 'like', $term)
@@ -136,9 +135,7 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
     }
 
     /**
-     * Distinct garage names already recorded on events, alphabetical. Feeds
-     * the form autocomplete: the list grows automatically with every saved
-     * event that carries a garage (no manual « Ajouter à la liste »).
+     * Distinct garages recorded on events, alphabetical (index-only scan).
      *
      * @return list<string>
      */

@@ -1,10 +1,7 @@
 <script setup lang="ts">
 /**
- * Single-value text input with a CONTAINS-filtered suggestion dropdown
- * (same interaction as the nature / détails rows: @mousedown.prevent keeps
- * the focus, Escape / blur closes). The typed text always stays valid; the
- * suggestions are a shortcut, never a constraint. Markup mirrors TextInput
- * (FieldLabel + same input classes) so side-by-side fields stay aligned.
+ * Free text input with a contains-filtered suggestion dropdown; markup
+ * mirrors TextInput so side-by-side fields stay aligned.
  */
 import { computed, ref, useId } from 'vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';

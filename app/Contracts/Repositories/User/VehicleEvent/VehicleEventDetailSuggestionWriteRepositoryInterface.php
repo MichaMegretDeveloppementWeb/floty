@@ -12,15 +12,12 @@ use App\Models\VehicleEventDetailSuggestion;
 interface VehicleEventDetailSuggestionWriteRepositoryInterface
 {
     /**
-     * Persists a detail line as a future suggestion (« Ajouter à la liste »).
-     * Idempotent: an existing entry matching the label (trimmed,
-     * case-insensitive) short-circuits the insert.
+     * Persists a detail line as a suggestion (idempotent, case-insensitive).
      */
     public function addSuggestion(string $label): void;
 
     /**
-     * Deletes a suggestion. Events keep their attached detail lines untouched
-     * (they live in `vehicle_event_details`).
+     * Deletes a suggestion; events keep their attached detail lines.
      */
     public function deleteSuggestion(VehicleEventDetailSuggestion $suggestion): void;
 }

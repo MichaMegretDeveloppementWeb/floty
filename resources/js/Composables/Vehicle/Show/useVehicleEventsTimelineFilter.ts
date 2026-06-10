@@ -141,8 +141,7 @@ export function useVehicleEventsTimelineFilter(
             .map((category) => ({ value: category, label: category }));
     });
 
-    // Autosuggestion of the garage filter = distinct garages actually present
-    // on this vehicle's loaded events (no extra round-trip).
+    // Distinct garages of the loaded events (no extra round-trip).
     const garageOptions = computed<string[]>(() => {
         const present = new Set<string>();
 

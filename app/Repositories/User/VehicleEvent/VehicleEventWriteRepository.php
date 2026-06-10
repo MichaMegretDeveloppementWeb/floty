@@ -63,8 +63,7 @@ final class VehicleEventWriteRepository implements VehicleEventWriteRepositoryIn
     }
 
     /**
-     * Replace the event's detail lines with the given (already composed /
-     * deduped) list, in order.
+     * Replaces the event's detail rows with the composed list, in order.
      *
      * @param  list<string>  $details
      */
