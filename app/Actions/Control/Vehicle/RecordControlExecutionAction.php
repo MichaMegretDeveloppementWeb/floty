@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Records a control execution ("Fait", Chantier B / B2). In one transaction it
  * generates the vehicle event (auto name = control name, auto natures
- * "Contrôle réglementaire" + "Suivi véhicule", unavailability per the
+ * "Contrôle réglementaire" + "Maintenance / entretien", unavailability per the
  * EFFECTIVE definition flag) and persists the execution row linked to that
  * event. The recorded date becomes the new reference for the next échéance.
  * Documents are uploaded separately by the controller (mirroring the
@@ -43,10 +43,10 @@ final readonly class RecordControlExecutionAction
             [$name, $impliesUnavailability] = $this->resolveTarget($data);
 
             // A control execution always carries the natures « Contrôle
-            // réglementaire » (its specific axis) + « Suivi véhicule » (the
-            // shared upkeep family), plus the user's additions from the modal.
-            // CreateVehicleEventAction recomposes (trim + dedup).
-            $categories = EventCategoryList::compose(['Contrôle réglementaire', 'Suivi véhicule'], $data->categories);
+            // réglementaire » (its specific axis) + « Maintenance / entretien »
+            // (the shared upkeep family), plus the user's additions from the
+            // modal. CreateVehicleEventAction recomposes (trim + dedup).
+            $categories = EventCategoryList::compose(['Contrôle réglementaire', 'Maintenance / entretien'], $data->categories);
 
             $event = $this->createEvent->execute(new StoreVehicleEventData(
                 vehicleId: $data->vehicleId,

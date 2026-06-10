@@ -26,11 +26,9 @@ final class EventNatureCatalog
     /** @var list<string> */
     public const array NON_REDUCTIVE = [
         'Maintenance / entretien',
-        'Sinistre avec réparation',
-        'Fourrière (demande privée)',
+        'Sinistre',
         'Vol',
         'Contrôle réglementaire',
-        'Suivi véhicule',
         'Cycle de vie',
         'Administratif',
     ];

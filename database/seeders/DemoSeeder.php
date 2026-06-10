@@ -1212,7 +1212,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EG-007-GG'],
             title: 'Fourrière privée',
-            categories: ['Fourrière (demande privée)'],
+            categories: ['Administratif'],
             startDate: '2025-05-12',
             endDate: '2025-05-19',
             description: 'Fourrière privée 7j 2025 · NON réductrice.',
@@ -1236,7 +1236,7 @@ final class DemoSeeder extends Seeder
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire', 'Suivi véhicule'],
+            categories: ['Contrôle réglementaire', 'Maintenance / entretien'],
             amountCents: 8500,
         );
 
@@ -1244,7 +1244,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['EL-012-LL'],
             title: 'Réparation après sinistre',
-            categories: ['Sinistre avec réparation'],
+            categories: ['Sinistre'],
             startDate: '2025-07-22',
             endDate: '2025-08-04',
             description: 'Réparation accident 14j 2025 · NON réductrice.',
@@ -1379,7 +1379,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-09-16',
             description: 'CT 2026.',
             title: 'Contrôle technique',
-            categories: ['Contrôle réglementaire', 'Suivi véhicule'],
+            categories: ['Contrôle réglementaire', 'Maintenance / entretien'],
             amountCents: 8500,
         );
 
@@ -1388,7 +1388,7 @@ final class DemoSeeder extends Seeder
         // nouvelle taxonomie (titre = type, catégorie = vraie famille).
         // ----------------------------------------------------------------
 
-        // Entretien courant avec coût + catégorie métier ajoutée (Suivi véhicule auto).
+        // Entretien courant avec coût + nature métier ajoutée (Pneus).
         $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
             title: 'Entretien courant',
@@ -1406,7 +1406,7 @@ final class DemoSeeder extends Seeder
             endDate: '2026-05-20',
             description: 'Nettoyage intérieur + extérieur avant remise en location.',
             title: 'Nettoyage complet',
-            categories: ['Suivi véhicule'],
+            categories: ['Maintenance / entretien'],
             amountCents: 9000,
         );
 
@@ -1428,7 +1428,7 @@ final class DemoSeeder extends Seeder
             startDate: '2026-06-02',
             endDate: '2026-06-09',
             description: 'Réparation carrosserie aile avant droite.',
-            categories: ['Sinistre avec réparation', 'Carrosserie'],
+            categories: ['Sinistre', 'Carrosserie'],
             amountCents: 210000,
         );
 
@@ -1436,7 +1436,7 @@ final class DemoSeeder extends Seeder
         $this->createVehicleEvent(
             vehicle: $vehicles['FU-047-UU'],
             title: 'Réparation après sinistre',
-            categories: ['Sinistre avec réparation'],
+            categories: ['Sinistre'],
             startDate: '2026-04-08',
             endDate: '2026-04-22',
             description: 'Réparation accident 15j · NON réductrice + E85 abat actif.',
@@ -1451,7 +1451,7 @@ final class DemoSeeder extends Seeder
                 startDate: '2026-03-15',
                 endDate: null,
                 description: 'Réparation longue · expertise litige en cours · sans date de fin connue.',
-                categories: ['Sinistre avec réparation'],
+                categories: ['Sinistre'],
             );
         }
     }
