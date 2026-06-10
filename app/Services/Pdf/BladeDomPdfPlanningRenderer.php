@@ -107,6 +107,7 @@ final readonly class BladeDomPdfPlanningRenderer implements PlanningPdfRendererI
             'pollutantCategory' => $row->pollutantCategory->label(),
             'firstRegistration' => $this->formatDateFr($row->firstFrenchRegistrationDate),
             'weeks' => $row->weeks,
+            'weeksOutOfFleet' => $row->weeksOutOfFleet,
             'daysTotal' => $row->daysTotal,
             'fullYearTax' => $this->formatEuros($row->fullYearTax, 0),
             'annualTaxDue' => $this->formatEuros($row->annualTaxDue, 0),

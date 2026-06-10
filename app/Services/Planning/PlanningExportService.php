@@ -17,6 +17,7 @@ use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Support\Date\IsoWeeks;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 
 /**
  * Assembles the render context for a planning PDF export, scoped to the
@@ -118,6 +119,7 @@ final readonly class PlanningExportService
                 pollutantCategory: $fiscal->pollutant_category,
                 firstFrenchRegistrationDate: $vehicle->first_french_registration_date->toDateString(),
                 weeks: $weeks,
+                weeksOutOfFleet: $this->weeksOutOfFleet($vehicle->exit_date, $year, $weeksCount),
                 daysTotal: array_sum($weeks),
                 fullYearTax: $fullYearTax,
                 annualTaxDue: $annualTaxDue,
@@ -160,5 +162,37 @@ final readonly class PlanningExportService
             static fn (string $key): bool => str_ends_with($key, '|'.$companyId),
             ARRAY_FILTER_USE_KEY,
         ));
+    }
+
+    /**
+     * Per-week (0-based) "out of fleet" flags for the complete-grid greying.
+     * Mirrors the heatmap's `isCellAfterExit`: a week is out only when its
+     * number is strictly greater than the ISO week of the exit date (the
+     * exit week itself stays in fleet), scoped to the exit year (before the
+     * year · all out; after · none).
+     *
+     * @return list<bool>
+     */
+    private function weeksOutOfFleet(?CarbonInterface $exitDate, int $year, int $weeksCount): array
+    {
+        if ($exitDate === null) {
+            return array_fill(0, $weeksCount, false);
+        }
+
+        $exitYear = (int) $exitDate->year;
+        if ($exitYear < $year) {
+            return array_fill(0, $weeksCount, true);
+        }
+        if ($exitYear > $year) {
+            return array_fill(0, $weeksCount, false);
+        }
+
+        $exitIsoWeek = (int) $exitDate->isoWeek;
+        $flags = [];
+        for ($w = 1; $w <= $weeksCount; $w++) {
+            $flags[] = $w > $exitIsoWeek;
+        }
+
+        return $flags;
     }
 }

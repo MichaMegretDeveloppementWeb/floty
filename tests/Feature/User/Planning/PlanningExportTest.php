@@ -141,6 +141,36 @@ final class PlanningExportTest extends TestCase
         self::assertStringContainsString('€', $html);
         // « Flotte entière » a été retiré (trompeur sur une sélection).
         self::assertStringNotContainsString('Flotte entière', $html);
+        // Aucun véhicule sorti dans ce jeu · pas de légende ni de cellule grisée.
+        self::assertStringNotContainsString('Cases grisées', $html);
+    }
+
+    #[Test]
+    public function complete_grise_les_semaines_hors_flotte_apres_sortie(): void
+    {
+        $year = 2026;
+        $vehicle = Vehicle::factory()->create([
+            'exit_date' => "{$year}-04-30",
+            'exit_reason' => VehicleExitReason::Sold,
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $data = $this->app->make(PlanningExportService::class)->build(new PlanningExportRequestData(
+            vehicleIds: [$vehicle->id],
+            year: $year,
+            mode: PlanningExportMode::Complete,
+            companyId: null,
+        ));
+
+        // Sortie en semaine ISO ~18 · semaine 1 en flotte, dernière hors flotte.
+        $flags = $data->rows[0]->weeksOutOfFleet;
+        self::assertCount(53, $flags);
+        self::assertFalse($flags[0]);
+        self::assertTrue($flags[52]);
+
+        $html = $this->app->make(BladeDomPdfPlanningRenderer::class)->renderHtml($data);
+        self::assertStringContainsString('week out', $html);
+        self::assertStringContainsString('Cases grisées', $html);
     }
 
     #[Test]

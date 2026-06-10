@@ -65,6 +65,17 @@
         td.identity .plate { display: block; font-weight: bold; font-size: 7.5pt; white-space: nowrap; }
         td.identity .vlabel { display: block; font-size: 6pt; color: #64748b; white-space: nowrap; }
         td.week.empty { color: #cbd5e1; }
+        td.week.out { background: #e2e8f0; }
+        .grid-legend { margin-top: 2.5mm; font-size: 7pt; color: #64748b; }
+        .grid-legend .legend-swatch {
+            display: inline-block;
+            width: 3mm;
+            height: 2.2mm;
+            background: #e2e8f0;
+            border: 0.4pt solid #cbd5e1;
+            vertical-align: middle;
+            margin-right: 1mm;
+        }
         .empty-state { font-size: 10pt; color: #64748b; margin-top: 6mm; }
     </style>
 </head>
@@ -93,8 +104,8 @@
                             <span class="plate">{{ $row['licensePlate'] }}</span>
                             <span class="vlabel">{{ $row['vehicleLabelShort'] }} · {{ $row['userTypeShort'] }}</span>
                         </td>
-                        @foreach ($row['weeks'] as $days)
-                            <td class="week {{ $days > 0 ? '' : 'empty' }}"><span class="wk">{{ $days > 0 ? $days : '' }}</span></td>
+                        @foreach ($row['weeks'] as $weekIdx => $days)
+                            <td class="week {{ ($row['weeksOutOfFleet'][$weekIdx] ?? false) ? 'out' : ($days > 0 ? '' : 'empty') }}"><span class="wk">{{ $days > 0 ? $days : '' }}</span></td>
                         @endforeach
                         <td class="num">{{ $row['daysTotal'] }}</td>
                         <td class="num">{{ $row['fullYearTax'] }}</td>
@@ -103,6 +114,9 @@
                 @endforeach
             </tbody>
         </table>
+        @if (collect($rows)->contains(fn (array $r): bool => $r['exitDate'] !== null))
+            <p class="grid-legend"><span class="legend-swatch"></span>Cases grisées : véhicule hors flotte (après la date de sortie).</p>
+        @endif
     @endif
 </body>
 </html>
