@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             VehicleEventNatureSeeder::class,
+            VehicleEventDetailSuggestionSeeder::class,
             DemoSeeder::class,
             FiscalRulesSeeder::class,
         ]);

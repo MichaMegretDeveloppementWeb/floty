@@ -37,6 +37,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Demo dataset for fiscal year 2024.
@@ -48,6 +49,17 @@ final class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // Hard guard: this seeder purges and replaces business data (events,
+        // contracts, vehicles...). Running it against production would
+        // destroy real client data, so it fails loudly there · use the
+        // targeted seeders (natures, détails, fiscal rules) instead.
+        if (app()->isProduction()) {
+            throw new RuntimeException(
+                'DemoSeeder est interdit en production : il purge et remplace les données métier. '
+                .'Lancer uniquement les seeders ciblés (VehicleEventNatureSeeder, VehicleEventDetailSuggestionSeeder, FiscalRulesSeeder).',
+            );
+        }
+
         // No global DB::transaction: seedContracts tolerates per-row overlap
         // failures via try-catch; a transaction would silently roll back the
         // whole insert batch.

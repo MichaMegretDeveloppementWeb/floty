@@ -229,4 +229,23 @@ final class DemoSeederSmokeTest extends TestCase
         $this->assertSame(4, $ct->initial_duration_value);
         $this->assertSame(2, $ct->cycle_value);
     }
+
+    #[Test]
+    public function le_demo_seeder_refuse_de_tourner_en_production(): void
+    {
+        // Garde-fou critique : le seeder purge les donnees metier ; un
+        // `db:seed` lance par erreur sur la prod doit echouer net. Appel
+        // direct du seeder : la confirmation interactive de `db:seed` est
+        // un premier filet, le throw doit tenir meme avec `--force`.
+        $this->app['env'] = 'production';
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessageMatches('/interdit en production/');
+
+            $this->app->make(DemoSeeder::class)->run();
+        } finally {
+            $this->app['env'] = 'testing';
+        }
+    }
 }
