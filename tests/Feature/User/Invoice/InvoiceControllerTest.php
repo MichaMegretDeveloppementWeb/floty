@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\User\Invoice;
 
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleYearlyPricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -169,12 +171,52 @@ final class InvoiceControllerTest extends TestCase
     }
 
     #[Test]
-    public function generate_retourne_un_toast_pour_le_mois_courant_au_lieu_dun_500(): void
+    public function generate_reussit_pour_le_mois_en_cours(): void
+    {
+        // L'annexe du mois en cours est générable (provisoire). Le POST
+        // aboutit à une facture et un toast-success.
+        Storage::fake('local');
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 17));
+
+        try {
+            $user = User::factory()->create();
+            $company = Company::factory()->create();
+            $vehicle = Vehicle::factory()->create();
+            VehicleYearlyPricing::factory()
+                ->for($vehicle)
+                ->forYear(2026)
+                ->withRates(9_000, 50_000, 180_000)
+                ->create();
+            Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+                'start_date' => '2026-05-01', 'end_date' => '2026-05-10',
+            ]);
+
+            $this->actingAs($user)
+                ->post('/app/invoices/generate', [
+                    'company_id' => $company->id,
+                    'year' => 2026,
+                    'month' => 5,
+                ])
+                ->assertRedirect()
+                ->assertSessionHas('toast-success');
+
+            $this->assertDatabaseHas('invoices', [
+                'company_id' => $company->id,
+                'year' => 2026,
+                'month' => 5,
+            ]);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
+    public function generate_retourne_un_toast_pour_un_mois_futur_au_lieu_dun_500(): void
     {
         // Garde-fou défense en profondeur · le bouton « Générer » est
-        // masqué côté UI pour le mois courant / les mois futurs, mais
-        // un POST forgé doit aboutir à un toast-error propre plutôt
-        // qu'à un 500 brut (incident prod 2026-05-17 · 500 sur Mai).
+        // masqué côté UI pour les mois à venir, mais un POST forgé doit
+        // aboutir à un toast-error propre plutôt qu'à un 500 brut
+        // (incident prod 2026-05-17 · 500 sur un mois non générable).
         CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 17));
 
         try {
@@ -185,10 +227,10 @@ final class InvoiceControllerTest extends TestCase
                 ->post('/app/invoices/generate', [
                     'company_id' => $company->id,
                     'year' => 2026,
-                    'month' => 5,
+                    'month' => 7,
                 ])
                 ->assertRedirect()
-                ->assertSessionHas('toast-error', fn (string $message): bool => str_contains($message, 'mois non écoulé'));
+                ->assertSessionHas('toast-error', fn (string $message): bool => str_contains($message, 'mois à venir'));
         } finally {
             CarbonImmutable::setTestNow();
         }

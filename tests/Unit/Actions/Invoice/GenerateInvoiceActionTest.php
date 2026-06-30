@@ -180,16 +180,24 @@ final class GenerateInvoiceActionTest extends TestCase
     }
 
     #[Test]
-    public function refuse_la_generation_pour_le_mois_en_cours(): void
+    public function genere_une_facture_provisoire_pour_le_mois_en_cours(): void
     {
-        // Une facture ne se génère qu'à mois écoulé.
+        // L'annexe du mois en cours est générable (provisoire, régénérable).
         CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
         $user = User::factory()->create();
         $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleYearlyPricing::factory()
+            ->for($vehicle)
+            ->forYear(2026)
+            ->withRates(9_000, 50_000, 180_000)
+            ->create();
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-05-01', 'end_date' => '2026-05-10',
+        ]);
 
         try {
-            $this->expectException(DomainException::class);
-            $this->action->execute(
+            $invoice = $this->action->execute(
                 companyId: $company->id,
                 year: 2026,
                 month: 5,
@@ -199,6 +207,16 @@ final class GenerateInvoiceActionTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'company_id' => $company->id,
+            'year' => 2026,
+            'month' => 5,
+            'invoice_number' => '2026-05-0001',
+        ]);
+        $this->assertCount(1, $invoice->lines);
+        $this->assertSame(10, $invoice->lines[0]->days_used);
     }
 
     #[Test]

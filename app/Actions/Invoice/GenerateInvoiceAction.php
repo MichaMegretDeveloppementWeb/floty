@@ -66,13 +66,14 @@ final readonly class GenerateInvoiceAction
         int $generatedByUserId,
         array $issuer,
     ): Invoice {
-        // Defence-in-depth guard: an invoice may only be generated for
-        // a fully elapsed month. The `PendingInvoicesResolver` already
-        // filters the UI; this closes the door on direct POST/scripts.
+        // Defence-in-depth guard: an invoice may be generated for the
+        // current month (provisional, regenerable later) or any elapsed
+        // month, but never for a future month. Closes the door on direct
+        // POST/scripts; the UI button enforces the same bound.
         $now = CarbonImmutable::now();
-        if ($year > $now->year || ($year === $now->year && $month >= $now->month)) {
+        if ($year > $now->year || ($year === $now->year && $month > $now->month)) {
             throw new DomainException(sprintf(
-                'Une facture ne peut pas être générée pour un mois non écoulé (%04d-%02d).',
+                'Une facture ne peut pas être générée pour un mois à venir (%04d-%02d).',
                 $year,
                 $month,
             ));

@@ -20,7 +20,7 @@ const props = defineProps<{
     month: number;
     daysUsed: number;
     hasMissingPricing: boolean;
-    /** Current civil year/month used as a UI guard against future/current month invoicing. */
+    /** Current civil year/month used as a UI guard against future month invoicing. */
     currentRealYear: number;
     currentRealMonth: number;
     /** Set iff an invoice already exists for this month. */
@@ -74,17 +74,22 @@ const hasDivergence = computed<boolean>(() => {
     return false;
 });
 
-/** True iff the month is strictly before the current civil month. */
-const isPastMonth = computed<boolean>(
-    () => props.year < props.currentRealYear
-        || (props.year === props.currentRealYear && props.month < props.currentRealMonth),
+/** True iff the month is strictly after the current civil month (never invoiceable). */
+const isFutureMonth = computed<boolean>(
+    () => props.year > props.currentRealYear
+        || (props.year === props.currentRealYear && props.month > props.currentRealMonth),
+);
+
+/** True iff the month is the running civil month (invoiceable but provisional). */
+const isCurrentMonth = computed<boolean>(
+    () => props.year === props.currentRealYear && props.month === props.currentRealMonth,
 );
 
 const generateDisabled = computed<boolean>(
     () => processing.value
         || props.daysUsed === 0
         || props.hasMissingPricing
-        || !isPastMonth.value,
+        || isFutureMonth.value,
 );
 
 const generateTooltip = computed<string>(() => {
@@ -94,6 +99,10 @@ const generateTooltip = computed<string>(() => {
 
     if (props.daysUsed === 0) {
         return 'Aucune utilisation ce mois-ci.';
+    }
+
+    if (isCurrentMonth.value) {
+        return 'Générer l\'annexe provisoire du mois en cours (régénérable ensuite).';
     }
 
     return 'Générer l\'annexe';
@@ -159,7 +168,7 @@ function regenerate(): void {
             <template #content>Régénérer l'annexe avec les données actuelles</template>
         </Tooltip>
 
-        <Tooltip v-if="!hasExisting && isPastMonth" max-width="18rem">
+        <Tooltip v-if="!hasExisting && !isFutureMonth" max-width="18rem">
             <button
                 type="button"
                 :disabled="generateDisabled"
