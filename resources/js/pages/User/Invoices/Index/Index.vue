@@ -4,8 +4,11 @@
  * companyId / year / month filters and number/company search.
  */
 import { Head } from '@inertiajs/vue3';
+import { Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import CompanyYearPickerModal from '@/Components/Domain/Company/CompanyYearPickerModal.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
@@ -28,6 +31,7 @@ const props = defineProps<{
 }>();
 
 const filtersOpen = ref<boolean>(false);
+const pickerOpen = ref<boolean>(false);
 
 const companyOptions = computed(() => props.options.companies);
 
@@ -101,18 +105,31 @@ const monthOptions: { value: number | null; label: string }[] = [
                         figé à l'émission, non modifiable.
                     </p>
                 </div>
+                <Button @click="pickerOpen = true">
+                    <template #icon-left>
+                        <Plus :size="14" :stroke-width="1.75" />
+                    </template>
+                    Générer une annexe
+                </Button>
             </header>
 
             <div
                 v-if="!props.hasAnyInvoice"
-                class="rounded-2xl border border-slate-200 bg-white p-12 text-center"
+                class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-12 text-center"
             >
                 <p class="text-sm font-medium text-slate-700">
                     Aucune annexe émise pour l'instant.
                 </p>
-                <p class="mt-1 text-xs text-slate-500">
-                    Générez une annexe de facture mensuelle depuis la fiche d'une entreprise.
+                <p class="max-w-md text-xs text-slate-500">
+                    Choisissez une entreprise et un exercice pour ouvrir sa
+                    facturation mensuelle, puis générer l'annexe du mois voulu.
                 </p>
+                <Button @click="pickerOpen = true">
+                    <template #icon-left>
+                        <Plus :size="14" :stroke-width="1.75" />
+                    </template>
+                    Générer une annexe
+                </Button>
             </div>
 
             <template v-else>
@@ -189,6 +206,15 @@ const monthOptions: { value: number | null; label: string }[] = [
                     @per-page-change="tableState.state.setPerPage"
                 />
             </template>
+
+            <CompanyYearPickerModal
+                v-model:open="pickerOpen"
+                target="billing"
+                default-year="current"
+                title="Générer une annexe"
+                description="Choisissez l'entreprise et l'exercice à facturer."
+                submit-label="Ouvrir la facturation"
+            />
         </div>
     </UserLayout>
 </template>

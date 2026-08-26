@@ -9,10 +9,18 @@ const props = withDefaults(
         description?: string;
         size?: 'sm' | 'md' | 'lg' | 'xl';
         closeOnBackdrop?: boolean;
+        /**
+         * Lets a floating child (a `SearchableSelect` panel) overlay the
+         * rest of the modal instead of being clipped by the scrollable
+         * body. The body then no longer scrolls: reserve it for short
+         * modals whose content cannot exceed the viewport.
+         */
+        overflowVisible?: boolean;
     }>(),
     {
         size: 'md',
         closeOnBackdrop: true,
+        overflowVisible: false,
     },
 );
 
@@ -87,7 +95,8 @@ const handleBackdropClick = (): void => {
             <div
                 ref="panel"
                 :class="[
-                    'relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-3xl',
+                    'relative flex max-h-[90vh] w-full flex-col rounded-2xl bg-white shadow-3xl',
+                    overflowVisible ? 'overflow-visible' : 'overflow-hidden',
                     sizeClass[size],
                 ]"
             >
@@ -116,12 +125,17 @@ const handleBackdropClick = (): void => {
                         <X :size="18" :stroke-width="1.75" />
                     </button>
                 </header>
-                <div class="flex-1 overflow-y-auto px-6 py-5">
+                <div
+                    :class="[
+                        'flex-1 px-6 py-5',
+                        overflowVisible ? '' : 'overflow-y-auto',
+                    ]"
+                >
                     <slot />
                 </div>
                 <footer
                     v-if="slots.footer"
-                    class="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/60 px-6 py-4"
+                    class="flex items-center justify-end gap-2 rounded-b-2xl border-t border-slate-200 bg-slate-50/60 px-6 py-4"
                 >
                     <slot name="footer" />
                 </footer>

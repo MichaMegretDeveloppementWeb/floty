@@ -86,6 +86,33 @@ final class AvailableYearsResolverTest extends TestCase
     }
 
     #[Test]
+    public function les_annees_de_generation_vont_du_premier_contrat_a_l_annee_courante(): void
+    {
+        $resolver = $this->makeResolver(repoBounds: ['min' => 2023, 'max' => 2024]);
+
+        self::assertSame([2023, 2024, 2025, 2026], $resolver->yearsUpToCurrent());
+    }
+
+    #[Test]
+    public function les_annees_de_generation_ignorent_un_contrat_futur(): void
+    {
+        // `availableYears()` remonte à 2028 pour les filtres d'index ;
+        // un raccourci de génération ne cible jamais un exercice à venir.
+        $resolver = $this->makeResolver(repoBounds: ['min' => 2024, 'max' => 2028]);
+
+        self::assertSame([2024, 2025, 2026, 2027, 2028], $resolver->availableYears());
+        self::assertSame([2024, 2025, 2026], $resolver->yearsUpToCurrent());
+    }
+
+    #[Test]
+    public function sans_contrat_les_annees_de_generation_se_limitent_a_l_annee_courante(): void
+    {
+        $resolver = $this->makeResolver(repoBounds: ['min' => null, 'max' => null]);
+
+        self::assertSame([2026], $resolver->yearsUpToCurrent());
+    }
+
+    #[Test]
     public function le_resultat_du_repo_est_mis_en_cache_entre_appels_successifs(): void
     {
         $repo = $this->createMock(ContractReadRepositoryInterface::class);

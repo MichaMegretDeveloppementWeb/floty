@@ -11,9 +11,9 @@ import { FileCheck2 } from 'lucide-vue-next';
             Aucune déclaration fiscale enregistrée.
         </p>
         <p class="max-w-md text-xs text-slate-500">
-            Préparez votre première déclaration depuis la fiche d'une entreprise,
-            onglet « Fiscalité ». Le bouton « Préparer la déclaration » apparaît
-            lorsqu'une année est éligible.
+            Choisissez une entreprise et un exercice clos pour ouvrir sa
+            fiscalité, puis lancer la préparation de la déclaration.
         </p>
+        <slot />
     </div>
 </template>

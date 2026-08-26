@@ -21,6 +21,7 @@ use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\Company\CompanyListingService;
+use App\Services\Company\CompanyYearPickerService;
 use App\Services\Invoice\InvoicePdfStorage;
 use App\Services\Invoice\InvoiceQueryService;
 use DomainException;
@@ -42,6 +43,7 @@ final class InvoiceController extends Controller
         private readonly InvoiceReadRepositoryInterface $invoiceRead,
         private readonly BillingSettingsReadRepositoryInterface $billingSettings,
         private readonly CompanyListingService $companyQuery,
+        private readonly CompanyYearPickerService $companyYearPicker,
     ) {}
 
     /**
@@ -61,6 +63,10 @@ final class InvoiceController extends Controller
                 'yearBounds' => $this->invoiceRead->findYearBounds(),
             ],
             'hasAnyInvoice' => $this->invoiceRead->existsAny(),
+            // Company + exercise shortcut modal. Optional so the index
+            // never pays for it: pulled by a partial reload on the first
+            // opening.
+            'companyYearPicker' => Inertia::optional(fn () => $this->companyYearPicker->build()),
         ]);
     }
 

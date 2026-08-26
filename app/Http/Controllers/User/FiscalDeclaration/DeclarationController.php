@@ -17,6 +17,7 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\FiscalDeclaration;
 use App\Models\FiscalRiskSettings;
+use App\Services\Company\CompanyYearPickerService;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
@@ -38,6 +39,7 @@ final class DeclarationController extends Controller
         private readonly FiscalDeclarationReadRepositoryInterface $reader,
         private readonly DeclarationPreviewService $previewService,
         private readonly DeclarationFiscalEngine $engine,
+        private readonly CompanyYearPickerService $companyYearPicker,
     ) {}
 
     /**
@@ -71,6 +73,10 @@ final class DeclarationController extends Controller
                 'yearBounds' => $this->reader->findYearBounds(),
             ],
             'hasAnyDeclaration' => $this->reader->existsAny(),
+            // Company + exercise shortcut modal. `options.companies`
+            // above only lists companies that already declared, so the
+            // picker needs its own list of every active company.
+            'companyYearPicker' => Inertia::optional(fn () => $this->companyYearPicker->build()),
         ]);
     }
 

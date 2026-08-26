@@ -96,6 +96,19 @@ final class AvailableYearsResolver
     }
 
     /**
+     * Continuous `[minYear, …, currentYear]` range for generation
+     * shortcuts, which never target a future exercise. Unlike
+     * {@see availableYears()}, contracts saved in advance for a coming
+     * year do not extend the upper bound.
+     *
+     * @return list<int>
+     */
+    public function yearsUpToCurrent(): array
+    {
+        return range($this->minYear(), $this->currentYear());
+    }
+
+    /**
      * Invalidates the cached bounds. Called by `ContractObserver` on
      * Contract mutations; exposed publicly for manual flushes (artisan
      * commands, exceptional flows).

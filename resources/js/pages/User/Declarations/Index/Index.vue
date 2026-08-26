@@ -4,8 +4,11 @@
  * separates the intrinsically empty case from the filtered-out case.
  */
 import { Head } from '@inertiajs/vue3';
+import { Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import CompanyYearPickerModal from '@/Components/Domain/Company/CompanyYearPickerModal.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
@@ -28,6 +31,7 @@ const props = defineProps<{
 }>();
 
 const filtersOpen = ref<boolean>(false);
+const pickerOpen = ref<boolean>(false);
 
 const tableState = useDeclarationsIndex({
     query: props.query,
@@ -91,9 +95,22 @@ const statusOptions: { value: string | null; label: string }[] = [
                         contractuel évolue.
                     </p>
                 </div>
+                <Button @click="pickerOpen = true">
+                    <template #icon-left>
+                        <Plus :size="14" :stroke-width="1.75" />
+                    </template>
+                    Préparer une déclaration
+                </Button>
             </header>
 
-            <EmptyState v-if="!props.hasAnyDeclaration" />
+            <EmptyState v-if="!props.hasAnyDeclaration">
+                <Button @click="pickerOpen = true">
+                    <template #icon-left>
+                        <Plus :size="14" :stroke-width="1.75" />
+                    </template>
+                    Préparer une déclaration
+                </Button>
+            </EmptyState>
 
             <template v-else>
                 <div class="flex flex-wrap items-center gap-3">
@@ -163,6 +180,16 @@ const statusOptions: { value: string | null; label: string }[] = [
                     @per-page-change="tableState.state.setPerPage"
                 />
             </template>
+
+            <CompanyYearPickerModal
+                v-model:open="pickerOpen"
+                target="fiscal"
+                default-year="previous"
+                title="Préparer une déclaration"
+                description="Choisissez l'entreprise et l'exercice à déclarer."
+                submit-label="Ouvrir la fiscalité"
+                year-label="Année fiscale"
+            />
         </div>
     </UserLayout>
 </template>

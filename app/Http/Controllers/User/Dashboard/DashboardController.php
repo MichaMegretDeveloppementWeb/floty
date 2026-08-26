@@ -7,6 +7,7 @@ namespace App\Http\Controllers\User\Dashboard;
 use App\Data\Shared\YearScopeData;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
+use App\Services\Company\CompanyYearPickerService;
 use App\Services\Dashboard\DashboardStatsService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ final class DashboardController extends Controller
         private readonly DashboardStatsService $stats,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
+        private readonly CompanyYearPickerService $companyYearPicker,
     ) {}
 
     /**
@@ -56,6 +58,10 @@ final class DashboardController extends Controller
             'historyRecettes' => Inertia::optional(fn () => $this->stats->computeHistoryRecettes()),
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolverAndRegistry($this->availableYears, $this->fiscalRules),
+            // Company + exercise shortcut modal carried by the pending
+            // tasks panels. Optional: pulled by a partial reload on the
+            // first opening, never on the dashboard mount.
+            'companyYearPicker' => Inertia::optional(fn () => $this->companyYearPicker->build()),
         ]);
     }
 
