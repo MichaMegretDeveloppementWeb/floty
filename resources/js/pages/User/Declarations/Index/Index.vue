@@ -79,7 +79,7 @@ const statusOptions: { value: string | null; label: string }[] = [
 </script>
 
 <template>
-    <Head title="Déclarations fiscales · Floty" />
+    <Head title="Déclarations fiscales" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">
